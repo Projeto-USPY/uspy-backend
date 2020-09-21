@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -21,13 +22,7 @@ func checkResponse(res *http.Response) {
 	}
 }
 
-// Professor represents a ICMC professor
-type Professor struct {
-	name string
-	dep  string
-}
-
-func getProfessors(dep *string, page int) []Professor {
+func getProfessors(dep *string, page int) []string {
 	icmcURL := "https://www.icmc.usp.br/templates/icmc2015/php/pessoas.php"
 	formData := url.Values{
 		"grupo":  {"Docente"},
@@ -44,14 +39,10 @@ func getProfessors(dep *string, page int) []Professor {
 	doc, err := goquery.NewDocumentFromResponse(response)
 	checkPanic(err)
 
-	results := make([]Professor, 0, 100)
+	results := make([]string, 0, 100)
 
 	doc.Find(".caption").Each(func(i int, s *goquery.Selection) {
-		prof := Professor{
-			name: s.Text(),
-			dep:  *dep,
-		}
-
+		prof := strings.TrimSpace(s.Text())
 		results = append(results, prof)
 	})
 
@@ -59,9 +50,9 @@ func getProfessors(dep *string, page int) []Professor {
 }
 
 // Scrape scrapes the professors page
-func Scrape() *map[string][]Professor {
+func Scrape() *map[string][]string {
 	deps := []string{"SCC", "SMA", "SME", "SSC"}
-	results := make(map[string][]Professor)
+	results := make(map[string][]string)
 
 	for _, dep := range deps {
 		i := 1
