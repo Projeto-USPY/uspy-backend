@@ -5,11 +5,15 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 )
+
+const jupiterURL = "https://uspdigital.usp.br/jupiterweb/"
 
 func checkPanic(err error) {
 	if err != nil {
@@ -72,26 +76,57 @@ func ScrapeDepartments() *map[string][]string {
 	return &results
 }
 
-// ScrapeCourseDescription scrapes the description of a course
-func ScrapeCourseDescription(courseCode string) (string, error) {
-	const url string = "https://uspdigital.usp.br/jupiterweb/obterDisciplina?nomdis=&sgldis=%v"
-	formattedURL := fmt.Sprintf(url, courseCode) // create course code
-	resp, err := http.Get(formattedURL)
-	checkResponse(resp)
-	checkPanic(err)
+// Subject describes a subject (example: SMA0356 - Cálculo IV)
+type Subject struct {
+	code          string
+	name          string
+	description   string
+	classCredits  int
+	assignCredits int
+	totalHours    string
+	requirements  []string
+}
 
-	defer resp.Body.Close()
+// Course represents a course/major (example: BCC)
+type Course struct {
+	name     string
+	subjects []Subject
+}
 
-	// Create goquery HTML structure
-	doc, err := goquery.NewDocumentFromResponse(resp)
-	checkPanic(err)
+func scrapeSubjectNames(doc *goquery.Document) (code, name string, e error) {
+	defer func() {
+		if r := recover(); r != nil {
+			code, name, e = "", "", fmt.Errorf("Error getting subject name or code: %v", r)
+		}
+	}()
 
-	// Returns error telling that course is invalid or not yet activated
+	doc.Find("b").Each(func(i int, s *goquery.Selection) {
+		text := strings.TrimSpace(s.Text())
+
+		if strings.HasPrefix(text, "Disciplina:") {
+			names := strings.Split(text, "-")
+
+			code = strings.TrimSpace(names[0])
+			name = strings.TrimSpace(names[1])
+
+			// Remove "Disciplina:"
+			code = strings.TrimSpace(strings.Split(code, ":")[1])
+			e = nil
+
+			return
+		}
+	})
+
+	return code, name, e
+}
+
+func scrapeSubjectDescription(doc *goquery.Document) (string, error) {
+	// Returns error telling that subject is invalid or not yet activated
 	if doc.Find("#web_mensagem").Length() > 0 {
-		return "", fmt.Errorf("Wasn't able to find course named %v", courseCode)
+		return "", fmt.Errorf("Wasn't able to find subject")
 	}
 
-	// To parse course description, get <b> element with content "Objetivos" and course description will be on next <tr>
+	// To parse subject description, get <b> element with content "Objetivos" and subject description will be on next <tr>
 	var objetivosNode *goquery.Selection = nil
 	doc.Find("b").Each(func(i int, s *goquery.Selection) {
 		html, err := s.Html() // get inner html
@@ -112,4 +147,180 @@ func ScrapeCourseDescription(courseCode string) (string, error) {
 	desc := strings.Trim(descriptionTr.Text(), " \n")
 
 	return desc, nil
+}
+
+func scrapeSubjectStats(doc *goquery.Document) (class, assign int, total string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			class, assign, total = -1, -1, ""
+			err = fmt.Errorf("Couldnt get subject stats: %v", r)
+		}
+	}()
+
+	/* This is a really bad way of getting these (getting first 3 matches), but I dont think
+	this terrible website will ever change its terrible design, so it will probably
+	continue to work, if the stats break, fix this please.
+	*/
+
+	search := doc.Find("tr[valign=\"TOP\"][align=\"LEFT\"] > td > font > span[class=\"txt_arial_8pt_gray\"]")
+	classCredits := strings.TrimSpace(search.Eq(0).Text())
+	class, _ = strconv.Atoi(classCredits)
+
+	assignCredits := strings.TrimSpace(search.Eq(1).Text())
+	assign, _ = strconv.Atoi(assignCredits)
+
+	totalHours := strings.Trim(search.Eq(2).Text(), " \n\t")
+	space := regexp.MustCompile(`\s+`)
+	total = space.ReplaceAllString(totalHours, " ")
+
+	return class, assign, total, nil
+}
+
+func scrapeSubjectRequirements(doc *goquery.Document) (reqs []string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Couldnt get subject requirements: %v", r)
+		}
+	}()
+
+	return []string{}, nil
+}
+
+func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup) {
+	defer wg.Done()
+	resp, err := http.Get(jupiterURL + subjectURL)
+
+	checkPanic(err)
+	checkResponse(resp)
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromResponse(resp)
+	checkPanic(err)
+
+	// subject has to have a name / code otherwise panic
+	subCode, subName, err := scrapeSubjectNames(doc)
+	checkPanic(err)
+
+	subDesc, err := scrapeSubjectDescription(doc)
+
+	if err != nil {
+		log.Printf("Error getting %v description\n", subCode)
+	}
+
+	subClass, subAssign, subTotal, err := scrapeSubjectStats(doc)
+
+	if err != nil {
+		log.Printf("Error getting %v stats\n", subCode)
+	}
+
+	requirementsURL := "https://uspdigital.usp.br/jupiterweb/listarCursosRequisitos?coddis=%v"
+	reqURL := fmt.Sprintf(requirementsURL, subCode)
+
+	reqResp, err := http.Get(reqURL)
+	checkPanic(err)
+	checkResponse(reqResp)
+
+	defer reqResp.Body.Close()
+	reqDoc, err := goquery.NewDocumentFromResponse(reqResp)
+	checkPanic(err)
+
+	subRequirements, err := scrapeSubjectRequirements(reqDoc)
+
+	if err != nil {
+		log.Printf("Error getting %v requirements\n", subCode)
+	}
+
+	subject := Subject{
+		code:          subCode,
+		name:          subName,
+		description:   subDesc,
+		classCredits:  subClass,
+		assignCredits: subAssign,
+		totalHours:    subTotal,
+		requirements:  subRequirements,
+	}
+
+	results <- subject
+}
+
+// GetSubjects scrapes all subjects from a course page
+func GetSubjects(courseURL string) ([]Subject, error) {
+	resp, err := http.Get(courseURL)
+	checkPanic(err)
+	checkResponse(resp)
+
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromResponse(resp)
+	checkPanic(err)
+
+	subOjects := doc.Find("td > .link_gray")
+
+	if subOjects.Length() == 0 {
+		return []Subject{}, fmt.Errorf("Invalid courseURL")
+	}
+
+	c := make(chan Subject, 200)
+	wg := &sync.WaitGroup{}
+
+	subOjects.Each(func(i int, s *goquery.Selection) {
+		subjectURL, exists := s.Attr("href")
+
+		if !exists {
+			log.Printf("%s has no subject page", strings.TrimSpace(s.Text()))
+		}
+
+		wg.Add(1)
+		go scrapeSubject(subjectURL, c, wg)
+	})
+
+	var results []Subject
+	wg.Wait()
+	close(c)
+
+	for subj := range c {
+		results = append(results, subj)
+	}
+
+	return results, nil
+}
+
+// ScrapeICMC scrapes the whole institute (every course)
+func ScrapeICMC() (courses []Course, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Error scraping ICMC courses: %v", r)
+		}
+	}()
+
+	allCoursesURL := jupiterURL + "jupCursoLista?codcg=55&tipo=N"
+	resp, err := http.Get(allCoursesURL)
+
+	checkPanic(err)
+	checkResponse(resp)
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromResponse(resp)
+	checkPanic(err)
+
+	doc.Find("td[valign=\"top\"] a.link_gray").Each(func(i int, s *goquery.Selection) {
+		courseURL, exists := s.Attr("href")
+
+		if !exists {
+			panic("Couldnt fetch course")
+		}
+
+		subjects, err := GetSubjects(jupiterURL + courseURL)
+		checkPanic(err)
+
+		courseName := strings.TrimSpace(s.Text())
+		courseObj := Course{
+			name:     courseName,
+			subjects: subjects,
+		}
+
+		courses = append(courses, courseObj)
+	})
+
+	return courses, nil
 }

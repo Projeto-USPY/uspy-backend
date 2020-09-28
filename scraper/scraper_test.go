@@ -10,9 +10,10 @@ func TestScrapeDepartments(t *testing.T) {
 	fmt.Println(result)
 }
 
-func TestScrapeCourseDescription(t *testing.T) {
+/*
+func TestScrapeSubjectDescription(t *testing.T) {
 	var course string = "SCC0200"
-	desc, err := ScrapeCourseDescription(course)
+	desc, err := ScrapeSubjectDescription(course)
 	if err != nil {
 		t.Error(err)
 	} else {
@@ -20,9 +21,22 @@ func TestScrapeCourseDescription(t *testing.T) {
 	}
 
 	course = "SCC1234"
-	desc, err = ScrapeCourseDescription(course)
+	desc, err = ScrapeSubjectDescription(course)
 	if err != nil {
 		t.Log(err)
+	} else {
+		t.Fail()
+	}
+}
+*/
+
+func TestScrapeICMC(t *testing.T) {
+	courses, err := ScrapeICMC()
+
+	if err == nil {
+		for _, c := range courses {
+			fmt.Println(c.name, len(c.subjects))
+		}
 	} else {
 		t.Fail()
 	}
