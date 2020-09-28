@@ -78,19 +78,19 @@ func ScrapeDepartments() *map[string][]string {
 
 // Subject describes a subject (example: SMA0356 - Cálculo IV)
 type Subject struct {
-	code          string
-	name          string
-	description   string
-	classCredits  int
-	assignCredits int
-	totalHours    string
-	requirements  []string
+	Code          string
+	Name          string
+	Description   string
+	ClassCredits  int
+	AssignCredits int
+	TotalHours    string
+	Requirements  []string
 }
 
 // Course represents a course/major (example: BCC)
 type Course struct {
-	name     string
-	subjects []Subject
+	Name     string
+	Subjects []Subject
 }
 
 func scrapeSubjectNames(doc *goquery.Document) (code, name string, e error) {
@@ -231,13 +231,13 @@ func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup
 	}
 
 	subject := Subject{
-		code:          subCode,
-		name:          subName,
-		description:   subDesc,
-		classCredits:  subClass,
-		assignCredits: subAssign,
-		totalHours:    subTotal,
-		requirements:  subRequirements,
+		Code:          subCode,
+		Name:          subName,
+		Description:   subDesc,
+		ClassCredits:  subClass,
+		AssignCredits: subAssign,
+		TotalHours:    subTotal,
+		Requirements:  subRequirements,
 	}
 
 	results <- subject
@@ -315,8 +315,8 @@ func ScrapeICMC() (courses []Course, err error) {
 
 		courseName := strings.TrimSpace(s.Text())
 		courseObj := Course{
-			name:     courseName,
-			subjects: subjects,
+			Name:     courseName,
+			Subjects: subjects,
 		}
 
 		courses = append(courses, courseObj)
