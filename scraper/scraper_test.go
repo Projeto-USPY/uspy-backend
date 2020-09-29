@@ -4,22 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strconv"
-	"strings"
 	"testing"
 )
 
 func TestScrapeDepartments(t *testing.T) {
 	result := ScrapeDepartments()
 	fmt.Println(result)
-}
-
-func _UnescapeUnicodeCharactersInJSON(_jsonRaw json.RawMessage) (json.RawMessage, error) {
-	str, err := strconv.Unquote(strings.Replace(strconv.Quote(string(_jsonRaw)), `\\u`, `\u`, -1))
-	if err != nil {
-		return nil, err
-	}
-	return []byte(str), nil
 }
 
 func TestScrapeICMC(t *testing.T) {
@@ -35,7 +25,6 @@ func TestScrapeICMC(t *testing.T) {
 		fmt.Println(err)
 		t.Fail()
 	} else {
-		fixedBytes, _ := _UnescapeUnicodeCharactersInJSON(bytes)
-		ioutil.WriteFile("courses.json", fixedBytes, 6444)
+		ioutil.WriteFile("courses.json", bytes, 0644)
 	}
 }

@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html/charset"
 )
 
 const jupiterURL = "https://uspdigital.usp.br/jupiterweb/"
@@ -27,6 +29,36 @@ func checkResponse(res *http.Response) {
 	}
 }
 
+// Returns HTTP response and io.Reader from http.Get, which should substitute http.Body, so characters are read with UTF-8 encoding
+// Already panics if error, remember to close response.Body
+func httpGetWithUTF8(url string) (*http.Response, io.Reader) {
+	resp, err := http.Get(url)
+
+	checkPanic(err)
+	checkResponse(resp)
+
+	reader, err := charset.NewReader(resp.Body, resp.Header["Content-Type"][0])
+
+	checkPanic(err)
+
+	return resp, reader
+}
+
+// Returns HTTP response and io.Reader from http.Post, which should substitute http.Body, so characters are read with UTF-8 encoding
+// Already panics if error, remember to close response.Body
+func httpPostWithUTF8(url string, values url.Values) (*http.Response, io.Reader) {
+	resp, err := http.PostForm(url, values)
+
+	checkPanic(err)
+	checkResponse(resp)
+
+	reader, err := charset.NewReader(resp.Body, resp.Header["Content-Type"][0])
+
+	checkPanic(err)
+
+	return resp, reader
+}
+
 func getProfessors(dep *string, page int) []string {
 	icmcURL := "https://www.icmc.usp.br/templates/icmc2015/php/pessoas.php"
 	formData := url.Values{
@@ -36,12 +68,10 @@ func getProfessors(dep *string, page int) []string {
 		"pagina": {strconv.Itoa(page)},
 	}
 
-	response, err := http.PostForm(icmcURL, formData)
-	checkPanic(err)
-	checkResponse(response)
+	response, body := httpPostWithUTF8(icmcURL, formData)
 	defer response.Body.Close()
 
-	doc, err := goquery.NewDocumentFromResponse(response)
+	doc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
 	results := make([]string, 0, 100)
@@ -188,40 +218,39 @@ func scrapeSubjectRequirements(doc *goquery.Document) (reqs []string, err error)
 
 func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup) {
 	defer wg.Done()
-	resp, err := http.Get(jupiterURL + subjectURL)
 
-	checkPanic(err)
-	checkResponse(resp)
+	resp, body := httpGetWithUTF8(jupiterURL + subjectURL)
 	defer resp.Body.Close()
 
-	doc, err := goquery.NewDocumentFromResponse(resp)
+	doc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
 	// subject has to have a name / code otherwise panic
 	subCode, subName, err := scrapeSubjectNames(doc)
 	checkPanic(err)
 
+	// Get subject description text
 	subDesc, err := scrapeSubjectDescription(doc)
 
 	if err != nil {
 		log.Printf("Error getting %v description\n", subCode)
 	}
 
+	// Get subject stats, such as class credits, work credits etc
 	subClass, subAssign, subTotal, err := scrapeSubjectStats(doc)
 
 	if err != nil {
 		log.Printf("Error getting %v stats\n", subCode)
 	}
 
+	// Get requirements of subject
 	requirementsURL := "https://uspdigital.usp.br/jupiterweb/listarCursosRequisitos?coddis=%v"
 	reqURL := fmt.Sprintf(requirementsURL, subCode)
 
-	reqResp, err := http.Get(reqURL)
-	checkPanic(err)
-	checkResponse(reqResp)
-
+	reqResp, body := httpGetWithUTF8(reqURL)
 	defer reqResp.Body.Close()
-	reqDoc, err := goquery.NewDocumentFromResponse(reqResp)
+
+	reqDoc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
 	subRequirements, err := scrapeSubjectRequirements(reqDoc)
@@ -245,13 +274,11 @@ func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup
 
 // GetSubjects scrapes all subjects from a course page
 func GetSubjects(courseURL string) ([]Subject, error) {
-	resp, err := http.Get(courseURL)
-	checkPanic(err)
-	checkResponse(resp)
+	resp, body := httpGetWithUTF8(courseURL)
 
 	defer resp.Body.Close()
 
-	doc, err := goquery.NewDocumentFromResponse(resp)
+	doc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
 	subOjects := doc.Find("td > .link_gray")
@@ -294,13 +321,11 @@ func ScrapeICMC() (courses []Course, err error) {
 	}()
 
 	allCoursesURL := jupiterURL + "jupCursoLista?codcg=55&tipo=N"
-	resp, err := http.Get(allCoursesURL)
+	resp, body := httpGetWithUTF8(allCoursesURL)
 
-	checkPanic(err)
-	checkResponse(resp)
 	defer resp.Body.Close()
 
-	doc, err := goquery.NewDocumentFromResponse(resp)
+	doc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
 	doc.Find("td[valign=\"top\"] a.link_gray").Each(func(i int, s *goquery.Selection) {
