@@ -4,12 +4,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sync"
 	"testing"
 )
 
 func TestScrapeDepartments(t *testing.T) {
 	result := ScrapeDepartments()
 	fmt.Println(result)
+}
+
+func TestScrapeSubject(t *testing.T) {
+	wg := &sync.WaitGroup{}
+	c := make(chan Subject, 200)
+
+	wg.Add(1)
+	go scrapeSubject(`/obterDisciplina?sgldis=SCC0219&codcur=55041&codhab=0`, c, wg)
+
+	subj := <-c
+
+	fmt.Printf("%+v", subj)
 }
 
 func TestScrapeICMC(t *testing.T) {

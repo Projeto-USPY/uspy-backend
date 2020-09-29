@@ -206,14 +206,28 @@ func scrapeSubjectStats(doc *goquery.Document) (class, assign int, total string,
 	return class, assign, total, nil
 }
 
-func scrapeSubjectRequirements(doc *goquery.Document) (reqs []string, err error) {
+func scrapeSubjectRequirements(doc *goquery.Document, subCode string) (reqs []string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Couldnt get subject requirements: %v", r)
 		}
 	}()
 
-	return []string{}, nil
+	text := doc.Find("body").Text()
+	re := regexp.MustCompile(`([A-Z]{3}\d{4})`)
+
+	matches := re.FindAllStringSubmatch(text, -1)
+
+	seen := map[string]bool{}
+	var answer []string
+	for _, code := range matches {
+		if len(code) > 0 && code[0] != subCode && seen[code[0]] == false {
+			answer = append(answer, code[0])
+			seen[code[0]] = true
+		}
+	}
+
+	return answer, nil
 }
 
 func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup) {
@@ -253,7 +267,7 @@ func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup
 	reqDoc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
-	subRequirements, err := scrapeSubjectRequirements(reqDoc)
+	subRequirements, err := scrapeSubjectRequirements(reqDoc, subCode)
 
 	if err != nil {
 		log.Printf("Error getting %v requirements\n", subCode)
