@@ -120,6 +120,7 @@ type Subject struct {
 // Course represents a course/major (example: BCC)
 type Course struct {
 	Name     string
+	Code     string
 	Subjects []Subject
 }
 
@@ -206,31 +207,58 @@ func scrapeSubjectStats(doc *goquery.Document) (class, assign int, total string,
 	return class, assign, total, nil
 }
 
-func scrapeSubjectRequirements(doc *goquery.Document, subCode string) (reqs []string, err error) {
+func scrapeSubjectRequirements(doc *goquery.Document, subCode string, courseCode string) (reqs []string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("Couldnt get subject requirements: %v", r)
+			err = fmt.Errorf("Couldn't get subject requirements: %v", r)
 		}
 	}()
 
-	text := doc.Find("body").Text()
-	re := regexp.MustCompile(`([A-Z]{3}\d{4})`)
+	if doc.Find("#web_mensagem").Length() > 0 { // If a subject has no requirements from any course, a message with text "Esta disciplina nao tem requisitos" will appear
+		return []string{}, nil
+	}
 
-	matches := re.FindAllStringSubmatch(text, -1)
+	var trReq *goquery.Selection = nil
+	doc.Find("td").Each(func(i int, s *goquery.Selection) {
+		regexCode := regexp.MustCompile(`Curso:\s+(\d+)`) // regex to get course code
+		codeMatches := regexCode.FindStringSubmatch(s.Text())
+		if codeMatches != nil {
+			if codeMatches[1] == courseCode {
+				trReq = s.Closest("tr") // Found section where subject requirements are
+			}
+		}
+	})
 
-	seen := map[string]bool{}
+	if trReq == nil { // if didn't find section with course code, the subject has no requirements from this course
+		return []string{}, nil
+	}
+
+	seen := map[string]bool{} // map used to avoid repeated subjects in slice of requirements
 	var answer []string
-	for _, code := range matches {
-		if len(code) > 0 && code[0] != subCode && seen[code[0]] == false {
-			answer = append(answer, code[0])
-			seen[code[0]] = true
+
+	for {
+		trReq = trReq.Next()
+		re := regexp.MustCompile(`([A-Z]{3}\d{4})`) // regex to get subject code
+		text := trReq.Text()
+
+		matches := re.FindAllStringSubmatch(text, -1)
+
+		if matches == nil { // no more requirements from this course
+			break
+		}
+
+		for _, code := range matches {
+			if len(code) > 0 && code[0] != subCode && seen[code[0]] == false {
+				answer = append(answer, code[0])
+				seen[code[0]] = true
+			}
 		}
 	}
 
 	return answer, nil
 }
 
-func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup) {
+func scrapeSubject(subjectURL string, courseCode string, results chan<- Subject, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	resp, body := httpGetWithUTF8(jupiterURL + subjectURL)
@@ -267,7 +295,7 @@ func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup
 	reqDoc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
-	subRequirements, err := scrapeSubjectRequirements(reqDoc, subCode)
+	subRequirements, err := scrapeSubjectRequirements(reqDoc, subCode, courseCode)
 
 	if err != nil {
 		log.Printf("Error getting %v requirements\n", subCode)
@@ -287,7 +315,7 @@ func scrapeSubject(subjectURL string, results chan<- Subject, wg *sync.WaitGroup
 }
 
 // GetSubjects scrapes all subjects from a course page
-func GetSubjects(courseURL string) ([]Subject, error) {
+func GetSubjects(courseURL string, courseCode string) ([]Subject, error) {
 	resp, body := httpGetWithUTF8(courseURL)
 
 	defer resp.Body.Close()
@@ -312,7 +340,7 @@ func GetSubjects(courseURL string) ([]Subject, error) {
 		}
 
 		wg.Add(1)
-		go scrapeSubject(subjectURL, c, wg)
+		go scrapeSubject(subjectURL, courseCode, c, wg)
 	})
 
 	var results []Subject
@@ -349,12 +377,21 @@ func ScrapeICMC() (courses []Course, err error) {
 			panic("Couldnt fetch course")
 		}
 
-		subjects, err := GetSubjects(jupiterURL + courseURL)
+		courseName := strings.TrimSpace(s.Text())
+
+		regexCode := regexp.MustCompile(`codcur=(\d+)`)
+		courseCodeMatches := regexCode.FindStringSubmatch(courseURL)
+		if courseCodeMatches == nil {
+			panic("Couldn't find course code of %v" + courseName)
+		}
+
+		courseCode := courseCodeMatches[1]
+		subjects, err := GetSubjects(jupiterURL+courseURL, courseCode)
 		checkPanic(err)
 
-		courseName := strings.TrimSpace(s.Text())
 		courseObj := Course{
 			Name:     courseName,
+			Code:     courseCode,
 			Subjects: subjects,
 		}
 
