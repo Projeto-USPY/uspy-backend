@@ -18,7 +18,7 @@ func TestScrapeSubject(t *testing.T) {
 	c := make(chan Subject, 200)
 
 	wg.Add(1)
-	go scrapeSubject(`/obterDisciplina?sgldis=SME0130&codcur=55041&codhab=0`, `55041`, c, wg)
+	go scrapeSubject(`/obterDisciplina?sgldis=SME0130&codcur=55041&codhab=0`, `55041`, true, c, wg)
 
 	subj := <-c
 

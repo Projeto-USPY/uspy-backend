@@ -115,6 +115,7 @@ type Subject struct {
 	AssignCredits int
 	TotalHours    string
 	Requirements  []string
+	Optional      bool
 }
 
 // Course represents a course/major (example: BCC)
@@ -258,7 +259,7 @@ func scrapeSubjectRequirements(doc *goquery.Document, subCode string, courseCode
 	return answer, nil
 }
 
-func scrapeSubject(subjectURL string, courseCode string, results chan<- Subject, wg *sync.WaitGroup) {
+func scrapeSubject(subjectURL string, courseCode string, isOptional bool, results chan<- Subject, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	resp, body := httpGetWithUTF8(jupiterURL + subjectURL)
@@ -309,6 +310,7 @@ func scrapeSubject(subjectURL string, courseCode string, results chan<- Subject,
 		AssignCredits: subAssign,
 		TotalHours:    subTotal,
 		Requirements:  subRequirements,
+		Optional:      isOptional,
 	}
 
 	results <- subject
@@ -323,24 +325,32 @@ func GetSubjects(courseURL string, courseCode string) ([]Subject, error) {
 	doc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
-	subOjects := doc.Find("td > .link_gray")
+	optional := false
 
-	if subOjects.Length() == 0 {
+	sections := doc.Find("tr[bgcolor='#658CCF']") // Finds section "Disciplinas Obrigatórias"
+
+	if sections.Length() == 0 {
 		return []Subject{}, fmt.Errorf("Invalid courseURL")
 	}
 
 	c := make(chan Subject, 200)
 	wg := &sync.WaitGroup{}
 
-	subOjects.Each(func(i int, s *goquery.Selection) {
-		subjectURL, exists := s.Attr("href")
+	sections.Each(func(i int, s *goquery.Selection) {
+		subjects := s.NextUntil("tr[bgcolor='#658CCF']").Find("td > .link_gray")
 
-		if !exists {
-			log.Printf("%s has no subject page", strings.TrimSpace(s.Text()))
-		}
+		subjects.Each(func(i int, s *goquery.Selection) {
+			subjectURL, exists := s.Attr("href")
 
-		wg.Add(1)
-		go scrapeSubject(subjectURL, courseCode, c, wg)
+			if !exists {
+				log.Printf("%s has no subject page", strings.TrimSpace(s.Text()))
+			}
+
+			wg.Add(1)
+			go scrapeSubject(subjectURL, courseCode, optional, c, wg)
+		})
+
+		optional = true // after the first section, all subjects are optional
 	})
 
 	var results []Subject
