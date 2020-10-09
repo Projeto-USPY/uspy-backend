@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // ReadPDF takes the filename of a  PDF and returns its string
@@ -38,18 +39,26 @@ type Grade struct {
 	status  string
 }
 
+// Student represents an ICMC student
+type Student struct {
+	Grades []Grade
+	Nusp   string
+}
+
 // ParsePDF takes the (already read) PDF string and parses it to a list of Grades
-func ParsePDF(body *string) (grades []Grade, ok bool) {
+func ParsePDF(body *string) (st Student, ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[Recovered] Couldnt parse PDF string: %v\n", r)
-			grades = nil
+			st.Grades = nil
+			st.Nusp = ""
 			ok = false
 		}
 	}()
 
 	i := 2
 	strPDF := *body
+	st.Nusp = ""
 
 	for {
 		// End of PDF
@@ -57,8 +66,18 @@ func ParsePDF(body *string) (grades []Grade, ok bool) {
 			break
 		}
 
+		if idx, ok := nuspInRow(i, body); ok && st.Nusp == "" {
+			nusp, err := parseNUSP((*body)[i:idx])
+
+			if err != nil {
+				panic("couldnt parse nusp")
+			}
+
+			st.Nusp = nusp[:len(nusp)-1]
+		}
+
 		// Found a subject
-		if isSubject(i, body) == true {
+		if isSubject(i, body) {
 			var j int = i
 
 			// Get to end of subject code
@@ -93,7 +112,7 @@ func ParsePDF(body *string) (grades []Grade, ok bool) {
 						status:  status,
 					}
 
-					grades = append(grades, g)
+					st.Grades = append(st.Grades, g)
 				}
 
 			}
@@ -104,7 +123,33 @@ func ParsePDF(body *string) (grades []Grade, ok bool) {
 		}
 	}
 
-	return grades, true
+	return st, true
+}
+
+func parseNUSP(row string) (string, error) {
+	r, err := regexp.Compile("\\d+\\/")
+	if err != nil {
+		return "", err
+	}
+
+	return r.FindString(row), nil
+}
+
+func nuspInRow(i int, body *string) (idx int, ok bool) {
+	var j int = i
+	var found bool = false
+	for j < len(*body) && (*body)[j] != '\n' {
+		if strings.HasPrefix((*body)[i:j], "Aluno:") {
+			found = true
+		}
+		j++
+	}
+
+	if found {
+		return j, true
+	}
+
+	return -1, false
 }
 
 func isSubject(i int, body *string) bool {
