@@ -1,18 +1,20 @@
 package pdfparser
 
 import (
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-// ReadPDF takes the filename of a  PDF and returns its string
-func ReadPDF(file string) (body *string, ok bool) {
+// ReadPDFFile takes the filename of a  PDF and returns its string
+func ReadPDFFile(file string) (body *string, ok bool) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[Recovered] Coudlnt read PDF: %v\n", r)
+			log.Printf("[Recovered] Couldnt read PDF: %v\n", r)
 			body = nil
 			ok = false
 		}
@@ -23,6 +25,45 @@ func ReadPDF(file string) (body *string, ok bool) {
 		out, err := exec.Command("pdftotext", file, "-q", "-eol", "unix", "-layout", "-").Output()
 		if err != nil {
 			panic("An error occured while reading the PDF")
+		}
+
+		str := string(out)
+		ch <- &str
+	}()
+
+	return <-ch, true
+}
+
+// ReadPDFResponse takes the Grades PDF response object and reads it into a string
+func ReadPDFResponse(r *http.Response) (body *string, ok bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[Recovered] Couldnt read PDF: %v\n", r)
+			body = nil
+			ok = false
+		}
+	}()
+
+	bodyPDF, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		panic("error converting response body to string")
+	}
+
+	ch := make(chan *string, 1)
+
+	go func() {
+		parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-layout", "-", "-")
+
+		stdin, _ := parser.StdinPipe()
+		stdin.Write(bodyPDF)
+		stdin.Close()
+
+		out, err := parser.Output()
+
+		if err != nil {
+			log.Print(err)
+			panic("an error occured while executing pdftotext")
 		}
 
 		str := string(out)

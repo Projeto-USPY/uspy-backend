@@ -6,7 +6,7 @@ import (
 )
 
 func TestReadPDF(t *testing.T) {
-	body, ok := ReadPDF("historico.pdf")
+	body, ok := ReadPDFFile("historico.pdf")
 
 	if ok != true {
 		t.Error("An error ocurred")
@@ -16,7 +16,7 @@ func TestReadPDF(t *testing.T) {
 }
 
 func TestParsePDF(t *testing.T) {
-	body, ok := ReadPDF("historico.pdf")
+	body, ok := ReadPDFFile("historico.pdf")
 
 	if ok != true {
 		t.Error("Error reading PDF")
