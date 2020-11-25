@@ -1,8 +1,10 @@
 package scraper
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -17,6 +19,32 @@ import (
 
 const jupiterURL = "https://uspdigital.usp.br/jupiterweb/"
 
+// Subject describes a subject (example: SMA0356 - Cálculo IV)
+type Subject struct {
+	Code          string
+	Name          string
+	Description   string
+	ClassCredits  int
+	AssignCredits int
+	TotalHours    string
+	Requirements  []string
+	Optional      bool
+}
+
+// Course represents a course/major (example: BCC)
+type Course struct {
+	Name     string
+	Code     string
+	Subjects []Subject
+}
+
+// Professor represents a ICMC professor (example: {Moacir Ponti SCC})
+type Professor struct {
+	ID         int
+	Name       string
+	Department string
+}
+
 func checkPanic(err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -24,9 +52,16 @@ func checkPanic(err error) {
 }
 
 func checkResponse(res *http.Response) {
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		log.Fatalf("Status code error: %d %s\n", res.StatusCode, res.Status)
 	}
+}
+
+// GenerateJSON creates json file inside given folder from data struct
+func GenerateJSON(data interface{}, folder string, filename string) {
+	bytes, err := json.MarshalIndent(&data, "", "\t")
+	checkPanic(err)
+	ioutil.WriteFile(folder+filename, bytes, 0644)
 }
 
 // Returns HTTP response and io.Reader from http.Get, which should substitute http.Body, so characters are read with UTF-8 encoding
@@ -59,7 +94,7 @@ func httpPostWithUTF8(url string, values url.Values) (*http.Response, io.Reader)
 	return resp, reader
 }
 
-func getProfessors(dep *string, page int) []string {
+func getProfessorsByDepartment(dep *string, page int, offset int) []Professor {
 	icmcURL := "https://www.icmc.usp.br/templates/icmc2015/php/pessoas.php"
 	formData := url.Values{
 		"grupo":  {"Docente"},
@@ -74,10 +109,11 @@ func getProfessors(dep *string, page int) []string {
 	doc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
-	results := make([]string, 0, 100)
+	results := make([]Professor, 0, 1000)
 
 	doc.Find(".caption").Each(func(i int, s *goquery.Selection) {
-		prof := strings.TrimSpace(s.Text())
+		profName := strings.TrimSpace(s.Text())
+		prof := Professor{ID: i + offset, Name: profName, Department: *dep}
 		results = append(results, prof)
 	})
 
@@ -85,44 +121,27 @@ func getProfessors(dep *string, page int) []string {
 }
 
 // ScrapeDepartments scrapes the professors page
-func ScrapeDepartments() *map[string][]string {
+func ScrapeDepartments() []Professor {
 	deps := []string{"SCC", "SMA", "SME", "SSC"}
-	results := make(map[string][]string)
+	results := make([]Professor, 0, 1000)
+	offset := 0
 
 	for _, dep := range deps {
 		i := 1
 		for {
-			profs := getProfessors(&dep, i)
+			profs := getProfessorsByDepartment(&dep, i, offset)
+			offset += len(profs)
 
 			if len(profs) == 0 {
 				break
 			} else {
-				results[dep] = append(results[dep], profs...)
+				results = append(results, profs...)
 				i++
 			}
 		}
 	}
 
-	return &results
-}
-
-// Subject describes a subject (example: SMA0356 - Cálculo IV)
-type Subject struct {
-	Code          string
-	Name          string
-	Description   string
-	ClassCredits  int
-	AssignCredits int
-	TotalHours    string
-	Requirements  []string
-	Optional      bool
-}
-
-// Course represents a course/major (example: BCC)
-type Course struct {
-	Name     string
-	Code     string
-	Subjects []Subject
+	return results
 }
 
 func scrapeSubjectNames(doc *goquery.Document) (code, name string, e error) {

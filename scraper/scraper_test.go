@@ -1,15 +1,15 @@
 package scraper
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"sync"
 	"testing"
 )
 
 func TestScrapeDepartments(t *testing.T) {
 	result := ScrapeDepartments()
+	GenerateJSON(result, "../data/", "professors.json")
+
 	fmt.Println(result)
 }
 
@@ -32,12 +32,5 @@ func TestScrapeICMC(t *testing.T) {
 		t.Fail()
 	}
 
-	bytes, err := json.MarshalIndent(&courses, "", "\t")
-
-	if err != nil {
-		fmt.Println(err)
-		t.Fail()
-	} else {
-		ioutil.WriteFile("courses.json", bytes, 0644)
-	}
+	GenerateJSON(courses, "../data/", "courses.json")
 }

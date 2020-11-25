@@ -10,6 +10,19 @@ import (
 	"strings"
 )
 
+// Grade represents a Grade in jupiterweb
+type Grade struct {
+	subject string
+	grade   float64
+	status  string
+}
+
+// Student represents an ICMC student
+type Student struct {
+	Grades []Grade
+	Nusp   string
+}
+
 // ReadPDFFile takes the filename of a  PDF and returns its string
 func ReadPDFFile(file string) (body *string, ok bool) {
 	defer func() {
@@ -71,19 +84,6 @@ func ReadPDFResponse(r *http.Response) (body *string, ok bool) {
 	}()
 
 	return <-ch, true
-}
-
-// Grade represents a Grade in jupiterweb
-type Grade struct {
-	subject string
-	grade   float64
-	status  string
-}
-
-// Student represents an ICMC student
-type Student struct {
-	Grades []Grade
-	Nusp   string
 }
 
 // ParsePDF takes the (already read) PDF string and parses it to a list of Grades
