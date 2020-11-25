@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+
+	"github.com/tpreischadt/ProjetoJupiter/utils"
 )
 
 func TestScrapeDepartments(t *testing.T) {
 	result := ScrapeDepartments()
-	GenerateJSON(result, "../data/", "professors.json")
+	err := utils.GenerateJSON(result, "../data/", "professors.json")
+
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	fmt.Println(result)
 }
@@ -32,5 +38,9 @@ func TestScrapeICMC(t *testing.T) {
 		t.Fail()
 	}
 
-	GenerateJSON(courses, "../data/", "courses.json")
+	err = utils.GenerateJSON(courses, "../data/", "courses.json")
+
+	if err != nil {
+		t.Fatal(err)
+	}
 }

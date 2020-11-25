@@ -1,10 +1,8 @@
 package scraper
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -55,13 +53,6 @@ func checkResponse(res *http.Response) {
 	if res.StatusCode != http.StatusOK {
 		log.Fatalf("Status code error: %d %s\n", res.StatusCode, res.Status)
 	}
-}
-
-// GenerateJSON creates json file inside given folder from data struct
-func GenerateJSON(data interface{}, folder string, filename string) {
-	bytes, err := json.MarshalIndent(&data, "", "\t")
-	checkPanic(err)
-	ioutil.WriteFile(folder+filename, bytes, 0644)
 }
 
 // Returns HTTP response and io.Reader from http.Get, which should substitute http.Body, so characters are read with UTF-8 encoding
