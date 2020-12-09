@@ -1,5 +1,9 @@
 package server
 
+/*
+	This file is responsible for implementing the REST functions of our most relevant data objects
+*/
+
 import (
 	"net/http"
 
@@ -12,25 +16,19 @@ func DefaultPage(c *gin.Context) {
 	c.String(http.StatusOK, "TODO: Default Page")
 }
 
-type Professor struct {
-	name string
-	dep  string
-	id   string
-}
-
 // GetProfessors returns list of all professors at every department
-func GetProfessors() []Professor {
-	return make([]Professor, 0)
+func GetProfessors() []scraper.Professor {
+	return make([]scraper.Professor, 0)
 }
 
 // GetProfessorByDepartment returns list of all professors at department 'dep'
-func GetProfessorByDepartment(dep string) []Professor {
-	return make([]Professor, 0)
+func GetProfessorByDepartment(dep string) []scraper.Professor {
+	return make([]scraper.Professor, 0)
 }
 
 // GetProfessorByID returns Professor with id 'id'
-func GetProfessorByID(id string) Professor {
-	return Professor{}
+func GetProfessorByID(id string) scraper.Professor {
+	return scraper.Professor{}
 }
 
 // GetSubjects returns list of all subjects at every department
