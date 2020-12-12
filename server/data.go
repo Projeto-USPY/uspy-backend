@@ -5,20 +5,21 @@ package server
 */
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/scraper"
+	"github.com/tpreischadt/ProjetoJupiter/utils"
 )
 
 // Global variables to store JSON Data
-var courses []scraper.Course
-var professors []scraper.Professor
+var (
+	courses    []scraper.Course
+	professors []scraper.Professor
+)
 
-// Responsible for reading JSON Files and loading to memory
+// LoadData is responsible for reading JSON Files and loading to memory
 func LoadData() error {
 
 	// I dont know exactly what path makes most sense in our future docker environment, so *rethink later*
@@ -26,26 +27,15 @@ func LoadData() error {
 	const professorsJSONFileName = "../data/professors.json"
 
 	// Read Courses
-	coursesJSONFile, err := ioutil.ReadFile(coursesJSONFileName)
-
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal([]byte(coursesJSONFile), &courses)
+	var err error
+	err = utils.LoadJSON(coursesJSONFileName, &courses)
 
 	if err != nil {
 		return err
 	}
 
 	// Read Professors
-	professorsJSONFile, err := ioutil.ReadFile(professorsJSONFileName)
-
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal([]byte(professorsJSONFile), &professors)
+	err = utils.LoadJSON(professorsJSONFileName, &professors)
 
 	if err != nil {
 		return err
@@ -55,6 +45,7 @@ func LoadData() error {
 }
 
 // Todo (return default page)
+// Todo2 move this to a separate go file (server.go)
 func DefaultPage(c *gin.Context) {
 	c.String(http.StatusOK, "TODO: Default Page")
 }
