@@ -18,10 +18,8 @@ func main() {
 		panic(err)
 	}
 
-	// PROFESSORS --------------------------------------------------
+	professorAPI := api.Group("/professor")
 	{
-		professorAPI := api.Group("/professor")
-
 		professorAPI.GET("/:id", func(c *gin.Context) {
 			id := c.Param("id")
 
@@ -35,10 +33,8 @@ func main() {
 		})
 	}
 
-	// SUBJECTS ---------------------------------------------
+	subjectAPI := api.Group("/subject")
 	{
-		subjectAPI := api.Group("/subject")
-
 		subjectAPI.GET("/:code", func(c *gin.Context) {
 			code := c.Param("code")
 
@@ -51,6 +47,10 @@ func main() {
 			}
 		})
 	}
+
+	api.POST("/login", func(c *gin.Context) {
+
+	})
 
 	r.Run()
 }
