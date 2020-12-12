@@ -1,13 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/server"
-	auth "github.com/tpreischadt/ProjetoJupiter/server/auth"
+	"github.com/tpreischadt/ProjetoJupiter/server/auth"
 )
+
+func init() {
+	godotenv.Load(".env")
+}
 
 func main() {
 	r := gin.Default()
@@ -54,19 +61,29 @@ func main() {
 	{
 		account.POST("/login", func(c *gin.Context) {
 			var user entity.User
-			if err := c.ShouldBind(&user); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+			if err := c.ShouldBindJSON(&user); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			}
 
 			if err := auth.Login(user); err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{})
+			}
+
+			if jwt, err := auth.GenerateJWT(user); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			} else {
+				domain := os.Getenv("DOMAIN")
+
+				// expiration date = 1 month
+				c.SetCookie("access_token", jwt, 30*24*3600, "/", domain, false, true)
+				c.JSON(http.StatusOK, gin.H{})
 			}
 		})
 
 		account.POST("/create", func(c *gin.Context) {
 			var user entity.User
 			if err := c.ShouldBind(&user); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
 
@@ -78,5 +95,6 @@ func main() {
 		})
 	}
 
-	r.Run()
+	fmt.Println(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
+	r.Run(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
 }

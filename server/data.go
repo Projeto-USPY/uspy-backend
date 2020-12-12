@@ -23,8 +23,8 @@ var (
 func LoadData() error {
 
 	// I dont know exactly what path makes most sense in our future docker environment, so *rethink later*
-	const coursesJSONFileName = "../data/courses.json"
-	const professorsJSONFileName = "../data/professors.json"
+	const coursesJSONFileName = "data/courses.json"
+	const professorsJSONFileName = "data/professors.json"
 
 	// Read Courses
 	var err error

@@ -29,7 +29,7 @@ type Professor struct {
 // User represents an user
 type User struct {
 	ID           int
-	Login        string `form:"login" binding:"required"`
-	Password     string `form:"pwd" binding:"required"` // used only because of REST requests, do not store in db
+	Login        string `json:"login" binding:"required"`
+	Password     string `json:"pwd" binding:"required"` // used only because of REST requests, do not store in db
 	PasswordHash string
 }
