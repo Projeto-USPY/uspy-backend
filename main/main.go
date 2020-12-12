@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/server"
+	auth "github.com/tpreischadt/ProjetoJupiter/server/auth"
 )
 
 func main() {
@@ -48,9 +50,33 @@ func main() {
 		})
 	}
 
-	api.POST("/login", func(c *gin.Context) {
+	account := r.Group("/account")
+	{
+		account.POST("/login", func(c *gin.Context) {
+			var user entity.User
+			if err := c.ShouldBind(&user); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+			}
 
-	})
+			if err := auth.Login(user); err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{})
+			}
+		})
+
+		account.POST("/create", func(c *gin.Context) {
+			var user entity.User
+			if err := c.ShouldBind(&user); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+				return
+			}
+
+			if err := auth.CreateAccount(user); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{})
+			}
+
+			c.JSON(http.StatusOK, gin.H{})
+		})
+	}
 
 	r.Run()
 }

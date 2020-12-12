@@ -9,14 +9,14 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tpreischadt/ProjetoJupiter/scraper"
+	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/utils"
 )
 
 // Global variables to store JSON Data
 var (
-	courses    []scraper.Course
-	professors []scraper.Professor
+	courses    []entity.Course
+	professors []entity.Professor
 )
 
 // LoadData is responsible for reading JSON Files and loading to memory
@@ -51,32 +51,32 @@ func DefaultPage(c *gin.Context) {
 }
 
 // GetProfessors returns list of all professors at every department
-func GetProfessors() []scraper.Professor {
+func GetProfessors() []entity.Professor {
 	return professors
 }
 
 // GetProfessorByDepartment returns list of all professors at department 'dep'
-func GetProfessorByDepartment(dep string) []scraper.Professor {
-	return make([]scraper.Professor, 0)
+func GetProfessorByDepartment(dep string) []entity.Professor {
+	return make([]entity.Professor, 0)
 }
 
 // GetProfessorByID returns Professor with id 'id'
-func GetProfessorByID(id string) scraper.Professor {
+func GetProfessorByID(id string) entity.Professor {
 	for _, professor := range professors {
 		if strconv.Itoa(professor.ID) == id {
 			return professor
 		}
 	}
-	return scraper.Professor{}
+	return entity.Professor{}
 }
 
 // GetSubjects returns list of all subjects at every department
-func GetSubjects() []scraper.Subject {
-	return make([]scraper.Subject, 0)
+func GetSubjects() []entity.Subject {
+	return make([]entity.Subject, 0)
 }
 
-// GetSubjectByCode returns Subject with code 'code'
-func GetSubjectByCode(code string) scraper.Subject {
+// GetSubjectByCode returns entity.Subject with code 'code'
+func GetSubjectByCode(code string) entity.Subject {
 	for _, course := range courses {
 		for _, subject := range course.Subjects {
 			if subject.Code == code {
@@ -84,5 +84,5 @@ func GetSubjectByCode(code string) scraper.Subject {
 			}
 		}
 	}
-	return scraper.Subject{}
+	return entity.Subject{}
 }
