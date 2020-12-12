@@ -12,36 +12,11 @@ import (
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"golang.org/x/net/html/charset"
 )
 
 const jupiterURL = "https://uspdigital.usp.br/jupiterweb/"
-
-// Subject describes a subject (example: SMA0356 - Cálculo IV)
-type Subject struct {
-	Code          string
-	Name          string
-	Description   string
-	ClassCredits  int
-	AssignCredits int
-	TotalHours    string
-	Requirements  []string
-	Optional      bool
-}
-
-// Course represents a course/major (example: BCC)
-type Course struct {
-	Name     string
-	Code     string
-	Subjects []Subject
-}
-
-// Professor represents a ICMC professor (example: {Moacir Ponti SCC})
-type Professor struct {
-	ID         int
-	Name       string
-	Department string
-}
 
 func checkPanic(err error) {
 	if err != nil {
@@ -85,7 +60,7 @@ func httpPostWithUTF8(url string, values url.Values) (*http.Response, io.Reader)
 	return resp, reader
 }
 
-func getProfessorsByDepartment(dep *string, page int, offset int) []Professor {
+func getProfessorsByDepartment(dep *string, page int, offset int) []entity.Professor {
 	icmcURL := "https://www.icmc.usp.br/templates/icmc2015/php/pessoas.php"
 	formData := url.Values{
 		"grupo":  {"Docente"},
@@ -100,11 +75,11 @@ func getProfessorsByDepartment(dep *string, page int, offset int) []Professor {
 	doc, err := goquery.NewDocumentFromReader(body)
 	checkPanic(err)
 
-	results := make([]Professor, 0, 1000)
+	results := make([]entity.Professor, 0, 1000)
 
 	doc.Find(".caption").Each(func(i int, s *goquery.Selection) {
 		profName := strings.TrimSpace(s.Text())
-		prof := Professor{ID: i + offset, Name: profName, Department: *dep}
+		prof := entity.Professor{ID: i + offset, Name: profName, Department: *dep}
 		results = append(results, prof)
 	})
 
@@ -112,9 +87,9 @@ func getProfessorsByDepartment(dep *string, page int, offset int) []Professor {
 }
 
 // ScrapeDepartments scrapes the professors page
-func ScrapeDepartments() []Professor {
+func ScrapeDepartments() []entity.Professor {
 	deps := []string{"SCC", "SMA", "SME", "SSC"}
-	results := make([]Professor, 0, 1000)
+	results := make([]entity.Professor, 0, 1000)
 	offset := 0
 
 	for _, dep := range deps {
@@ -269,7 +244,7 @@ func scrapeSubjectRequirements(doc *goquery.Document, subCode string, courseCode
 	return answer, nil
 }
 
-func scrapeSubject(subjectURL string, courseCode string, isOptional bool, results chan<- Subject, wg *sync.WaitGroup) {
+func scrapeSubject(subjectURL string, courseCode string, isOptional bool, results chan<- entity.Subject, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	resp, body := httpGetWithUTF8(jupiterURL + subjectURL)
@@ -312,7 +287,7 @@ func scrapeSubject(subjectURL string, courseCode string, isOptional bool, result
 		log.Printf("Error getting %v requirements\n", subCode)
 	}
 
-	subject := Subject{
+	subject := entity.Subject{
 		Code:          subCode,
 		Name:          subName,
 		Description:   subDesc,
@@ -327,7 +302,7 @@ func scrapeSubject(subjectURL string, courseCode string, isOptional bool, result
 }
 
 // GetSubjects scrapes all subjects from a course page
-func GetSubjects(courseURL string, courseCode string) ([]Subject, error) {
+func GetSubjects(courseURL string, courseCode string) ([]entity.Subject, error) {
 	resp, body := httpGetWithUTF8(courseURL)
 
 	defer resp.Body.Close()
@@ -340,10 +315,10 @@ func GetSubjects(courseURL string, courseCode string) ([]Subject, error) {
 	sections := doc.Find("tr[bgcolor='#658CCF']") // Finds section "Disciplinas Obrigatórias"
 
 	if sections.Length() == 0 {
-		return []Subject{}, fmt.Errorf("Invalid courseURL")
+		return []entity.Subject{}, fmt.Errorf("Invalid courseURL")
 	}
 
-	c := make(chan Subject, 200)
+	c := make(chan entity.Subject, 200)
 	wg := &sync.WaitGroup{}
 
 	sections.Each(func(i int, s *goquery.Selection) {
@@ -363,7 +338,7 @@ func GetSubjects(courseURL string, courseCode string) ([]Subject, error) {
 		optional = true // after the first section, all subjects are optional
 	})
 
-	var results []Subject
+	var results []entity.Subject
 	wg.Wait()
 	close(c)
 
@@ -375,7 +350,7 @@ func GetSubjects(courseURL string, courseCode string) ([]Subject, error) {
 }
 
 // ScrapeICMC scrapes the whole institute (every course)
-func ScrapeICMC() (courses []Course, err error) {
+func ScrapeICMC() (courses []entity.Course, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error scraping ICMC courses: %v", r)
@@ -409,7 +384,7 @@ func ScrapeICMC() (courses []Course, err error) {
 		subjects, err := GetSubjects(jupiterURL+courseURL, courseCode)
 		checkPanic(err)
 
-		courseObj := Course{
+		courseObj := entity.Course{
 			Name:     courseName,
 			Code:     courseCode,
 			Subjects: subjects,

@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/utils"
 )
 
@@ -21,7 +22,7 @@ func TestScrapeDepartments(t *testing.T) {
 
 func TestScrapeSubject(t *testing.T) {
 	wg := &sync.WaitGroup{}
-	c := make(chan Subject, 200)
+	c := make(chan entity.Subject, 200)
 
 	wg.Add(1)
 	go scrapeSubject(`/obterDisciplina?sgldis=SME0130&codcur=55041&codhab=0`, `55041`, true, c, wg)
