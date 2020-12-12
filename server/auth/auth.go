@@ -39,7 +39,7 @@ func ValidateJWT(tokenString string) error {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return os.Getenv("JWT_SECRET"), nil
+		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 
 	if !token.Valid {
