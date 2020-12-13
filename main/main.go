@@ -10,6 +10,8 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/server"
 	"github.com/tpreischadt/ProjetoJupiter/server/auth"
+	"github.com/tpreischadt/ProjetoJupiter/server/data"
+	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 )
 
 func init() {
@@ -22,7 +24,7 @@ func main() {
 
 	api := r.Group("/api")
 
-	err := server.LoadData()
+	err := data.LoadData()
 	if err != nil {
 		panic(err)
 	}
@@ -33,10 +35,10 @@ func main() {
 			id := c.Param("id")
 
 			if id == "all" {
-				res := server.GetProfessors()
+				res := data.GetProfessors()
 				c.JSON(http.StatusOK, res)
 			} else {
-				prof := server.GetProfessorByID(id)
+				prof := data.GetProfessorByID(id)
 				c.JSON(http.StatusOK, prof)
 			}
 		})
@@ -48,10 +50,10 @@ func main() {
 			code := c.Param("code")
 
 			if code == "all" {
-				res := server.GetSubjects()
+				res := data.GetSubjects()
 				c.JSON(http.StatusOK, res)
 			} else {
-				subject := server.GetSubjectByCode(code)
+				subject := data.GetSubjectByCode(code)
 				c.JSON(http.StatusOK, subject)
 			}
 		})
@@ -76,7 +78,7 @@ func main() {
 
 				// expiration date = 1 month
 				c.SetCookie("access_token", jwt, 30*24*3600, "/", domain, false, true)
-				c.JSON(http.StatusOK, gin.H{})
+				c.Status(http.StatusOK)
 			}
 		})
 
@@ -88,12 +90,16 @@ func main() {
 			}
 
 			if err := auth.CreateAccount(user); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{})
+				c.JSON(http.StatusInternalServerError, gin.H{})
 			}
 
 			c.JSON(http.StatusOK, gin.H{})
 		})
 	}
+
+	r.GET("/profile", middleware.JWTMiddleware(), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
 
 	fmt.Println(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
 	r.Run(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
