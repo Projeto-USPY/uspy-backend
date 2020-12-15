@@ -12,6 +12,15 @@ type Subject struct {
 	Optional      bool
 }
 
+// Offering describes an offering of a subject (example: Cálculo IV - 2019.2)
+type Offering struct {
+	HashID    string // md5(concat(subject, professor, year, semester)
+	Semester  int
+	Year      int
+	Professor int
+	Subject   string
+}
+
 // Course represents a course/major (example: BCC)
 type Course struct {
 	Name     string
