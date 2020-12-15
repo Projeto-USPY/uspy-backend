@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/scraper/subjects"
+	"github.com/tpreischadt/ProjetoJupiter/scraper/subject"
 	"github.com/tpreischadt/ProjetoJupiter/utils"
 	"regexp"
 	"strings"
@@ -42,7 +42,7 @@ func ScrapeICMC() (courses []entity.Course, err error) {
 		}
 
 		courseCode := courseCodeMatches[1]
-		subjs, err := subjects.GetSubjects(utils.JupiterURL+courseURL, courseCode)
+		subjs, err := subject.GetSubjects(utils.JupiterURL+courseURL, courseCode)
 		utils.CheckPanic(err)
 
 		courseObj := entity.Course{

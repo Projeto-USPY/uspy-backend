@@ -1,4 +1,4 @@
-package professors
+package professor
 
 import (
 	"crypto/md5"

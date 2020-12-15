@@ -1,4 +1,4 @@
-package subjects
+package subject
 
 import (
 	"fmt"
