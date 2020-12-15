@@ -1,7 +1,12 @@
 package main
 
 import (
+	"cloud.google.com/go/firestore"
+	firebase "firebase.google.com/go"
 	"fmt"
+	"golang.org/x/net/context"
+	"google.golang.org/api/option"
+	"log"
 	"net/http"
 	"os"
 
@@ -14,8 +19,44 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 )
 
+var (
+	client *firestore.Client
+)
+
 func init() {
-	godotenv.Load(".env")
+	ctx := context.Background()
+	_ = godotenv.Load(".env")
+
+	// dev
+	if os.Getenv("MODE") != "prod" {
+		if path, ok := os.LookupEnv("FIRESTORE_KEY"); ok {
+			sa := option.WithCredentialsFile(path)
+			app, err := firebase.NewApp(ctx, nil, sa)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			client, err = app.Firestore(ctx)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		} else {
+			log.Fatal("FIRESTORE_KEY path not specified in .env file")
+		}
+	} else { // production
+		if id, ok := os.LookupEnv("PROJECT_ID"); ok {
+			conf := &firebase.Config{ProjectID: id}
+			app, err := firebase.NewApp(ctx, conf)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			client, err = app.Firestore(ctx)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+	}
 }
 
 func main() {
@@ -102,5 +143,8 @@ func main() {
 	})
 
 	fmt.Println(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
-	r.Run(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
+	err = r.Run(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
+
+	log.Print(err)
+	_ = client.Close() // close firestore client if router panics
 }
