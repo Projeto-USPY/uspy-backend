@@ -22,6 +22,7 @@ type Course struct {
 // Professor represents a ICMC professor (example: {Moacir Ponti SCC})
 type Professor struct {
 	ID         int
+	CodPes     int
 	Name       string
 	Department string
 }
