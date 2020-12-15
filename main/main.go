@@ -21,10 +21,11 @@ import (
 
 var (
 	client *firestore.Client
+	ctx    context.Context
 )
 
 func init() {
-	ctx := context.Background()
+	ctx = context.Background()
 	_ = godotenv.Load(".env")
 
 	// dev

@@ -1,7 +1,6 @@
 package professor
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
@@ -106,10 +105,8 @@ func GetProfessorHistory(codPes, since int) ([]entity.Offering, error) {
 			year, _ := strconv.Atoi(k)
 			semester := int(fmt.Sprintf("%s", subj.(map[string]interface{})["codtur"])[4] - '0')
 			subjName := fmt.Sprintf("%s", subj.(map[string]interface{})["coddis"])
-			id := fmt.Sprintf("%v%v%v%v", subjName, codPes, year, semester)
 
 			results = append(results, entity.Offering{
-				HashID:    fmt.Sprintf("%x", md5.Sum([]byte(id))),
 				Semester:  semester,
 				Professor: codPes,
 				Year:      year,

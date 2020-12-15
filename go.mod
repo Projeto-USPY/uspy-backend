@@ -3,7 +3,7 @@ module github.com/tpreischadt/ProjetoJupiter
 go 1.15
 
 require (
-	cloud.google.com/go/firestore v1.4.0 // indirect
+	cloud.google.com/go/firestore v1.4.0
 	firebase.google.com/go v3.13.0+incompatible // indirect
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
