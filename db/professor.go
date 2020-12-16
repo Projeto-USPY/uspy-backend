@@ -10,7 +10,7 @@ import (
 )
 
 type ProfessorDB struct {
-	hashID    string           // md5(concat(professor.CodPes))
+	HashID    string           // md5(concat(professor.CodPes))
 	Offerings []string         `firestore:"offeringsIDs"`
 	Stats     map[string]int   `firestore:"stats"`
 	Professor entity.Professor `firestore:"data"`
@@ -51,11 +51,11 @@ func NewProfessor(ent entity.Professor, client *firestore.Client, ctx context.Co
 
 func (prof *ProfessorDB) Hash() {
 	str := fmt.Sprint(prof.Professor.CodPes)
-	prof.hashID = fmt.Sprintf("%x", md5.Sum([]byte(str)))
+	prof.HashID = fmt.Sprintf("%x", md5.Sum([]byte(str)))
 }
 
 func (prof *ProfessorDB) Insert(client *firestore.Client, ctx context.Context) error {
-	_, err := client.Collection("professors").Doc(prof.hashID).Set(ctx, prof)
+	_, err := client.Collection("professors").Doc(prof.HashID).Set(ctx, prof)
 	if err != nil {
 		return err
 	}

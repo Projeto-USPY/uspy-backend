@@ -9,7 +9,7 @@ import (
 )
 
 type OfferingDB struct {
-	hashID   string          // md5(concat(subject, professor, year, semester)
+	HashID   string          // md5(concat(subject, professor, year, semester)
 	Offering entity.Offering `firestore:"data"`
 }
 
@@ -21,7 +21,7 @@ func NewOffering(ent entity.Offering) *OfferingDB {
 	return &off
 }
 
-func (off *OfferingDB) Hash() string {
+func (off *OfferingDB) Hash() {
 	concat := fmt.Sprint(
 		off.Offering.Subject,
 		off.Offering.Professor,
@@ -29,11 +29,11 @@ func (off *OfferingDB) Hash() string {
 		off.Offering.Semester,
 	)
 
-	return fmt.Sprintf("%x", md5.Sum([]byte(concat)))
+	off.HashID = fmt.Sprintf("%x", md5.Sum([]byte(concat)))
 }
 
 func (off OfferingDB) Insert(client *firestore.Client, ctx context.Context) error {
-	_, err := client.Collection("offerings").Doc(off.hashID).Set(ctx, off)
+	_, err := client.Collection("offerings").Doc(off.HashID).Set(ctx, off)
 	if err != nil {
 		return err
 	}

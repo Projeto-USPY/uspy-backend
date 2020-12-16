@@ -2,16 +2,14 @@ package main
 
 import (
 	"cloud.google.com/go/firestore"
-	firebase "firebase.google.com/go"
 	"fmt"
+	"github.com/tpreischadt/ProjetoJupiter/db"
 	"golang.org/x/net/context"
-	"google.golang.org/api/option"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/server"
 	"github.com/tpreischadt/ProjetoJupiter/server/auth"
@@ -25,42 +23,18 @@ var (
 )
 
 func init() {
-	ctx = context.Background()
-	_ = godotenv.Load(".env")
-
-	// dev
-	if os.Getenv("MODE") != "prod" {
-		if path, ok := os.LookupEnv("FIRESTORE_KEY"); ok {
-			sa := option.WithCredentialsFile(path)
-			app, err := firebase.NewApp(ctx, nil, sa)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			client, err = app.Firestore(ctx)
-			if err != nil {
-				log.Fatalln(err)
-			}
-		} else {
-			log.Fatal("FIRESTORE_KEY path not specified in .env file")
-		}
-	} else { // production
-		if id, ok := os.LookupEnv("PROJECT_ID"); ok {
-			conf := &firebase.Config{ProjectID: id}
-			app, err := firebase.NewApp(ctx, conf)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			client, err = app.Firestore(ctx)
-			if err != nil {
-				log.Fatalln(err)
-			}
-		}
-	}
+	client, ctx = db.InitFireStore(".env")
 }
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("recovered in main", r)
+			_ = client.Close()
+			os.Exit(-1)
+		}
+	}()
+
 	r := gin.Default()
 	r.NoRoute(server.DefaultPage)
 
@@ -80,8 +54,8 @@ func main() {
 				res := data.GetProfessors()
 				c.JSON(http.StatusOK, res)
 			} else {
-				prof := data.GetProfessorByID(id)
-				c.JSON(http.StatusOK, prof)
+				//prof := data.GetProfessorByID(id)
+				//c.JSON(http.StatusOK, prof)
 			}
 		})
 	}
@@ -145,7 +119,5 @@ func main() {
 
 	fmt.Println(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
 	err = r.Run(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
-
 	log.Print(err)
-	_ = client.Close() // close firestore client if router panics
 }

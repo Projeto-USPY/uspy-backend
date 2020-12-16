@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// ScrapeICMC scrapes the whole institute (every course)
-func ScrapeICMC() (courses []entity.Course, err error) {
+// ScrapeICMCCourses scrapes the whole institute (every course)
+func ScrapeICMCCourses() (courses []entity.Course, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("Error scraping ICMC courses: %v", r)

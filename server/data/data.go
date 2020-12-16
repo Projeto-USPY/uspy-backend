@@ -5,8 +5,6 @@ package data
 */
 
 import (
-	"strconv"
-
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/utils"
 )
@@ -52,15 +50,15 @@ func GetProfessorByDepartment(dep string) []entity.Professor {
 	return make([]entity.Professor, 0)
 }
 
-// GetProfessorByID returns Professor with id 'id'
-func GetProfessorByID(id string) entity.Professor {
-	for _, professor := range professors {
-		if strconv.Itoa(professor.ID) == id {
-			return professor
-		}
-	}
-	return entity.Professor{}
-}
+//// GetProfessorByID returns Professor with id 'id'
+//func GetProfessorByID(id string) entity.Professor {
+//	for _, professor := range professors {
+//		if strconv.Itoa(professor.ID) == id {
+//			return professor
+//		}
+//	}
+//	return entity.Professor{}
+//}
 
 // GetSubjects returns list of all subjects at every department
 func GetSubjects() []entity.Subject {

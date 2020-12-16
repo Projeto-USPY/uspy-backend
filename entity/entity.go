@@ -29,10 +29,9 @@ type Course struct {
 
 // Professor represents a ICMC professor (example: {Moacir Ponti SCC})
 type Professor struct {
-	ID         int
-	CodPes     int
-	Name       string
-	Department string
+	CodPes     int    `firestore:"code"`
+	Name       string `firestore:"name"`
+	Department string `firestore:"dep"`
 }
 
 // User represents an user

@@ -7,7 +7,7 @@ import (
 )
 
 func TestScrapeICMC(t *testing.T) {
-	courses, err := ScrapeICMC()
+	courses, err := ScrapeICMCCourses()
 
 	if err != nil {
 		t.Fail()

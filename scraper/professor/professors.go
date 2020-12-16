@@ -13,7 +13,8 @@ import (
 	"strings"
 )
 
-func getProfessorsByDepartment(dep *string, page int, offset int) []entity.Professor {
+// ICMC related
+func getProfessorsByDepartment(dep *string, page int) []entity.Professor {
 	icmcURL := "https://www.icmc.usp.br/templates/icmc2015/php/pessoas.php"
 	formData := url.Values{
 		"grupo":  {"Docente"},
@@ -36,7 +37,7 @@ func getProfessorsByDepartment(dep *string, page int, offset int) []entity.Profe
 		codPes, _ := strconv.ParseInt(codPesStr, 10, 32)
 		codPes = (codPes - 3) / 2
 		profName := strings.TrimSpace(s.Text())
-		prof := entity.Professor{ID: i + offset, CodPes: int(codPes), Name: profName, Department: *dep}
+		prof := entity.Professor{CodPes: int(codPes), Name: profName, Department: *dep}
 		results = append(results, prof)
 	})
 
@@ -127,7 +128,7 @@ func ScrapeDepartments() []entity.Professor {
 	for _, dep := range deps {
 		i := 1
 		for {
-			profs := getProfessorsByDepartment(&dep, i, offset)
+			profs := getProfessorsByDepartment(&dep, i)
 			offset += len(profs)
 
 			if len(profs) == 0 {
