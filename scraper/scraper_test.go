@@ -1,18 +1,19 @@
 package scraper
 
 import (
+	"net/http"
 	"testing"
 )
 
 func TestGetProfessorByCode(t *testing.T) {
-	prof, err := getProfessorByCode(2085191) // Agma
+	prof, status, err := getProfessorByCode(54946) // Janete
+	t.Log(prof)
 	if err != nil {
-		t.Fatal(err)
-	} else if prof.Name != "Agma Juci Machado Traina" {
-		t.Fail()
+		t.Fatal(err, status)
+	} else if status != http.StatusOK {
+		t.Fatal("status", status)
 	}
 
-	t.Log(prof)
 }
 
 func TestGetProfessorHistory(t *testing.T) {

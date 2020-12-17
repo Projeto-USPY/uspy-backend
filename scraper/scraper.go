@@ -9,15 +9,15 @@ import (
 	"strconv"
 )
 
-func getProfessorByCode(codPes int) (entity.Professor, error) {
+func getProfessorByCode(codPes int) (entity.Professor, int, error) {
 	infoURL := "https://uspdigital.usp.br/datausp/servicos/publico/indicadores_pos/perfil/docente/"
 	infoURL += strconv.Itoa(codPes)
 	resp, err := http.Get(infoURL)
 
 	if err != nil {
-		return entity.Professor{}, err
+		return entity.Professor{}, -1, err
 	} else if resp.StatusCode != http.StatusOK {
-		return entity.Professor{}, fmt.Errorf("could not get professor %v", codPes)
+		return entity.Professor{}, resp.StatusCode, nil
 	} else {
 		defer resp.Body.Close()
 	}
@@ -25,7 +25,7 @@ func getProfessorByCode(codPes int) (entity.Professor, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		return entity.Professor{}, fmt.Errorf("error reading json with codPes %v", codPes)
+		return entity.Professor{}, -1, fmt.Errorf("error reading json with codPes %v", codPes)
 	}
 
 	var data map[string]interface{}
@@ -36,7 +36,7 @@ func getProfessorByCode(codPes int) (entity.Professor, error) {
 		Name:   fmt.Sprintf("%s", data["nompes"]),
 	}
 
-	return prof, nil
+	return prof, http.StatusOK, nil
 }
 
 // GetProfessorHistory gets you the offerings since a given year for a given professor
@@ -82,11 +82,4 @@ func GetProfessorHistory(codPes, since int) ([]entity.Offering, error) {
 	}
 
 	return results, nil
-}
-
-func ScrapeAllOfferings() {
-	maxCodPes := int(1e9)
-	for i := 0; i < maxCodPes; i++ {
-		go GetProfessorHistory(i, 2010)
-	}
 }
