@@ -1,58 +1,92 @@
 package scraper
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/scraper/subject"
-	"github.com/tpreischadt/ProjetoJupiter/utils"
-	"regexp"
-	"strings"
+	"io/ioutil"
+	"net/http"
+	"strconv"
 )
 
-// ScrapeICMCCourses scrapes the whole institute (every course)
-func ScrapeICMCCourses() (courses []entity.Course, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("Error scraping ICMC courses: %v", r)
+func getProfessorByCode(codPes int) (entity.Professor, error) {
+	infoURL := "https://uspdigital.usp.br/datausp/servicos/publico/indicadores_pos/perfil/docente/"
+	infoURL += strconv.Itoa(codPes)
+	resp, err := http.Get(infoURL)
+
+	if err != nil {
+		return entity.Professor{}, err
+	} else if resp.StatusCode != http.StatusOK {
+		return entity.Professor{}, fmt.Errorf("could not get professor %v", codPes)
+	} else {
+		defer resp.Body.Close()
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return entity.Professor{}, fmt.Errorf("error reading json with codPes %v", codPes)
+	}
+
+	var data map[string]interface{}
+	_ = json.Unmarshal(body, &data)
+
+	prof := entity.Professor{
+		CodPes: codPes,
+		Name:   fmt.Sprintf("%s", data["nompes"]),
+	}
+
+	return prof, nil
+}
+
+// GetProfessorHistory gets you the offerings since a given year for a given professor
+func GetProfessorHistory(codPes, since int) ([]entity.Offering, error) {
+	offerMask := "https://uspdigital.usp.br/datausp/servicos/publico/academico/aulas_ministradas/%d/%d/0/0/br"
+	offerURL := fmt.Sprintf(offerMask, codPes, since)
+	resp, err := http.Get(offerURL)
+
+	if err != nil {
+		return nil, err
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("could not get professor %v", codPes)
+	} else {
+		defer resp.Body.Close()
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, fmt.Errorf("error reading json with codPes %v", codPes)
+	}
+
+	var data map[string]interface{}
+	_ = json.Unmarshal(body, &data)
+
+	history := data["aulasGradPorAno"].(map[string]interface{})
+	results := make([]entity.Offering, 0, 100)
+
+	for k, v := range history {
+		offs := v.([]interface{})
+		for _, subj := range offs {
+			year, _ := strconv.Atoi(k)
+			semester := int(fmt.Sprintf("%s", subj.(map[string]interface{})["codtur"])[4] - '0')
+			subjName := fmt.Sprintf("%s", subj.(map[string]interface{})["coddis"])
+
+			results = append(results, entity.Offering{
+				Semester:  semester,
+				Professor: codPes,
+				Year:      year,
+				Subject:   subjName,
+			})
 		}
-	}()
+	}
 
-	allCoursesURL := utils.JupiterURL + "jupCursoLista?codcg=55&tipo=N"
-	resp, body := utils.HTTPGetWithUTF8(allCoursesURL)
+	return results, nil
+}
 
-	defer resp.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(body)
-	utils.CheckPanic(err)
-
-	doc.Find("td[valign=\"top\"] a.link_gray").Each(func(i int, s *goquery.Selection) {
-		courseURL, exists := s.Attr("href")
-
-		if !exists {
-			panic("Couldnt fetch course")
-		}
-
-		courseName := strings.TrimSpace(s.Text())
-
-		regexCode := regexp.MustCompile(`codcur=(\d+)`)
-		courseCodeMatches := regexCode.FindStringSubmatch(courseURL)
-		if courseCodeMatches == nil {
-			panic("Couldn't find course code of %v" + courseName)
-		}
-
-		courseCode := courseCodeMatches[1]
-		subjs, err := subject.GetSubjects(utils.JupiterURL+courseURL, courseCode)
-		utils.CheckPanic(err)
-
-		courseObj := entity.Course{
-			Name:     courseName,
-			Code:     courseCode,
-			Subjects: subjs,
-		}
-
-		courses = append(courses, courseObj)
-	})
-
-	return courses, nil
+func ScrapeAllOfferings() {
+	maxCodPes := int(1e9)
+	for i := 0; i < maxCodPes; i++ {
+		go GetProfessorHistory(i, 2010)
+	}
 }
