@@ -3,7 +3,6 @@ package db
 import (
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
-	"github.com/joho/godotenv"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 	"log"
@@ -11,12 +10,17 @@ import (
 )
 
 type Manager interface {
-	Insert(client *firestore.Client, ctx context.Context) error
+	Insert(db Env) error
 	Hash() string
 }
 
-func Restore(client *firestore.Client, ctx context.Context, collection, HashID string) (*firestore.DocumentSnapshot, error) {
-	snap, err := client.Collection(collection).Doc(HashID).Get(ctx)
+type Env struct {
+	Client *firestore.Client
+	Ctx    context.Context
+}
+
+func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, error) {
+	snap, err := db.Client.Collection(collection).Doc(HashID).Get(db.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -24,70 +28,66 @@ func Restore(client *firestore.Client, ctx context.Context, collection, HashID s
 	return snap, nil
 }
 
-func InitFireStore(envRelPath string) (*firestore.Client, context.Context) {
-	_ = godotenv.Load(envRelPath)
+func (db Env) Insert(obj Manager) error {
+	err := obj.Insert(db)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-	ctx := context.Background()
-	var client *firestore.Client
+func InitFireStore(mode string) Env {
+	var DB Env = Env{
+		Ctx: context.Background(),
+	}
 
-	if mode, ok := os.LookupEnv("MODE"); ok && mode != "prod" { // dev or build
+	if mode == "prod" {
+		if id, ok := os.LookupEnv("PROJECT_ID"); ok {
+			conf := &firebase.Config{ProjectID: id}
+			app, err := firebase.NewApp(DB.Ctx, conf)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			DB.Client, err = app.Firestore(DB.Ctx)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		} else {
+			log.Fatal("missing env variable PROJECT_ID")
+		}
+	} else { // build or dev
 		if key, ok := os.LookupEnv("FIRESTORE_KEY"); ok {
 			sa := option.WithCredentialsFile(key)
-			app, err := firebase.NewApp(ctx, nil, sa)
+			app, err := firebase.NewApp(DB.Ctx, nil, sa)
 			if err != nil {
 				log.Fatalln(err)
 			}
 
-			client, err = app.Firestore(ctx)
+			DB.Client, err = app.Firestore(DB.Ctx)
 			if err != nil {
 				log.Fatalln(err)
 			}
 
-			// TODO: Refactor this to optimize DB Reads
 			if mode == "build" { // populate and exit
 				func() {
-					cnt, err := PopulateOfferings(client, ctx)
+					cnt, err := PopulateICMCOfferings(DB)
 					if err != nil {
-						_ = client.Close()
+						_ = DB.Client.Close()
 						log.Fatalln("failed to build: ", err)
 					} else {
 						log.Println("total: ", cnt)
 					}
 				}()
 
-				func() {
-					cnt, err := PopulateProfessors(client, ctx)
-					if err != nil {
-						_ = client.Close()
-						log.Fatalln("failed to build: ", err)
-					} else {
-						log.Println("total: ", cnt)
-					}
-				}()
-
-				_ = client.Close()
+				_ = DB.Client.Close()
 				os.Exit(0)
 			}
 
 		} else {
 			log.Fatal("FIRESTORE_KEY path not specified in .env file")
 		}
-	} else if ok && mode == "prod" { // production
-		if id, ok := os.LookupEnv("PROJECT_ID"); ok {
-			conf := &firebase.Config{ProjectID: id}
-			app, err := firebase.NewApp(ctx, conf)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			client, err = app.Firestore(ctx)
-			if err != nil {
-				log.Fatalln(err)
-			}
-		}
-	} else {
-		log.Fatalln(".env runtime MODE invalid or not specified")
 	}
 
-	return client, ctx
+	return DB
 }

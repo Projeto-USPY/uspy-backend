@@ -1,10 +1,9 @@
 package main
 
 import (
-	"cloud.google.com/go/firestore"
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/tpreischadt/ProjetoJupiter/db"
-	"golang.org/x/net/context"
 	"log"
 	"net/http"
 	"os"
@@ -18,19 +17,19 @@ import (
 )
 
 var (
-	client *firestore.Client
-	ctx    context.Context
+	DB db.Env
 )
 
 func init() {
-	client, ctx = db.InitFireStore(".env")
+	_ = godotenv.Load(".env")
+	DB = db.InitFireStore(os.Getenv("MODE"))
 }
 
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("recovered in main", r)
-			_ = client.Close()
+			_ = DB.Client.Close()
 			os.Exit(-1)
 		}
 	}()

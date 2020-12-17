@@ -20,6 +20,7 @@ type Offering struct {
 	Subject   string `firestore:"subject"`
 }
 
+// TODO: Change subject/course entity or add another collection to DB?
 // Course represents a course/major (example: BCC)
 type Course struct {
 	Name     string

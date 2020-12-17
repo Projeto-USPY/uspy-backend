@@ -1,9 +1,8 @@
 package db
 
 import (
-	"cloud.google.com/go/firestore"
-	"context"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"google.golang.org/api/iterator"
@@ -17,10 +16,10 @@ type ProfessorDB struct {
 }
 
 // NewProfessor constructor
-func NewProfessor(ent entity.Professor, client *firestore.Client, ctx context.Context) (*ProfessorDB, error) {
-	col := client.Collection("offerings")
+func NewProfessor(ent entity.Professor, DB Env) (*ProfessorDB, error) {
+	col := DB.Client.Collection("offerings")
 	offs := col.Where("data.professor", "==", ent.CodPes)
-	iter := offs.Documents(ctx)
+	iter := offs.Documents(DB.Ctx)
 	defer iter.Stop()
 
 	offeringIDs := make([]string, 0, 500)
@@ -49,13 +48,37 @@ func NewProfessor(ent entity.Professor, client *firestore.Client, ctx context.Co
 	return &prof, nil
 }
 
-func (prof *ProfessorDB) Hash() {
-	str := fmt.Sprint(prof.Professor.CodPes)
-	prof.HashID = fmt.Sprintf("%x", md5.Sum([]byte(str)))
+/* NewProfessorWithOfferings is the same as NewProfessor but you must inform the offerings.
+Use this method instead of NewProfessor in order to reduce firestore reads when inserting professors. */
+func NewProfessorWithOfferings(ent entity.Professor, offs []entity.Offering) (*ProfessorDB, error) {
+	offHashes := make([]string, 0, 500)
+	for _, off := range offs {
+		if off.Professor != ent.CodPes {
+			return nil, errors.New("invalid offering")
+		} else {
+			offDB := NewOffering(off)
+			offHashes = append(offHashes, offDB.HashID)
+		}
+	}
+	prof := ProfessorDB{
+		Offerings: offHashes,
+		Stats: map[string]int{
+			"sumDidactics": 0,
+			"sumRigorous":  0,
+		},
+		Professor: ent,
+	}
+	prof.HashID = prof.Hash()
+	return &prof, nil
 }
 
-func (prof *ProfessorDB) Insert(client *firestore.Client, ctx context.Context) error {
-	_, err := client.Collection("professors").Doc(prof.HashID).Set(ctx, prof)
+func (prof ProfessorDB) Hash() string {
+	str := fmt.Sprint(prof.Professor.CodPes)
+	return fmt.Sprintf("%x", md5.Sum([]byte(str)))
+}
+
+func (prof ProfessorDB) Insert(DB Env) error {
+	_, err := DB.Client.Collection("professors").Doc(prof.HashID).Set(DB.Ctx, prof)
 	if err != nil {
 		return err
 	}
