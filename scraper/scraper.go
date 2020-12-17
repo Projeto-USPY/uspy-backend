@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -82,4 +83,32 @@ func GetProfessorHistory(codPes, since int) ([]entity.Offering, error) {
 	}
 
 	return results, nil
+}
+
+func ScrapeAllOfferings() {
+	jobQueue := make(chan chan int)
+	numWorkers := 1000
+
+	for i := 0; i < numWorkers; i++ {
+		jobChannel := make(chan int)
+
+		// Workers will take from queue when available and process
+		go func() {
+			for {
+				jobQueue <- jobChannel
+				job := <-jobChannel
+				prof, status, _ := getProfessorByCode(job)
+
+				if status == http.StatusOK {
+					log.Printf("%v %v %v\n", job, prof.Name, status)
+				}
+			}
+		}()
+	}
+
+	for i := 1; i <= int(1e8); i++ {
+		jobChannel := <-jobQueue
+		jobChannel <- i
+	}
+
 }

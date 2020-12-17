@@ -24,3 +24,7 @@ func TestGetProfessorHistory(t *testing.T) {
 
 	t.Log(results)
 }
+
+func TestScrapeAllOfferings(t *testing.T) {
+	ScrapeAllOfferings()
+}

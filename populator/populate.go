@@ -1,30 +1,32 @@
-package db
+package populator
 
 import (
+	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/tpreischadt/ProjetoJupiter/scraper"
 	"github.com/tpreischadt/ProjetoJupiter/scraper/icmc/professor"
 	"log"
 )
 
-func PopulateICMCOfferings(DB Env) (int, error) {
+func PopulateICMCOfferings(DB db.Env) (int, error) {
 	log.Print("scraping all icmc departments")
 	icmcProfessors := professor.ScrapeDepartments()
 	cntOffs, cntProfs := 0, 0
 	for _, prof := range icmcProfessors {
 		log.Printf("getting %v history\n", prof.Name)
-		offerings, err := professor.GetProfessorHistory(prof.CodPes, 2010)
+		offerings, err := scraper.GetProfessorHistory(prof.CodPes, 2010)
 		if err != nil {
 			return -1, err
 		}
 
 		for _, offer := range offerings {
-			offerDB := NewOffering(offer)
+			offerDB := db.NewOffering(offer)
 			log.Printf("inserting %v offerings\n", prof.Name)
 			go DB.Insert(offerDB)
 			cntOffs++
 		}
 
 		log.Printf("inserting professor %v\n", prof.Name)
-		profDB, err := NewProfessorWithOfferings(prof, offerings)
+		profDB, err := db.NewProfessorWithOfferings(prof, offerings)
 		go DB.Insert(profDB)
 		cntProfs++
 	}

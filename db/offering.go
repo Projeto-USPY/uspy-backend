@@ -7,7 +7,7 @@ import (
 )
 
 type OfferingDB struct {
-	HashID   string          // md5(concat(subject, professor, year, semester)
+	HashID   string          // md5(concat(subject, professor, year, semester))
 	Offering entity.Offering `firestore:"data"`
 }
 

@@ -68,22 +68,6 @@ func InitFireStore(mode string) Env {
 			if err != nil {
 				log.Fatalln(err)
 			}
-
-			if mode == "build" { // populate and exit
-				func() {
-					cnt, err := PopulateICMCOfferings(DB)
-					if err != nil {
-						_ = DB.Client.Close()
-						log.Fatalln("failed to build: ", err)
-					} else {
-						log.Println("total: ", cnt)
-					}
-				}()
-
-				_ = DB.Client.Close()
-				os.Exit(0)
-			}
-
 		} else {
 			log.Fatal("FIRESTORE_KEY path not specified in .env file")
 		}

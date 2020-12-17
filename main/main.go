@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/tpreischadt/ProjetoJupiter/populator"
 	"log"
 	"net/http"
 	"os"
@@ -23,6 +24,21 @@ var (
 func init() {
 	_ = godotenv.Load(".env")
 	DB = db.InitFireStore(os.Getenv("MODE"))
+
+	if os.Getenv("MODE") == "build" { // populate and exit
+		func() {
+			cnt, err := populator.PopulateICMCOfferings(DB)
+			if err != nil {
+				_ = DB.Client.Close()
+				log.Fatalln("failed to build: ", err)
+			} else {
+				log.Println("total: ", cnt)
+			}
+		}()
+
+		_ = DB.Client.Close()
+		os.Exit(0)
+	}
 }
 
 func main() {
