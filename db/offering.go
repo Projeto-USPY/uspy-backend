@@ -7,18 +7,15 @@ import (
 )
 
 type OfferingDB struct {
-	HashID   string          // md5(concat(subject, professor, year, semester))
 	Offering entity.Offering `firestore:"data"`
 }
 
 // NewOffering constructor
 func NewOffering(ent entity.Offering) *OfferingDB {
-	off := OfferingDB{Offering: ent}
-
-	off.HashID = off.Hash()
-	return &off
+	return &OfferingDB{Offering: ent}
 }
 
+// md5(concat(subject, professor, year, semester))
 func (off OfferingDB) Hash() string {
 	concat := fmt.Sprint(
 		off.Offering.Subject,
@@ -31,7 +28,7 @@ func (off OfferingDB) Hash() string {
 }
 
 func (off OfferingDB) Insert(DB Env) error {
-	_, err := DB.Client.Collection("offerings").Doc(off.HashID).Set(DB.Ctx, off)
+	_, err := DB.Client.Collection("offerings").Doc(off.Hash()).Set(DB.Ctx, off)
 	if err != nil {
 		return err
 	}

@@ -25,7 +25,7 @@ func TestNewProfessorWithOfferings(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		snap, err := DB.Restore("offerings", offDB.HashID)
+		snap, err := DB.Restore("offerings", offDB.Hash())
 
 		if err != nil {
 			t.Fatal(err)
@@ -61,7 +61,7 @@ func TestNewProfessorWithOfferings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	snap, err := DB.Restore("professors", profDB.HashID)
+	snap, err := DB.Restore("professors", profDB.Hash())
 
 	if err != nil {
 		t.Fatal(err)
