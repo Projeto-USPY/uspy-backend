@@ -17,13 +17,13 @@ func PopulateICMCSubjects(DB db.Env) (int, error) {
 	cntCourses, cntSubjects := 0, 0
 	for _, course := range courses {
 		log.Println("inserting course", course.Name)
-		err := course.Insert(DB, "courses")
+		err := DB.Insert(course, "courses")
 		if err != nil {
 			return 0, nil
 		}
 		for _, sub := range course.Subjects {
 			log.Println("inserting subjects from course", course.Name)
-			go sub.Insert(DB, fmt.Sprintf("courses/%s/subjects", course.Hash()))
+			go DB.Insert(sub, fmt.Sprintf("courses/%s/subjects", course.Hash()))
 			cntSubjects++
 		}
 		cntCourses++
