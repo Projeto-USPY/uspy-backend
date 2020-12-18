@@ -4,25 +4,48 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/db"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
 type User struct {
-	Login            string    `json:"login" firestore:"login,omitempty" binding:"required"`
-	LastRegistration time.Time `firestore:"lastRegistration,serverTimestamp"`
+	// only used because of REST requests, do not store in DB!!!
+	Login    string `json:"login" firestore:"-" binding:"required"`
+	Password string `json:"pwd" firestore:"-" binding:"required"`
 
-	// Password is only used because of REST requests, do not store in DB!!!
-	Password     string `json:"pwd" firestore:"-" binding:"required"`
-	PasswordHash string `firestore:"password,omitempty"` // use strong Hashing!
+	// bcrypt hashing cause password is more sensitive
+	PasswordHash string `firestore:"password,omitempty"`
+
+	LastRegistration time.Time `firestore:"lastRegistration,serverTimestamp"`
 }
 
-// sha256 cause user data is more sensitive
+func HashPassword(str string) (string, error) {
+	pass, err := bcrypt.GenerateFromPassword([]byte(str), bcrypt.MinCost)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", pass), nil
+}
+
+func (u User) WithHash() (User, error) {
+	pHash, err := HashPassword(u.Password)
+	if err != nil {
+		return User{}, err
+	}
+	u.PasswordHash = pHash
+	return u, nil
+}
+
 func (u User) Hash() string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(u.Login)))
 }
 
 func (u User) Insert(DB db.Env, collection string) error {
-	_, err := DB.Client.Collection(collection).Doc(u.Hash()).Set(DB.Ctx, u)
+	u, err := u.WithHash()
+	if err != nil {
+		return err
+	}
+	_, err = DB.Client.Collection(collection).Doc(u.Hash()).Set(DB.Ctx, u)
 	if err != nil {
 		return err
 	}
