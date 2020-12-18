@@ -18,16 +18,30 @@ func PopulateICMCOfferings(DB db.Env) (int, error) {
 			return -1, err
 		}
 
+		exists := make(map[string]bool)
+		hashes := make([]string, 0, 200)
 		for _, offer := range offerings {
-			offerDB := db.NewOffering(offer)
-			log.Printf("inserting %v offerings\n", prof.Name)
-			go DB.Insert(offerDB)
+			if _, ok := exists[offer.Hash()]; ok {
+				continue
+			}
+
+			log.Printf("inserting %v offering\n", prof.Name)
+			go DB.Insert(offer, "offerings")
+
+			exists[offer.Hash()] = true
+			hashes = append(hashes, offer.Hash())
 			cntOffs++
 		}
 
+		prof.Offerings = hashes
+		prof.Stats = map[string]int{
+			"sumDidactics": 0,
+			"sumRigorous":  0,
+			"sumWorthIt":   0,
+		}
+
 		log.Printf("inserting professor %v\n", prof.Name)
-		profDB, err := db.NewProfessorWithOfferings(prof, offerings)
-		go DB.Insert(profDB)
+		go DB.Insert(prof, "professors")
 		cntProfs++
 	}
 

@@ -10,8 +10,7 @@ import (
 )
 
 type Manager interface {
-	Insert(db Env) error
-	Hash() string
+	Insert(db Env, collection string) error
 }
 
 type Env struct {
@@ -28,8 +27,8 @@ func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, e
 	return snap, nil
 }
 
-func (db Env) Insert(obj Manager) error {
-	err := obj.Insert(db)
+func (db Env) Insert(obj Manager, collection string) error {
+	err := obj.Insert(db, collection)
 	if err != nil {
 		return err
 	}
@@ -37,7 +36,7 @@ func (db Env) Insert(obj Manager) error {
 }
 
 func InitFireStore(mode string) Env {
-	var DB Env = Env{
+	var DB = Env{
 		Ctx: context.Background(),
 	}
 

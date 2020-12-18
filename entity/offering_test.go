@@ -1,34 +1,32 @@
-package db
+package entity
 
 import (
 	"github.com/joho/godotenv"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
+	"github.com/tpreischadt/ProjetoJupiter/db"
 	"testing"
 )
 
 func TestNewOffering(t *testing.T) {
-	off := entity.Offering{
+	off := Offering{
 		Semester:  0,
 		Year:      0,
 		Professor: 0,
 		Subject:   "TestOffering",
 	}
-	offDB := NewOffering(off)
-	hash := offDB.Hash()
 
 	_ = godotenv.Load("../.env")
-	DB := InitFireStore("dev")
-	err := DB.Insert(offDB)
+	DB := db.InitFireStore("dev")
+	err := DB.Insert(off, "offerings")
 	if err != nil {
 		t.Fatal(err)
 	}
-	snap, err := DB.Restore("offerings", hash)
+	snap, err := DB.Restore("offerings", off.Hash())
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var stored OfferingDB
+	var stored Offering
 	err = snap.DataTo(&stored)
 
 	if err != nil {
@@ -37,7 +35,7 @@ func TestNewOffering(t *testing.T) {
 
 	t.Log("stored:", stored)
 
-	if stored != *offDB {
+	if stored != off {
 		t.Fail()
 	}
 }
