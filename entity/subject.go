@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"cloud.google.com/go/firestore"
 	"crypto/md5"
 	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/db"
@@ -9,15 +8,14 @@ import (
 
 // Subject describes a subject (example: SMA0356 - Cálculo IV)
 type Subject struct {
-	Code          string                   `firestore:"code"`
-	Name          string                   `firestore:"name"`
-	Description   string                   `firestore:"desc"`
-	ClassCredits  int                      `firestore:"class"`
-	AssignCredits int                      `firestore:"assign"`
-	TotalHours    string                   `firestore:"hours"`
-	Requirements  []string                 `firestore:"requirements"`
-	Optional      bool                     `firestore:"optional"`
-	Grades        *firestore.CollectionRef `firestore:"grades"`
+	Code          string   `firestore:"code"`
+	Name          string   `firestore:"name"`
+	Description   string   `firestore:"desc"`
+	ClassCredits  int      `firestore:"class"`
+	AssignCredits int      `firestore:"assign"`
+	TotalHours    string   `firestore:"hours"`
+	Requirements  []string `firestore:"requirements"`
+	Optional      bool     `firestore:"optional"`
 }
 
 func (s Subject) Hash() string {

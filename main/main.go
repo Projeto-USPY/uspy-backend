@@ -34,6 +34,14 @@ func init() {
 			} else {
 				log.Println("total: ", cnt)
 			}
+
+			cnt, err = populator.PopulateICMCSubjects(DB)
+			if err != nil {
+				_ = DB.Client.Close()
+				log.Fatalln("failed to build: ", err)
+			} else {
+				log.Println("total: ", cnt)
+			}
 		}()
 
 		_ = DB.Client.Close()
@@ -55,11 +63,6 @@ func main() {
 
 	api := r.Group("/api")
 
-	err := data.LoadData()
-	if err != nil {
-		panic(err)
-	}
-
 	professorAPI := api.Group("/professor")
 	{
 		professorAPI.GET("/:id", func(c *gin.Context) {
@@ -69,8 +72,8 @@ func main() {
 				res := data.GetProfessors()
 				c.JSON(http.StatusOK, res)
 			} else {
-				//prof := data.GetProfessorByID(id)
-				//c.JSON(http.StatusOK, prof)
+				prof := data.GetProfessorByID(id)
+				c.JSON(http.StatusOK, prof)
 			}
 		})
 	}
@@ -133,6 +136,6 @@ func main() {
 	})
 
 	fmt.Println(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
-	err = r.Run(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
+	err := r.Run(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
 	log.Print(err)
 }
