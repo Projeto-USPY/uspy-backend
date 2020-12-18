@@ -8,10 +8,10 @@ import (
 
 // Offering describes an offering of a subject (example: Cálculo IV - 2019.2)
 type Offering struct {
-	Semester  int    `firestore:"semester"`
-	Year      int    `firestore:"year"`
-	Professor int    `firestore:"professor"`
-	Subject   string `firestore:"subject"`
+	Semester  int    `firestore:"semester,omitempty"`
+	Year      int    `firestore:"year,omitempty"`
+	Professor int    `firestore:"professor,omitempty"`
+	Subject   string `firestore:"subject,omitempty"`
 }
 
 // md5(concat(subject, professor, year, semester))
