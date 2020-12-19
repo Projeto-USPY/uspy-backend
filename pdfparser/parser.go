@@ -35,7 +35,7 @@ func ReadPDFFile(file string) (body *string, ok bool) {
 
 	ch := make(chan *string, 1)
 	go func() {
-		out, err := exec.Command("pdftotext", file, "-q", "-eol", "unix", "-layout", "-").Output()
+		out, err := exec.Command("pdftotext", "-q", "-eol", "unix", "-layout", file, "-").Output()
 		if err != nil {
 			panic("An error occured while reading the PDF")
 		}
