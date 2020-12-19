@@ -8,14 +8,15 @@ import (
 
 // Subject describes a subject (example: SMA0356 - Cálculo IV)
 type Subject struct {
-	Code          string   `firestore:"code,omitempty"`
-	Name          string   `firestore:"name,omitempty"`
-	Description   string   `firestore:"desc,omitempty"`
-	ClassCredits  int      `firestore:"class,omitempty"`
-	AssignCredits int      `firestore:"assign,omitempty"`
-	TotalHours    string   `firestore:"hours,omitempty"`
-	Requirements  []string `firestore:"requirements,omitempty"`
-	Optional      bool     `firestore:"optional,omitempty"`
+	Code          string             `firestore:"code,omitempty"`
+	Name          string             `firestore:"name,omitempty"`
+	Description   string             `firestore:"desc,omitempty"`
+	ClassCredits  int                `firestore:"class,omitempty"`
+	AssignCredits int                `firestore:"assign,omitempty"`
+	TotalHours    string             `firestore:"hours,omitempty"`
+	Requirements  []string           `firestore:"requirements,omitempty"`
+	Optional      bool               `firestore:"optional,omitempty"`
+	Stats         map[string]float64 `firestore:"stats,omitempty"`
 }
 
 func (s Subject) Hash() string {

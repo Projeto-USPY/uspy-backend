@@ -13,8 +13,8 @@ type Professor struct {
 	Name       string `firestore:"name,omitempty"`
 	Department string `firestore:"dep,omitempty"`
 
-	Stats     map[string]int `firestore:"stats,omitempty"`
-	Offerings []string       `firestore:"offeringsIDs,omitempty"`
+	Stats     map[string]float64 `firestore:"stats,omitempty"`
+	Offerings []string           `firestore:"offeringsIDs,omitempty"`
 }
 
 func (prof Professor) WithOfferings(DB db.Env) (Professor, error) {
