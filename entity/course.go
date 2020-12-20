@@ -8,8 +8,8 @@ import (
 
 // Course represents a course/major (example: BCC)
 type Course struct {
-	Name          string    `firestore:"name,omitempty"`
-	Code          string    `firestore:"code,omitempty"`
+	Name          string    `firestore:"name"`
+	Code          string    `firestore:"code"`
 	Subjects      []Subject `firestore:"-"`
 	SubjectHashes []string  `firestore:"subjects"`
 }

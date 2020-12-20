@@ -3,7 +3,7 @@ package entity
 import "github.com/tpreischadt/ProjetoJupiter/db"
 
 type Grade struct {
-	Grade int `firestore:"value,omitempty"`
+	Grade int `firestore:"value"`
 }
 
 func (g Grade) Insert(DB db.Env, collection string) error {

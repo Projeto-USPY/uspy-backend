@@ -14,7 +14,7 @@ type User struct {
 	Password string `json:"pwd" firestore:"-" binding:"required"`
 
 	// bcrypt hashing cause password is more sensitive
-	PasswordHash string `firestore:"password,omitempty"`
+	PasswordHash string `firestore:"password"`
 
 	LastRegistration time.Time `firestore:"lastRegistration,serverTimestamp"`
 }

@@ -7,8 +7,8 @@ import (
 )
 
 type ProfessorReview struct {
-	CodPes int             `firestore:"code,omitempty"`
-	Review map[string]bool `firestore:"scores,omitempty"`
+	CodPes int             `firestore:"code"`
+	Review map[string]bool `firestore:"scores"`
 }
 
 func (pr ProfessorReview) Hash() string {

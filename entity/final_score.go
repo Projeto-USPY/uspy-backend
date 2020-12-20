@@ -3,9 +3,9 @@ package entity
 import "github.com/tpreischadt/ProjetoJupiter/db"
 
 type FinalScore struct {
-	Grade        int    `firestore:"grade,omitempty"`
-	Status       string `firestore:"status,omitempty"`
-	OfferingHash string `firestore:"offering,omitempty"`
+	Grade        int    `firestore:"grade"`
+	Status       string `firestore:"status"`
+	OfferingHash string `firestore:"offering"`
 }
 
 func (mf FinalScore) Insert(DB db.Env, collection string) error {
