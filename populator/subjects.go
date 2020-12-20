@@ -15,7 +15,7 @@ func PopulateICMCSubjects(DB db.Env) (int, error) {
 
 	cntCourses, cntSubjects := 0, 0
 	for _, course := range courses {
-		courseSubHashes := make([]string, 0, 300)
+		courseSubNames := make(map[string]string)
 		for _, sub := range course.Subjects {
 			sub.Stats = map[string]int{
 				"qtWorthIt": 0,
@@ -23,10 +23,10 @@ func PopulateICMCSubjects(DB db.Env) (int, error) {
 			}
 			log.Println("inserting subjects from course", course.Name)
 			go DB.Insert(sub, "subjects")
-			courseSubHashes = append(courseSubHashes, sub.Hash())
+			courseSubNames[sub.Code] = sub.Name
 			cntSubjects++
 		}
-		course.SubjectHashes = courseSubHashes
+		course.SubjectCodes = courseSubNames
 		err := DB.Insert(course, "courses")
 		log.Println("inserting course", course.Name)
 		if err != nil {
