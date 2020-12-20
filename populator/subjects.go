@@ -1,7 +1,6 @@
 package populator
 
 import (
-	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/scraper/icmc/subject"
 	"log"
@@ -16,15 +15,22 @@ func PopulateICMCSubjects(DB db.Env) (int, error) {
 
 	cntCourses, cntSubjects := 0, 0
 	for _, course := range courses {
-		log.Println("inserting course", course.Name)
+		courseSubHashes := make([]string, 0, 300)
+		for _, sub := range course.Subjects {
+			sub.Stats = map[string]int{
+				"qtWorthIt": 0,
+				"qtReviews": 0,
+			}
+			log.Println("inserting subjects from course", course.Name)
+			go DB.Insert(sub, "subjects")
+			courseSubHashes = append(courseSubHashes, sub.Hash())
+			cntSubjects++
+		}
+		course.SubjectHashes = courseSubHashes
 		err := DB.Insert(course, "courses")
+		log.Println("inserting course", course.Name)
 		if err != nil {
 			return 0, nil
-		}
-		for _, sub := range course.Subjects {
-			log.Println("inserting subjects from course", course.Name)
-			go DB.Insert(sub, fmt.Sprintf("courses/%s/subjects", course.Hash()))
-			cntSubjects++
 		}
 		cntCourses++
 	}

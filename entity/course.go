@@ -8,9 +8,10 @@ import (
 
 // Course represents a course/major (example: BCC)
 type Course struct {
-	Name     string    `firestore:"name,omitempty"`
-	Code     string    `firestore:"code,omitempty"`
-	Subjects []Subject `firestore:"-"`
+	Name          string    `firestore:"name,omitempty"`
+	Code          string    `firestore:"code,omitempty"`
+	Subjects      []Subject `firestore:"-"`
+	SubjectHashes []string  `firestore:"subjects"`
 }
 
 func (c Course) Hash() string {

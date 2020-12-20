@@ -35,9 +35,11 @@ func PopulateICMCOfferings(DB db.Env) (int, error) {
 
 		prof.Offerings = hashes
 		prof.Stats = map[string]int{
-			"sumDidactics": 0,
-			"sumRigorous":  0,
-			"sumWorthIt":   0,
+			"qtHasDidactics":  0,
+			"qtHasDifficulty": 0,
+			"qtHasAttendance": 0,
+			"qtIsWorthIt":     0,
+			"qtReviews":       0,
 		}
 
 		log.Printf("inserting professor %v\n", prof.Name)
