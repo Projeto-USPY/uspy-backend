@@ -8,7 +8,7 @@ import (
 
 // Subject describes a subject (example: SMA0356 - Cálculo IV)
 type Subject struct {
-	Code          string         `firestore:"code" form:"code" binding:"required,alphanum"`
+	Code          string         `form:"code" firestore:"code" binding:"required,alphanum"`
 	Name          string         `firestore:"name"`
 	Description   string         `firestore:"desc"`
 	ClassCredits  int            `firestore:"class"`

@@ -5,6 +5,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/populator"
+	"github.com/tpreischadt/ProjetoJupiter/server/data/course"
 	"github.com/tpreischadt/ProjetoJupiter/server/data/professor"
 	"github.com/tpreischadt/ProjetoJupiter/server/data/subject"
 	"log"
@@ -82,7 +83,12 @@ func main() {
 	subjectAPI := api.Group("/subject")
 	{
 		subjectAPI.GET("/all", func(c *gin.Context) {
-
+			courses, err := course.GetAll(DB)
+			if err != nil {
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+			c.JSON(http.StatusOK, courses)
 		})
 
 		subjectAPI.GET("", func(c *gin.Context) {

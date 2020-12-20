@@ -27,6 +27,15 @@ func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, e
 	return snap, nil
 }
 
+func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapshot, error) {
+	snap, err := db.Client.Collection(collection).Documents(db.Ctx).GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	return snap, nil
+}
+
 func (db Env) Insert(obj Manager, collection string) error {
 	err := obj.Insert(db, collection)
 	if err != nil {
