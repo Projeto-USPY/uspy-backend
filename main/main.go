@@ -5,6 +5,8 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/populator"
+	"github.com/tpreischadt/ProjetoJupiter/server/data/professor"
+	"github.com/tpreischadt/ProjetoJupiter/server/data/subject"
 	"log"
 	"net/http"
 	"os"
@@ -13,7 +15,6 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/server"
 	"github.com/tpreischadt/ProjetoJupiter/server/auth"
-	"github.com/tpreischadt/ProjetoJupiter/server/data"
 	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 )
 
@@ -69,10 +70,10 @@ func main() {
 			id := c.Param("id")
 
 			if id == "all" {
-				res := data.GetProfessors()
+				res, _ := professor.GetProfessors(DB)
 				c.JSON(http.StatusOK, res)
 			} else {
-				prof := data.GetProfessorByID(id)
+				prof := professor.GetProfessorByID(id)
 				c.JSON(http.StatusOK, prof)
 			}
 		})
@@ -80,16 +81,24 @@ func main() {
 
 	subjectAPI := api.Group("/subject")
 	{
-		subjectAPI.GET("/:code", func(c *gin.Context) {
-			code := c.Param("code")
+		subjectAPI.GET("/all", func(c *gin.Context) {
 
-			if code == "all" {
-				res := data.GetSubjects()
-				c.JSON(http.StatusOK, res)
-			} else {
-				subject := data.GetSubjectByCode(code)
-				c.JSON(http.StatusOK, subject)
+		})
+
+		subjectAPI.GET("", func(c *gin.Context) {
+			sub := entity.Subject{}
+			bindErr := c.BindQuery(&sub)
+			if bindErr != nil {
+				return
 			}
+
+			sub, err := subject.GetByCode(DB, sub.Code)
+			if err != nil {
+				c.Status(http.StatusNotFound)
+				return
+			}
+
+			c.JSON(http.StatusOK, sub)
 		})
 	}
 
