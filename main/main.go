@@ -6,6 +6,7 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/populator"
 	"github.com/tpreischadt/ProjetoJupiter/server/api"
+	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 	"log"
 	"os"
 
@@ -57,17 +58,35 @@ func main() {
 	r := gin.Default()
 	r.NoRoute(server.DefaultPage)
 
+	// Login, Logout, Sign-in and other account related operations
+	accountGroup := r.Group("/account")
+	{
+		accountGroup.POST("/login", api.Login(DB))
+		accountGroup.POST("/create", api.Signup(DB))
+	}
+
 	apiGroup := r.Group("/api")
 	subjectAPI := apiGroup.Group("/subject")
 	{
-		subjectAPI.GET("/all", api.GetSubjects(DB))
+		// Available for guests
 		subjectAPI.GET("", api.GetSubjectByCode(DB))
+		subjectAPI.GET("/all", api.GetSubjects(DB))
+
+		// Restricted means all registered users can see.
+		restrictedGroup := apiGroup.Group("/restricted")
+		restrictedGroup.Use(middleware.JWTMiddleware())
+		{
+			restrictedGroup.GET("/grades", api.GetSubjectGrades(DB))
+		}
 	}
 
-	account := r.Group("/account")
+	// Private means the user can only interact with data related to them.
+	privateGroup := r.Group("/private")
+	privateGroup.Use(middleware.JWTMiddleware())
 	{
-		account.POST("/login", api.Login(DB))
-		account.POST("/create", api.Signup(DB))
+		reviewGroup := privateGroup.Group("/review")
+		reviewGroup.GET("/subject")
+		reviewGroup.POST("/subject")
 	}
 
 	fmt.Println(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
