@@ -37,3 +37,20 @@ func GetSubjectByCode(DB db.Env) func(c *gin.Context) {
 		c.JSON(http.StatusOK, sub)
 	}
 }
+
+func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		sub := entity.Subject{}
+		bindErr := c.BindQuery(&sub)
+		if bindErr != nil {
+			return
+		}
+
+		buckets, err := subject.GetGrades(DB, sub.Code)
+		if err != nil {
+			c.Status(http.StatusNotFound)
+		}
+
+		c.JSON(http.StatusOK, buckets)
+	}
+}
