@@ -7,6 +7,7 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/server/data/course"
 	"github.com/tpreischadt/ProjetoJupiter/server/data/subject"
 	"net/http"
+	"strconv"
 )
 
 func GetSubjects(DB db.Env) func(c *gin.Context) {
@@ -51,6 +52,28 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 			c.Status(http.StatusNotFound)
 		}
 
-		c.JSON(http.StatusOK, buckets)
+		avg, approval := 0.0, 0.0
+		cnt := 0
+
+		for k, v := range buckets {
+			f, _ := strconv.ParseFloat(k, 64)
+			avg += f * float64(v)
+
+			if f >= 5.0 {
+				approval += float64(v)
+			}
+
+			cnt += v
+		}
+
+		if len(buckets) == 0 {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		avg /= float64(cnt)
+		approval /= float64(cnt)
+
+		c.JSON(http.StatusOK, gin.H{"Grades": buckets, "Average": avg, "Approval": approval})
 	}
 }
