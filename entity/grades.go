@@ -3,6 +3,7 @@ package entity
 import "github.com/tpreischadt/ProjetoJupiter/db"
 
 type Grade struct {
+	User  string  `firestore:"user"`
 	Grade float64 `firestore:"value"`
 }
 

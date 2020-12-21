@@ -20,6 +20,7 @@ func GetByCode(DB db.Env, code string) (entity.Subject, error) {
 	return subject, nil
 }
 
+// GetGrades returns all grades from a given subject
 func GetGrades(DB db.Env, code string) (map[string]int, error) {
 	buckets := make(map[string]int)
 	subject := entity.Subject{Code: code}
