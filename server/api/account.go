@@ -13,15 +13,15 @@ func Login(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var user entity.User
 		if err := c.ShouldBindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.Status(http.StatusBadRequest)
 		}
 
 		if err := auth.Login(user); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{})
+			c.Status(http.StatusUnauthorized)
 		}
 
 		if jwt, err := auth.GenerateJWT(user); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.Status(http.StatusInternalServerError)
 		} else {
 			domain := os.Getenv("DOMAIN")
 
