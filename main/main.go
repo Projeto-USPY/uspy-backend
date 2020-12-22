@@ -75,6 +75,7 @@ func main() {
 	{
 		// Available for guests
 		subjectAPI.GET("", api.GetSubjectByCode(DB))
+		subjectAPI.GET("/relations", api.GetSubjectGraph(DB))
 		subjectAPI.GET("/all", api.GetSubjects(DB))
 
 		// Restricted means all registered users can see.
