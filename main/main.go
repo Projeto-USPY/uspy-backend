@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/joho/godotenv"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/populator"
 	"github.com/tpreischadt/ProjetoJupiter/server/api"
 	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
-	"log"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/server"
@@ -55,8 +56,12 @@ func main() {
 		}
 	}()
 
-	r := gin.Default()
-	r.NoRoute(server.DefaultPage)
+	r := gin.Default()            // Create web-server object
+	r.NoRoute(server.DefaultPage) // Create a fallback, in case no route matches
+
+	if os.Getenv("MODE") == "dev" {
+		r.Use(middleware.AllowAnyOriginMiddleware())
+	}
 
 	// Login, Logout, Sign-in and other account related operations
 	accountGroup := r.Group("/account")

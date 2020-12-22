@@ -1,19 +1,22 @@
 package api
 
 import (
+	"log"
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/server/data/course"
 	"github.com/tpreischadt/ProjetoJupiter/server/data/subject"
-	"net/http"
-	"strconv"
 )
 
 func GetSubjects(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		courses, err := course.GetAll(DB)
 		if err != nil {
+			log.Fatal(err.Error())
 			c.Status(http.StatusInternalServerError)
 			return
 		}
