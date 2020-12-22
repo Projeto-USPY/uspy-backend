@@ -191,6 +191,7 @@ func scrapeSubject(subjectURL string, courseCode string, isOptional bool, result
 
 	subject := entity.Subject{
 		Code:          subCode,
+		CourseCode:    courseCode,
 		Name:          subName,
 		Description:   subDesc,
 		ClassCredits:  subClass,

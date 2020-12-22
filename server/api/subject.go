@@ -16,7 +16,7 @@ func GetSubjects(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		courses, err := course.GetAll(DB)
 		if err != nil {
-			log.Fatal(err.Error())
+			log.Print(err.Error())
 			c.Status(http.StatusInternalServerError)
 			return
 		}
@@ -32,7 +32,7 @@ func GetSubjectByCode(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		sub, err := subject.GetByCode(DB, sub.Code)
+		sub, err := subject.Get(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
 			return
@@ -50,7 +50,7 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		buckets, err := subject.GetGrades(DB, sub.Code)
+		buckets, err := subject.GetGrades(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
 		}
@@ -78,5 +78,40 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 		approval /= float64(cnt)
 
 		c.JSON(http.StatusOK, gin.H{"Grades": buckets, "Average": avg, "Approval": approval})
+	}
+}
+
+func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		sub := entity.Subject{}
+		bindErr := c.BindQuery(&sub)
+		if bindErr != nil {
+			return
+		}
+
+		sub, err := subject.Get(DB, sub)
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		successors, err := subject.GetSucessors(DB, sub)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		type result struct {
+			Code string
+			Name string
+		}
+		results := make([]result, 0, 20)
+
+		for i := range successors {
+			r := result{successors[i].Code, successors[i].Name}
+			results = append(results, r)
+		}
+
+		c.JSON(http.StatusOK, gin.H{"Predecessors": sub.Requirements, "Successors": results})
 	}
 }

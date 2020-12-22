@@ -9,7 +9,7 @@ import (
 // Course represents a course/major (example: BCC)
 type Course struct {
 	Name         string            `json:"name" firestore:"name"`
-	Code         string            `json:"-" firestore:"code"`
+	Code         string            `json:"code" firestore:"code"`
 	Subjects     []Subject         `json:"-" firestore:"-"`
 	SubjectCodes map[string]string `json:"subjects" firestore:"subjects"`
 }

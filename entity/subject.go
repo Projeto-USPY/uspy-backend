@@ -9,6 +9,7 @@ import (
 // Subject describes a subject (example: SMA0356 - Cálculo IV)
 type Subject struct {
 	Code          string         `form:"code" firestore:"code" binding:"required,alphanum"`
+	CourseCode    string         `form:"course" firestore:"course" binding:"required,alphanum"`
 	Name          string         `firestore:"name"`
 	Description   string         `firestore:"desc"`
 	ClassCredits  int            `firestore:"class"`
@@ -20,7 +21,8 @@ type Subject struct {
 }
 
 func (s Subject) Hash() string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(s.Code)))
+	str := fmt.Sprintf("%s%s", s.Code, s.CourseCode)
+	return fmt.Sprintf("%x", md5.Sum([]byte(str)))
 }
 
 func (s Subject) Insert(DB db.Env, collection string) error {
