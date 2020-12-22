@@ -9,12 +9,12 @@ import (
 
 // Professor represents a ICMC professor (example: {Moacir Ponti SCC})
 type Professor struct {
-	CodPes     int    `firestore:"code"`
-	Name       string `firestore:"name"`
-	Department string `firestore:"dep,omitempty"`
+	CodPes     int    `json:"code" firestore:"code"`
+	Name       string `json:"name" firestore:"name"`
+	Department string `json:"department" firestore:"dep,omitempty"`
 
-	Stats     map[string]int `firestore:"stats"`
-	Offerings []string       `firestore:"offeringsIDs"`
+	Stats     map[string]int `json:"stats" firestore:"stats"`
+	Offerings []string       `json:"offerings" firestore:"offeringsIDs"`
 }
 
 func (prof Professor) WithOfferings(DB db.Env) (Professor, error) {

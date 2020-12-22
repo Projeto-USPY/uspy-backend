@@ -77,7 +77,7 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 		avg /= float64(cnt)
 		approval /= float64(cnt)
 
-		c.JSON(http.StatusOK, gin.H{"Grades": buckets, "Average": avg, "Approval": approval})
+		c.JSON(http.StatusOK, gin.H{"grades": buckets, "average": avg, "approval": approval})
 	}
 }
 
@@ -102,8 +102,8 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 		}
 
 		type result struct {
-			Code string
-			Name string
+			Code string `json:"code"`
+			Name string `json:"name"`
 		}
 		results := make([]result, 0, 20)
 
@@ -112,6 +112,6 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 			results = append(results, r)
 		}
 
-		c.JSON(http.StatusOK, gin.H{"Predecessors": sub.Requirements, "Successors": results})
+		c.JSON(http.StatusOK, gin.H{"predecessors": sub.Requirements, "successors": results})
 	}
 }

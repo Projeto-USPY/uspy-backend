@@ -3,8 +3,8 @@ package entity
 import "github.com/tpreischadt/ProjetoJupiter/db"
 
 type Grade struct {
-	User  string  `firestore:"user"`
-	Grade float64 `firestore:"value"`
+	User  string  `json:"user" firestore:"user"`
+	Grade float64 `json:"grade" firestore:"value"`
 }
 
 func (g Grade) Insert(DB db.Env, collection string) error {
