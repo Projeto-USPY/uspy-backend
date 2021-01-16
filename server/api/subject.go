@@ -95,6 +95,12 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
+		predecessors, err := subject.GetPredecessors(DB, sub)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
 		successors, err := subject.GetSucessors(DB, sub)
 		if err != nil {
 			c.Status(http.StatusInternalServerError)
@@ -105,13 +111,20 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 			Code string `json:"code"`
 			Name string `json:"name"`
 		}
-		results := make([]result, 0, 20)
+		predecessorsResult := make([]result, 0, 15)
+
+		for i := range predecessors {
+			r := result{predecessors[i].Code, predecessors[i].Name}
+			predecessorsResult = append(predecessorsResult, r)
+		}
+
+		successorsResult := make([]result, 0, 15)
 
 		for i := range successors {
 			r := result{successors[i].Code, successors[i].Name}
-			results = append(results, r)
+			successorsResult = append(successorsResult, r)
 		}
 
-		c.JSON(http.StatusOK, gin.H{"predecessors": sub.Requirements, "successors": results})
+		c.JSON(http.StatusOK, gin.H{"predecessors": predecessorsResult, "successors": successorsResult})
 	}
 }

@@ -2,6 +2,7 @@ package subject
 
 import (
 	"fmt"
+
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"google.golang.org/api/iterator"
@@ -18,6 +19,28 @@ func Get(DB db.Env, sub entity.Subject) (entity.Subject, error) {
 		return entity.Subject{}, err
 	}
 	return sub, nil
+}
+
+// GetPredecessors returns all subjects which are pre-requisite of sub.
+func GetPredecessors(DB db.Env, sub entity.Subject) ([]entity.Subject, error) {
+
+	results := make([]entity.Subject, 0, 15)
+	for _, code := range sub.Requirements {
+		req := sub
+		req.Code = code
+
+		snap, err := DB.Restore("subjects", req.Hash())
+		if err != nil {
+			return []entity.Subject{}, nil
+		}
+		err = snap.DataTo(&req)
+		if err != nil {
+			return []entity.Subject{}, nil
+		}
+
+		results = append(results, req)
+	}
+	return results, nil
 }
 
 // GetSucessors returns all subjects that sub is a pre-requisite of.
