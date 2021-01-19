@@ -12,9 +12,11 @@ import (
 
 // Grade represents a Grade in jupiterweb
 type Grade struct {
-	subject string
-	grade   float64
-	status  string
+	subject  string
+	grade    float64
+	status   string
+	semester int
+	year     int
 }
 
 // Student represents an ICMC student
@@ -100,6 +102,7 @@ func ParsePDF(body *string) (st Student, ok bool) {
 	i := 2
 	strPDF := *body
 	st.Nusp = ""
+	semester, year := -1, -1
 
 	for {
 		// End of PDF
@@ -115,6 +118,11 @@ func ParsePDF(body *string) (st Student, ok bool) {
 			}
 
 			st.Nusp = nusp[:len(nusp)-1]
+		}
+
+		s, y, foundSemester := semesterInRow(i, body)
+		if foundSemester {
+			semester, year = s, y
 		}
 
 		// Found a subject
@@ -148,9 +156,11 @@ func ParsePDF(body *string) (st Student, ok bool) {
 				// if grade parse succeeded and there's a status code
 				if err == nil && status != "" {
 					g := Grade{
-						subject: string(subjectCode),
-						grade:   gradeFloat,
-						status:  status,
+						subject:  string(subjectCode),
+						grade:    gradeFloat,
+						status:   status,
+						semester: semester,
+						year:     year,
 					}
 
 					st.Grades = append(st.Grades, g)
@@ -191,6 +201,34 @@ func nuspInRow(i int, body *string) (idx int, ok bool) {
 	}
 
 	return -1, false
+}
+
+func semesterInRow(i int, body *string) (int, int, bool) {
+	var j int = i
+	for j < len(*body) && (*body)[j] != '\n' {
+		j++
+	}
+	row := (*body)[i:j]
+	cmp, err := regexp.Compile("\\d{4} [1-2]º\\. Semestre")
+	if err != nil {
+		return -1, -1, false
+	}
+
+	bytes := cmp.Find([]byte(row))
+	if bytes == nil {
+		return -1, -1, false
+	}
+
+	cmp, err = regexp.Compile("\\d+")
+	if err != nil {
+		return -1, -1, false
+	}
+
+	values := cmp.FindAllString(row, 2)
+	parsedYear, _ := strconv.ParseInt(values[0], 10, 32)
+	parsedSemester, _ := strconv.ParseInt(values[1], 10, 32)
+
+	return int(parsedYear), int(parsedSemester), true
 }
 
 func isSubject(i int, body *string) bool {
