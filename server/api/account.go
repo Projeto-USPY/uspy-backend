@@ -65,7 +65,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 				c.Status(http.StatusInternalServerError)
 				return
 			}
-			// TODO: check if grades timestamp and add user to firestore
+			// TODO: check if grades timestamp is updated and add user to firestore
 			c.JSON(http.StatusOK, data)
 		}
 	}
