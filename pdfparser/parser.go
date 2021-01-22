@@ -12,17 +12,17 @@ import (
 
 // Grade represents a Grade in jupiterweb
 type Grade struct {
-	subject  string
-	grade    float64
-	status   string
-	semester int
-	year     int
+	Subject  string  `json:"subject"`
+	Grade    float64 `json:"grade"`
+	Status   string  `json:"status"`
+	Semester int     `json:"semester"`
+	Year     int     `json:"year"`
 }
 
 // Student represents an ICMC student
 type Student struct {
-	Grades []Grade
-	Nusp   string
+	Grades []Grade `json:"grades"`
+	Nusp   string  `json:"nusp"`
 }
 
 // ReadPDFFile takes the filename of a  PDF and returns its string
@@ -68,7 +68,7 @@ func ReadPDFResponse(r *http.Response) (body *string, ok bool) {
 	ch := make(chan *string, 1)
 
 	go func() {
-		parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-layout", "-", "-")
+		parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-enc", "UTF-8", "-layout", "-", "-")
 
 		stdin, _ := parser.StdinPipe()
 		stdin.Write(bodyPDF)
@@ -156,11 +156,11 @@ func ParsePDF(body *string) (st Student, ok bool) {
 				// if grade parse succeeded and there's a status code
 				if err == nil && status != "" {
 					g := Grade{
-						subject:  string(subjectCode),
-						grade:    gradeFloat,
-						status:   status,
-						semester: semester,
-						year:     year,
+						Subject:  string(subjectCode),
+						Grade:    gradeFloat,
+						Status:   status,
+						Semester: semester,
+						Year:     year,
 					}
 
 					st.Grades = append(st.Grades, g)
