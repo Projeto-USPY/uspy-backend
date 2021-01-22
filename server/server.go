@@ -1,8 +1,12 @@
 package server
 
 import (
+	"errors"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/populator"
 	"github.com/tpreischadt/ProjetoJupiter/server/api"
 	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
@@ -49,10 +53,30 @@ func SetupDB(envPath string) db.Env {
 	return DB
 }
 
-func SetupRouter(DB db.Env) *gin.Engine {
+func SetupValidators(validators map[string]func(validator.FieldLevel) bool) error {
+	for key, value := range validators {
+		if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+			err := v.RegisterValidation(key, value)
+			if err != nil {
+				return err
+			}
+		} else {
+			return errors.New("failed to setup validators")
+		}
+	}
+
+	return nil
+}
+
+func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
 	r.Use(gin.Recovery())
 	r.NoRoute(DefaultPage) // Create a fallback, in case no route matches
+
+	err := SetupValidators(entity.Validators)
+	if err != nil {
+		return nil, err
+	}
 
 	if os.Getenv("MODE") == "dev" {
 		r.Use(middleware.AllowAnyOriginMiddleware())
@@ -91,5 +115,5 @@ func SetupRouter(DB db.Env) *gin.Engine {
 		reviewGroup.POST("/subject")
 	}
 
-	return r
+	return r, nil
 }
