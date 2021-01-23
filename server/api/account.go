@@ -7,8 +7,10 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/pdfparser"
 	iddigital "github.com/tpreischadt/ProjetoJupiter/pdfparser/auth"
 	"github.com/tpreischadt/ProjetoJupiter/server/auth"
+	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 func Login(DB db.Env) func(c *gin.Context) {
@@ -55,17 +57,22 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			return
 		}
 
-		if pdf, ok := pdfparser.ReadPDFResponse(resp); !ok {
+		if pdf := pdfparser.NewPDF(resp); pdf.Error != nil {
 			// error converting PDF to text
+			log.Print(pdf.Error)
 			c.Status(http.StatusInternalServerError)
 		} else {
-			data, ok := pdfparser.ParsePDF(pdf)
-			if !ok {
+			data, err := pdf.ParsePDF()
+			if err != nil {
 				// error parsing pdf
 				c.Status(http.StatusInternalServerError)
 				return
+			} else if time.Since(pdf.CreationDate).Hours() > 1.0 {
+				// pdf is too old
+				c.Status(http.StatusBadRequest)
+				return
 			}
-			// TODO: check if grades timestamp is updated and add user to firestore
+			// TODO: add user to firestore
 			c.JSON(http.StatusOK, data)
 		}
 	}
