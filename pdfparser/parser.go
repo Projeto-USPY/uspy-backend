@@ -2,13 +2,19 @@ package pdfparser
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
+
+type PDF struct {
+	Body *string
+	Error error
+	CreationDate time.Time
+}
 
 // Grade represents a Grade in jupiterweb
 type Grade struct {
@@ -19,43 +25,18 @@ type Grade struct {
 	Year     int     `json:"year"`
 }
 
-// Student represents an ICMC student
-type Student struct {
+type Records struct {
 	Grades []Grade `json:"grades"`
 	Nusp   string  `json:"nusp"`
 }
 
-// ReadPDFFile takes the filename of a  PDF and returns its string
-func ReadPDFFile(file string) (body *string, ok bool) {
+// NewPDF takes the Grades PDF response object and creates a new PDF object
+func NewPDF(r *http.Response) (pdf PDF) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[Recovered] Couldnt read PDF: %v\n", r)
-			body = nil
-			ok = false
-		}
-	}()
-
-	ch := make(chan *string, 1)
-	go func() {
-		out, err := exec.Command("pdftotext", "-q", "-eol", "unix", "-layout", file, "-").Output()
-		if err != nil {
-			panic("An error occured while reading the PDF")
-		}
-
-		str := string(out)
-		ch <- &str
-	}()
-
-	return <-ch, true
-}
-
-// ReadPDFResponse takes the Grades PDF response object and reads it into a string
-func ReadPDFResponse(r *http.Response) (body *string, ok bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("[Recovered] Couldnt read PDF: %v\n", r)
-			body = nil
-			ok = false
+			pdf.Body = nil
+			pdf.Error = r.(error)
+			pdf.CreationDate = time.Now()
 		}
 	}()
 
@@ -65,43 +46,60 @@ func ReadPDFResponse(r *http.Response) (body *string, ok bool) {
 		panic("error converting response body to string")
 	}
 
-	ch := make(chan *string, 1)
+	parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-enc", "UTF-8", "-layout", "-", "-")
+	stdin, _ := parser.StdinPipe()
+	_, _ = stdin.Write(bodyPDF)
+	_ = stdin.Close()
+	parsed, err := parser.Output()
 
-	go func() {
-		parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-enc", "UTF-8", "-layout", "-", "-")
+	if err != nil {
+		panic("an error occured while executing pdftotext")
+	}
 
-		stdin, _ := parser.StdinPipe()
-		stdin.Write(bodyPDF)
-		stdin.Close()
+	body := string(parsed)
 
-		out, err := parser.Output()
+	dataExtractor := exec.Command("pdfinfo", "-", "-isodates")
+	stdin, _ = dataExtractor.StdinPipe()
+	_, _ = stdin.Write(bodyPDF)
+	_ = stdin.Close()
+	meta, err := dataExtractor.Output()
 
-		if err != nil {
-			log.Print(err)
-			panic("an error occured while executing pdftotext")
+	if err != nil {
+		panic("an error occured while executing pdftotext")
+	}
+
+	var creation time.Time
+	lines := strings.Split(string(meta), "\n")
+	for _, v := range lines {
+		fields := strings.SplitN(v, ":", 2)
+		fields[0] = strings.Trim(fields[0], " \n\t")
+		fields[1] = strings.Trim(fields[1], " \n\t")
+		if fields[0] == "CreationDate" {
+			layout := "2006-01-02T15:04:05-0700"
+			creation, err = time.Parse(layout, fields[1] + "00")
+			break
 		}
+	}
 
-		str := string(out)
-		ch <- &str
-	}()
-
-	return <-ch, true
+	return PDF{
+		Body: &body,
+		Error: nil,
+		CreationDate: creation,
+	}
 }
 
-// ParsePDF takes the (already read) PDF string and parses it to a list of Grades
-func ParsePDF(body *string) (st Student, ok bool) {
+// ParsePDF takes the (already read) PDF and parses it into records
+func (pdf PDF) ParsePDF() (rec Records, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[Recovered] Couldnt parse PDF string: %v\n", r)
-			st.Grades = nil
-			st.Nusp = ""
-			ok = false
+			rec = Records{nil, ""}
+			err = r.(error)
 		}
 	}()
 
 	i := 2
-	strPDF := *body
-	st.Nusp = ""
+	strPDF := *pdf.Body
+	rec.Nusp = ""
 	semester, year := -1, -1
 
 	for {
@@ -110,23 +108,23 @@ func ParsePDF(body *string) (st Student, ok bool) {
 			break
 		}
 
-		if idx, ok := nuspInRow(i, body); ok && st.Nusp == "" {
-			nusp, err := parseNUSP((*body)[i:idx])
+		if idx, ok := nuspInRow(i, pdf.Body); ok && rec.Nusp == "" {
+			nusp, err := parseNUSP((*pdf.Body)[i:idx])
 
 			if err != nil {
 				panic("couldnt parse nusp")
 			}
 
-			st.Nusp = nusp[:len(nusp)-1]
+			rec.Nusp = nusp[:len(nusp)-1]
 		}
 
-		s, y, foundSemester := semesterInRow(i, body)
+		s, y, foundSemester := semesterInRow(i, pdf.Body)
 		if foundSemester {
 			semester, year = s, y
 		}
 
 		// Found a subject
-		if isSubject(i, body) {
+		if isSubject(i, pdf.Body) {
 			var j int = i
 
 			// Get to end of subject code
@@ -163,7 +161,7 @@ func ParsePDF(body *string) (st Student, ok bool) {
 						Year:     year,
 					}
 
-					st.Grades = append(st.Grades, g)
+					rec.Grades = append(rec.Grades, g)
 				}
 
 			}
@@ -174,7 +172,7 @@ func ParsePDF(body *string) (st Student, ok bool) {
 		}
 	}
 
-	return st, true
+	return
 }
 
 func parseNUSP(row string) (string, error) {
