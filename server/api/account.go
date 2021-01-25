@@ -63,11 +63,19 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			c.Status(http.StatusInternalServerError)
 		} else {
 			data, err := pdf.ParsePDF()
+
+			var maxPDFAge float64
+			if os.Getenv("MODE") == "dev" {
+				maxPDFAge = 24 * 30 // a month
+			} else {
+				maxPDFAge = 1.0 // an hour
+			}
+
 			if err != nil {
 				// error parsing pdf
 				c.Status(http.StatusInternalServerError)
 				return
-			} else if time.Since(pdf.CreationDate).Hours() > 1.0 {
+			} else if time.Since(pdf.CreationDate).Hours() > maxPDFAge {
 				// pdf is too old
 				c.Status(http.StatusBadRequest)
 				return
