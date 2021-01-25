@@ -16,7 +16,7 @@ type User struct {
 	// bcrypt hashing cause password is more sensitive
 	PasswordHash string `firestore:"password"`
 
-	LastRegistration time.Time `firestore:"lastRegistration,serverTimestamp"`
+	LastUpdate time.Time `firestore:"lastUpdate"`
 }
 
 func HashPassword(str string) (string, error) {
