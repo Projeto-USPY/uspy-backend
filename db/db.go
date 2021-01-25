@@ -13,6 +13,12 @@ type Manager interface {
 	Insert(db Env, collection string) error
 }
 
+type Object struct {
+	Collection string
+	Doc        string
+	Data       Manager
+}
+
 type Env struct {
 	Client *firestore.Client
 	Ctx    context.Context
@@ -42,6 +48,20 @@ func (db Env) Insert(obj Manager, collection string) error {
 		return err
 	}
 	return nil
+}
+
+func (db Env) BatchWrite(objs []Object) error {
+	batch := db.Client.Batch()
+
+	for _, o := range objs {
+		if o.Doc == "" {
+			batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.Data)
+		} else {
+			batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.Data)
+		}
+	}
+	_, err := batch.Commit(db.Ctx)
+	return err
 }
 
 func InitFireStore(mode string) Env {
