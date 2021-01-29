@@ -1,11 +1,10 @@
 package pdfparser
 
 import (
+	"errors"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os/exec"
 	"regexp"
@@ -48,29 +47,29 @@ func NewPDF(r *http.Response) (pdf PDF) {
 	bodyPDF, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		panic("error converting response body to string")
+		panic(err)
 	}
 
-	parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-enc", "UTF-8", "-layout", "-")
+	parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-enc", "UTF-8", "-layout", "-", "-")
 	stdin, _ := parser.StdinPipe()
-	_, _ = io.WriteString(stdin, string(bodyPDF))
+	_, _ = stdin.Write(bodyPDF)
 	_ = stdin.Close()
 	parsed, err := parser.Output()
 
 	if err != nil {
-		panic("an error occured while executing pdftotext")
+		panic(errors.New("error parsing pdf"))
 	}
 
 	body := string(parsed)
 
-	dataExtractor := exec.Command("pdfinfo")
+	dataExtractor := exec.Command("pdfinfo", "-isodates", "-")
 	stdin, _ = dataExtractor.StdinPipe()
 	_, _ = stdin.Write(bodyPDF)
 	_ = stdin.Close()
 	meta, err := dataExtractor.Output()
 
 	if err != nil {
-		panic("an error occured while executing pdfinfo")
+		panic(errors.New("error getting pdf info"))
 	}
 
 	var creation time.Time
@@ -80,10 +79,10 @@ func NewPDF(r *http.Response) (pdf PDF) {
 		fields[0] = strings.Trim(fields[0], " \n\t")
 		fields[1] = strings.Trim(fields[1], " \n\t")
 		if fields[0] == "CreationDate" {
-			loc, errLoc := time.LoadLocation("America/Sao_Paulo")
-			c, errParse := time.ParseInLocation(time.ANSIC, fields[1], loc)
-			if errLoc != nil || errParse != nil {
-				panic("error parsing pdf creation date")
+			layout := "2006-01-02T15:04:05-0700"
+			c, err := time.Parse(layout, fields[1]+"00")
+			if err != nil {
+				panic(errors.New("error parsing time"))
 			} else {
 				creation = c
 				break
@@ -112,17 +111,21 @@ func (pdf PDF) ParsePDF(DB db.Env) (rec Records, err error) {
 	rec.Nusp = ""
 	semester, year := -1, -1
 
-	log.Println("regex1")
 	// Look for course code in PDF Header
-	r, err := regexp.Compile("Curso:\\s+(\\d)/\\d - .*")
-	log.Println("regex2")
+	r, err := regexp.Compile("Curso:\\s+(\\d+)/\\d - .*")
 	matches := r.FindStringSubmatch(*pdf.Body)
 
 	if matches == nil || len(matches) < 2 {
-		panic("could not parse user course code")
+		panic(errors.New("could not parse user course code"))
 	}
 
 	course := matches[1]
+
+	snaps, err := DB.RestoreCollection("courses")
+
+	if err != nil {
+		panic(errors.New("could not fetch courses from firestore"))
+	}
 
 	for { // For each line
 		// End of PDF
@@ -134,7 +137,7 @@ func (pdf PDF) ParsePDF(DB db.Env) (rec Records, err error) {
 			nusp, err := parseNUSP((*pdf.Body)[i:idx])
 
 			if err != nil {
-				panic("couldnt parse nusp")
+				panic(errors.New("couldnt parse nusp"))
 			}
 
 			rec.Nusp = nusp[:len(nusp)-1]
@@ -155,20 +158,13 @@ func (pdf PDF) ParsePDF(DB db.Env) (rec Records, err error) {
 			}
 
 			// Copying subject code to new slice
-			subjectCode := make([]byte, 10)
-			copy(subjectCode, strPDF[i-2:j])
-
-			snaps, err := DB.RestoreCollection("courses")
-			if err != nil {
-				panic("could not fetch courses from firestore")
-			}
-
+			subjectCode := strPDF[i-2 : j]
 			subjectCourse := ""
+
 			for _, s := range snaps {
 				c := entity.Course{}
-				log.Println(c)
 				_ = s.DataTo(&c)
-				_, exists := c.SubjectCodes[string(subjectCode)]
+				_, exists := c.SubjectCodes[subjectCode]
 
 				if exists {
 					if c.Code == course { // if subject is from students course, then subject's course should be it
@@ -197,7 +193,7 @@ func (pdf PDF) ParsePDF(DB db.Env) (rec Records, err error) {
 				// if grade parse succeeded and there's a status code
 				if err == nil && status != "" {
 					g := Grade{
-						Subject:  string(subjectCode),
+						Subject:  subjectCode,
 						Grade:    gradeFloat,
 						Course:   subjectCourse,
 						Status:   status,
@@ -207,7 +203,6 @@ func (pdf PDF) ParsePDF(DB db.Env) (rec Records, err error) {
 
 					rec.Grades = append(rec.Grades, g)
 				}
-
 			}
 
 			i = j
