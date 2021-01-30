@@ -62,7 +62,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			log.Print(pdf.Error)
 			c.Status(http.StatusInternalServerError)
 		} else {
-			data, err := pdf.ParsePDF(DB)
+			data, err := pdf.Parse(DB)
 
 			var maxPDFAge float64
 			if os.Getenv("MODE") == "dev" {

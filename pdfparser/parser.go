@@ -14,19 +14,20 @@ import (
 )
 
 type PDF struct {
-	Body         *string
+	Body         string
 	Error        error
 	CreationDate time.Time
 }
 
 // Grade represents a Grade in jupiterweb
 type Grade struct {
-	Subject  string  `json:"subject"`
-	Grade    float64 `json:"grade"`
-	Status   string  `json:"status"`
-	Course   string  `json:"course"`
-	Semester int     `json:"semester"`
-	Year     int     `json:"year"`
+	Subject   string  `json:"subject"`
+	Grade     float64 `json:"grade"`
+	Frequency int     `json:"frequency"`
+	Status    string  `json:"status"`
+	Course    string  `json:"course"`
+	Semester  int     `json:"semester"`
+	Year      int     `json:"year"`
 }
 
 type Records struct {
@@ -38,7 +39,7 @@ type Records struct {
 func NewPDF(r *http.Response) (pdf PDF) {
 	defer func() {
 		if r := recover(); r != nil {
-			pdf.Body = nil
+			pdf.Body = ""
 			pdf.Error = r.(error)
 			pdf.CreationDate = time.Now()
 		}
@@ -47,7 +48,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 	bodyPDF, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		panic(err)
+		panic(errors.New("error reading pdf response body: " + err.Error()))
 	}
 
 	parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-enc", "UTF-8", "-layout", "-", "-")
@@ -57,7 +58,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 	parsed, err := parser.Output()
 
 	if err != nil {
-		panic(errors.New("error parsing pdf"))
+		panic(errors.New("error parsing pdf: " + err.Error()))
 	}
 
 	body := string(parsed)
@@ -69,7 +70,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 	meta, err := dataExtractor.Output()
 
 	if err != nil {
-		panic(errors.New("error getting pdf info"))
+		panic(errors.New("error getting pdf info: " + err.Error()))
 	}
 
 	var creation time.Time
@@ -82,7 +83,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 			layout := "2006-01-02T15:04:05-0700"
 			c, err := time.Parse(layout, fields[1]+"00")
 			if err != nil {
-				panic(errors.New("error parsing time"))
+				panic(errors.New("error parsing time: " + err.Error()))
 			} else {
 				creation = c
 				break
@@ -91,14 +92,14 @@ func NewPDF(r *http.Response) (pdf PDF) {
 	}
 
 	return PDF{
-		Body:         &body,
+		Body:         body,
 		Error:        nil,
 		CreationDate: creation,
 	}
 }
 
-// ParsePDF takes the (already read) PDF and parses it into records
-func (pdf PDF) ParsePDF(DB db.Env) (rec Records, err error) {
+// Parse takes the (already read) PDF and parses it into records
+func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			rec = Records{nil, ""}
@@ -106,177 +107,81 @@ func (pdf PDF) ParsePDF(DB db.Env) (rec Records, err error) {
 		}
 	}()
 
-	i := 2 // skip some useless lines
-	strPDF := *pdf.Body
-	rec.Nusp = ""
-	semester, year := -1, -1
+	// Look for User NUSP
+	nuspMatches := regexp.MustCompile(`Aluno:\s+(\d+)`).FindStringSubmatch(pdf.Body)
+
+	if nuspMatches == nil || len(nuspMatches) < 2 {
+		panic(errors.New("could not parse user nusp"))
+	}
+
+	rec.Nusp = nuspMatches[1]
 
 	// Look for course code in PDF Header
-	r, err := regexp.Compile("Curso:\\s+(\\d+)/\\d - .*")
-	matches := r.FindStringSubmatch(*pdf.Body)
+	matches := regexp.MustCompile(`Curso:\s+(\d+)/\d - .*`).FindStringSubmatch(pdf.Body)
 
 	if matches == nil || len(matches) < 2 {
 		panic(errors.New("could not parse user course code"))
 	}
 
 	course := matches[1]
-
 	snaps, err := DB.RestoreCollection("courses")
-
 	if err != nil {
 		panic(errors.New("could not fetch courses from firestore"))
 	}
 
-	for { // For each line
-		// End of PDF
-		if i == len(strPDF) {
-			break
-		}
+	pairs := regexp.MustCompile(`\s+\d{4} [1-2]º\. Semestre\s+`).FindAllStringIndex(pdf.Body, -1)
 
-		if idx, ok := nuspInRow(i, pdf.Body); ok && rec.Nusp == "" {
-			nusp, err := parseNUSP((*pdf.Body)[i:idx])
+	for i := 0; i < len(pairs)-1; i++ {
+		l, r := pairs[i][0], pairs[i+1][0]
 
-			if err != nil {
-				panic(errors.New("couldnt parse nusp"))
-			}
+		// get current year and semester
+		info := regexp.MustCompile(`(\d{4}) ([1-2])º\. Semestre`).FindStringSubmatch(pdf.Body[pairs[i][0]:pairs[i][1]])
 
-			rec.Nusp = nusp[:len(nusp)-1]
-		}
+		year, _ := strconv.Atoi(info[1])
+		semester, _ := strconv.Atoi(info[2])
 
-		s, y, foundSemester := semesterInRow(i, pdf.Body)
-		if foundSemester {
-			semester, year = s, y
-		}
+		// get all subjects in current year and semester
+		subRXP := regexp.MustCompile(`((?:SMA|SME|SSC|SCC)\d+).*`)
+		gradeRows := subRXP.FindAllStringSubmatch(pdf.Body[l:r], -1)
 
-		// Found a subject in the line
-		if subjectInRow(i, pdf.Body) {
-			var j int = i
+		for _, match := range gradeRows {
+			row, subCode := match[0], match[1]
 
-			// Get to end of subject code
-			for strPDF[j] != ' ' {
-				j++
-			}
+			// get subject values (grade, frequency and status)
+			gradeRXP := regexp.MustCompile(`(\d{1,3})\s+(\d{1,2}.\d{1,2}) ([A-Z]{1,})`)
+			values := gradeRXP.FindStringSubmatch(row)
 
-			// Copying subject code to new slice
-			subjectCode := strPDF[i-2 : j]
-			subjectCourse := ""
+			freq, _ := strconv.Atoi(values[1])
+			grade, _ := strconv.ParseFloat(values[2], 64)
+			status := values[3]
+			subCourse := ""
 
+			// determine subject course origin
 			for _, s := range snaps {
 				c := entity.Course{}
 				_ = s.DataTo(&c)
-				_, exists := c.SubjectCodes[subjectCode]
+				_, exists := c.SubjectCodes[subCode]
 
 				if exists {
 					if c.Code == course { // if subject is from students course, then subject's course should be it
-						subjectCourse = c.Code
-					} else if subjectCourse == "" { // otherwise choose any course to be the subject course
-						subjectCourse = c.Code
+						subCourse = c.Code
+					} else if subCourse == "" { // otherwise choose any course to be the subject course
+						subCourse = c.Code
 					}
 				}
 			}
 
-			// Get to the end of the line
-			for strPDF[j] != '\n' {
-				j++
-			}
-
-			reGrade, _ := regexp.Compile("[0-9][0-9]?\\.[0-9]")
-			grade := reGrade.FindString(strPDF[i+3 : j])
-
-			// If grade was found
-			if grade != "" {
-				reStatus, _ := regexp.Compile("[A-Z]{1,4}")
-				status := reStatus.FindString(strPDF[j-8 : j])
-
-				gradeFloat, err := strconv.ParseFloat(grade, 64)
-
-				// if grade parse succeeded and there's a status code
-				if err == nil && status != "" {
-					g := Grade{
-						Subject:  subjectCode,
-						Grade:    gradeFloat,
-						Course:   subjectCourse,
-						Status:   status,
-						Semester: semester,
-						Year:     year,
-					}
-
-					rec.Grades = append(rec.Grades, g)
-				}
-			}
-
-			i = j
-		} else {
-			i++
+			rec.Grades = append(rec.Grades, Grade{
+				Subject:   subCode,
+				Grade:     grade,
+				Frequency: freq,
+				Status:    status,
+				Course:    subCourse,
+				Semester:  semester,
+				Year:      year,
+			})
 		}
 	}
 
 	return
-}
-
-func parseNUSP(row string) (string, error) {
-	r, err := regexp.Compile("\\d+\\/")
-	if err != nil {
-		return "", err
-	}
-
-	return r.FindString(row), nil
-}
-
-func nuspInRow(i int, body *string) (idx int, ok bool) {
-	var j int = i
-	var found bool = false
-	for j < len(*body) && (*body)[j] != '\n' {
-		if strings.HasPrefix((*body)[i:j], "Aluno:") {
-			found = true
-		}
-		j++
-	}
-
-	if found {
-		return j, true
-	}
-
-	return -1, false
-}
-
-func semesterInRow(i int, body *string) (int, int, bool) {
-	var j int = i
-	for j < len(*body) && (*body)[j] != '\n' {
-		j++
-	}
-	row := (*body)[i:j]
-	cmp, err := regexp.Compile("\\d{4} [1-2]º\\. Semestre")
-	if err != nil {
-		return -1, -1, false
-	}
-
-	bytes := cmp.Find([]byte(row))
-	if bytes == nil {
-		return -1, -1, false
-	}
-
-	cmp, err = regexp.Compile("\\d+")
-	if err != nil {
-		return -1, -1, false
-	}
-
-	values := cmp.FindAllString(row, 2)
-	parsedYear, _ := strconv.ParseInt(values[0], 10, 32)
-	parsedSemester, _ := strconv.ParseInt(values[1], 10, 32)
-
-	return int(parsedYear), int(parsedSemester), true
-}
-
-func subjectInRow(i int, body *string) bool {
-	subjects := [4]string{"SMA", "SME", "SCC", "SSC"}
-
-	for _, sub := range subjects {
-		// Get last  three characters
-		if sub == (*body)[i-2:i+1] {
-			return true
-		}
-	}
-
-	return false
 }
