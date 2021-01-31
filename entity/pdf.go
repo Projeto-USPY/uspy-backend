@@ -1,9 +1,8 @@
-package pdfparser
+package entity
 
 import (
 	"errors"
 	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -17,17 +16,6 @@ type PDF struct {
 	Body         string
 	Error        error
 	CreationDate time.Time
-}
-
-// Grade represents a Grade in jupiterweb
-type Grade struct {
-	Subject   string  `json:"subject"`
-	Grade     float64 `json:"grade"`
-	Frequency int     `json:"frequency"`
-	Status    string  `json:"status"`
-	Course    string  `json:"course"`
-	Semester  int     `json:"semester"`
-	Year      int     `json:"year"`
 }
 
 type Records struct {
@@ -148,7 +136,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 			row, subCode := match[0], match[1]
 
 			// get subject values (grade, frequency and status)
-			gradeRXP := regexp.MustCompile(`(\d{1,3})\s+(\d{1,2}.\d{1,2}) ([A-Z]{1,})`)
+			gradeRXP := regexp.MustCompile(`(\d{1,3})\s+(\d{1,2}.\d{1,2}) ([A-Z]+)`)
 			values := gradeRXP.FindStringSubmatch(row)
 
 			freq, _ := strconv.Atoi(values[1])
@@ -158,7 +146,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 
 			// determine subject course origin
 			for _, s := range snaps {
-				c := entity.Course{}
+				c := Course{}
 				_ = s.DataTo(&c)
 				_, exists := c.SubjectCodes[subCode]
 
