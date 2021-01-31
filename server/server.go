@@ -8,7 +8,7 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/populator"
-	"github.com/tpreischadt/ProjetoJupiter/server/api"
+	"github.com/tpreischadt/ProjetoJupiter/server/controllers"
 	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 	"log"
 	"net/http"
@@ -85,24 +85,24 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	// Login, Logout, Sign-in and other account related operations
 	accountGroup := r.Group("/account")
 	{
-		accountGroup.POST("/login", api.Login(DB))
-		accountGroup.GET("/captcha", api.SignupCaptcha())
-		accountGroup.POST("/create", api.Signup(DB))
+		accountGroup.POST("/login", controllers.Login(DB))
+		accountGroup.GET("/captcha", controllers.SignupCaptcha())
+		accountGroup.POST("/create", controllers.Signup(DB))
 	}
 
 	apiGroup := r.Group("/api")
 	subjectAPI := apiGroup.Group("/subject")
 	{
 		// Available for guests
-		subjectAPI.GET("", api.GetSubjectByCode(DB))
-		subjectAPI.GET("/relations", api.GetSubjectGraph(DB))
-		subjectAPI.GET("/all", api.GetSubjects(DB))
+		subjectAPI.GET("", controllers.GetSubjectByCode(DB))
+		subjectAPI.GET("/relations", controllers.GetSubjectGraph(DB))
+		subjectAPI.GET("/all", controllers.GetSubjects(DB))
 
 		// Restricted means all registered users can see.
 		restrictedGroup := apiGroup.Group("/restricted")
 		restrictedGroup.Use(middleware.JWTMiddleware())
 		{
-			restrictedGroup.GET("/grades", api.GetSubjectGrades(DB))
+			restrictedGroup.GET("/grades", controllers.GetSubjectGrades(DB))
 		}
 	}
 

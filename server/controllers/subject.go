@@ -1,8 +1,9 @@
-package api
+package controllers
 
 import (
 	"errors"
 	"fmt"
+	"github.com/tpreischadt/ProjetoJupiter/server/models"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,13 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/server/data/course"
-	"github.com/tpreischadt/ProjetoJupiter/server/data/subject"
 )
 
 func GetSubjects(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		courses, err := course.GetAll(DB)
+		courses, err := models.GetAll(DB)
 		if err != nil {
 			log.Println(errors.New("error fetching courses: " + err.Error()))
 			c.Status(http.StatusInternalServerError)
@@ -34,7 +33,7 @@ func GetSubjectByCode(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		sub, err := subject.Get(DB, sub)
+		sub, err := models.Get(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
 			return
@@ -52,7 +51,7 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		buckets, err := subject.GetGrades(DB, sub)
+		buckets, err := models.GetGrades(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
 		}
@@ -91,20 +90,20 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		sub, err := subject.Get(DB, sub)
+		sub, err := models.Get(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
 			return
 		}
 
-		predecessors, err := subject.GetPredecessors(DB, sub)
+		predecessors, err := models.GetPredecessors(DB, sub)
 		if err != nil {
 			log.Println(fmt.Errorf("error fetching subject %s/%s predecessors: %s", sub.CourseCode, sub.Code, err.Error()))
 			c.Status(http.StatusInternalServerError)
 			return
 		}
 
-		successors, err := subject.GetSuccessors(DB, sub)
+		successors, err := models.GetSuccessors(DB, sub)
 		if err != nil {
 			log.Println(fmt.Errorf("error fetching subject %s/%s successors: %s", sub.CourseCode, sub.Code, err.Error()))
 			c.Status(http.StatusInternalServerError)

@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/tpreischadt/ProjetoJupiter/server/auth"
+	"github.com/tpreischadt/ProjetoJupiter/server/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,7 +17,7 @@ func JWTMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		err = auth.ValidateJWT(cookie)
+		err = models.ValidateJWT(cookie)
 		if err != nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return

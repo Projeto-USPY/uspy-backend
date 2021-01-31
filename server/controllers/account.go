@@ -1,4 +1,4 @@
-package api
+package controllers
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/iddigital"
-	"github.com/tpreischadt/ProjetoJupiter/server/auth"
+	"github.com/tpreischadt/ProjetoJupiter/server/models"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log"
@@ -21,13 +21,15 @@ func Login(DB db.Env) func(c *gin.Context) {
 		var user entity.User
 		if err := c.ShouldBindJSON(&user); err != nil {
 			c.Status(http.StatusBadRequest)
+			return
 		}
 
-		if err := auth.Login(user); err != nil {
+		if err := models.Login(user); err != nil {
 			c.Status(http.StatusUnauthorized)
+			return
 		}
 
-		if jwt, err := auth.GenerateJWT(user); err != nil {
+		if jwt, err := models.GenerateJWT(user); err != nil {
 			log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
 			c.Status(http.StatusInternalServerError)
 		} else {
@@ -103,7 +105,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			_, err = DB.Restore("users", newUser.Hash())
 			if status.Code(err) == codes.NotFound {
 				// user is new
-				signupErr := newUser.Signup(DB, data)
+				signupErr := models.Signup(DB, newUser, data)
 				if signupErr != nil {
 					log.Println(errors.New("error inserting user into db: " + signupErr.Error()))
 					c.Status(http.StatusInternalServerError)
@@ -124,7 +126,7 @@ func SignupCaptcha() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		resp, err := iddigital.GetCaptcha()
 		if err != nil || resp.StatusCode != http.StatusOK {
-			log.Println(errors.New("error getting captcha from iddigital: " + err.Error()))
+			log.Println(errors.New("error getting captcha from iddigital"))
 			c.Status(http.StatusInternalServerError)
 			return
 		}

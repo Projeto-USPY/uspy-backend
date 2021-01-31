@@ -1,4 +1,4 @@
-package professor
+package models
 
 import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
