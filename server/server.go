@@ -88,6 +88,8 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		accountGroup.POST("/login", controllers.Login(DB))
 		accountGroup.GET("/captcha", controllers.SignupCaptcha())
 		accountGroup.POST("/create", controllers.Signup(DB))
+
+		accountGroup.GET("/logout", middleware.JWTMiddleware(), controllers.Logout())
 	}
 
 	apiGroup := r.Group("/api")
