@@ -86,7 +86,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	accountGroup := r.Group("/account")
 	{
 		accountGroup.POST("/login", api.Login(DB))
-		accountGroup.GET("/create", api.SignupCaptcha())
+		accountGroup.GET("/captcha", api.SignupCaptcha())
 		accountGroup.POST("/create", api.Signup(DB))
 	}
 
