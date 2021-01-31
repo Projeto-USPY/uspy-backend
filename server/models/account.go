@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/db"
+	"golang.org/x/crypto/bcrypt"
 	"os"
 	"time"
 
@@ -83,6 +84,17 @@ func Signup(DB db.Env, u entity.User, recs entity.Records) error {
 	return nil
 }
 
-func Login(u entity.User) error {
-	return nil
+func Login(DB db.Env, u entity.User) error {
+	snap, err := DB.Restore("users", u.Hash())
+	if err != nil {
+		return err
+	}
+
+	var storedUser entity.User
+	err = snap.DataTo(&storedUser)
+	if err != nil {
+		return err
+	}
+
+	return bcrypt.CompareHashAndPassword([]byte(storedUser.PasswordHash), []byte(u.Password))
 }

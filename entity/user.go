@@ -24,7 +24,7 @@ func HashPassword(str string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%x", pass), nil
+	return string(pass), nil
 }
 
 func (u User) WithHash() (User, error) {

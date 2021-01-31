@@ -24,7 +24,7 @@ func Login(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		if err := models.Login(user); err != nil {
+		if err := models.Login(DB, user); err != nil {
 			c.Status(http.StatusUnauthorized)
 			return
 		}
