@@ -16,6 +16,14 @@ import (
 	"time"
 )
 
+func Logout() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		domain := os.Getenv("DOMAIN")
+		secureCookie := os.Getenv("MODE") == "prod"
+		c.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
+	}
+}
+
 func Login(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var user entity.User
@@ -37,7 +45,11 @@ func Login(DB db.Env) func(c *gin.Context) {
 
 			// expiration date = 1 monthFirestore
 			secureCookie := os.Getenv("MODE") == "prod"
-			c.SetCookie("access_token", jwt, 30*24*3600, "/", domain, secureCookie, true)
+			cookieAge := 0
+			if user.Remember {
+				cookieAge = 30 * 24 * 3600 // 30 days in seconds
+			}
+			c.SetCookie("access_token", jwt, cookieAge, "/", domain, secureCookie, true)
 			c.Status(http.StatusOK)
 		}
 	}
