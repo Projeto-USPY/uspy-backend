@@ -1,12 +1,15 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/pdfparser"
-	iddigital "github.com/tpreischadt/ProjetoJupiter/pdfparser/auth"
+	"github.com/tpreischadt/ProjetoJupiter/iddigital"
 	"github.com/tpreischadt/ProjetoJupiter/server/auth"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"net/http"
 	"os"
@@ -25,6 +28,7 @@ func Login(DB db.Env) func(c *gin.Context) {
 		}
 
 		if jwt, err := auth.GenerateJWT(user); err != nil {
+			log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
 			c.Status(http.StatusInternalServerError)
 		} else {
 			domain := os.Getenv("DOMAIN")
@@ -49,6 +53,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 		resp, err := iddigital.PostAuthCode(signupForm.AccessKey, signupForm.Captcha, cookies)
 		if err != nil {
 			// error getting PDF from iddigital
+			log.Println(errors.New("error getting pdf from iddigital: " + err.Error()))
 			c.Status(http.StatusInternalServerError)
 			return
 		} else if resp.Header.Get("Content-Type") != "application/pdf" {
@@ -57,9 +62,9 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			return
 		}
 
-		if pdf := pdfparser.NewPDF(resp); pdf.Error != nil {
+		if pdf := entity.NewPDF(resp); pdf.Error != nil {
 			// error converting PDF to text
-			log.Print(pdf.Error)
+			log.Println(errors.New("error converting pdf to text: " + pdf.Error.Error()))
 			c.Status(http.StatusInternalServerError)
 		} else {
 			data, err := pdf.Parse(DB)
@@ -73,6 +78,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 
 			if err != nil {
 				// error parsing pdf
+				log.Println(errors.New("error parsing pdf: " + err.Error()))
 				c.Status(http.StatusInternalServerError)
 				return
 			} else if time.Since(pdf.CreationDate).Hours() > maxPDFAge {
@@ -80,7 +86,35 @@ func Signup(DB db.Env) func(g *gin.Context) {
 				c.Status(http.StatusBadRequest)
 				return
 			}
-			// TODO: add user to firestore
+
+			// user doent exist, must register
+			newUser, hashErr := entity.User{
+				Login:      data.Nusp,
+				Password:   signupForm.Password,
+				LastUpdate: time.Now(),
+			}.WithHash()
+
+			if hashErr != nil {
+				log.Println(errors.New("error hashing password" + hashErr.Error()))
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+
+			_, err = DB.Restore("users", newUser.Hash())
+			if status.Code(err) == codes.NotFound {
+				// user is new
+				signupErr := newUser.Signup(DB, data)
+				if signupErr != nil {
+					log.Println(errors.New("error inserting user into db: " + signupErr.Error()))
+					c.Status(http.StatusInternalServerError)
+					return
+				}
+			} else {
+				// user has already registered
+				c.Status(http.StatusForbidden)
+				return
+			}
+
 			c.JSON(http.StatusOK, data)
 		}
 	}
@@ -90,6 +124,7 @@ func SignupCaptcha() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		resp, err := iddigital.GetCaptcha()
 		if err != nil || resp.StatusCode != http.StatusOK {
+			log.Println(errors.New("error getting captcha from iddigital: " + err.Error()))
 			c.Status(http.StatusInternalServerError)
 			return
 		}

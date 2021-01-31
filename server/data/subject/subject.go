@@ -43,8 +43,8 @@ func GetPredecessors(DB db.Env, sub entity.Subject) ([]entity.Subject, error) {
 	return results, nil
 }
 
-// GetSucessors returns all subjects that sub is a pre-requisite of.
-func GetSucessors(DB db.Env, sub entity.Subject) ([]entity.Subject, error) {
+// GetSuccessors returns all subjects that sub is a pre-requisite of.
+func GetSuccessors(DB db.Env, sub entity.Subject) ([]entity.Subject, error) {
 	snap, err := DB.Restore("subjects", sub.Hash())
 	if err != nil {
 		return []entity.Subject{}, nil

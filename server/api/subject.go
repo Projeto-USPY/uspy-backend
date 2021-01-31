@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,7 +18,7 @@ func GetSubjects(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		courses, err := course.GetAll(DB)
 		if err != nil {
-			log.Print(err.Error())
+			log.Println(errors.New("error fetching courses: " + err.Error()))
 			c.Status(http.StatusInternalServerError)
 			return
 		}
@@ -97,12 +99,14 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 
 		predecessors, err := subject.GetPredecessors(DB, sub)
 		if err != nil {
+			log.Println(fmt.Errorf("error fetching subject %s/%s predecessors: %s", sub.CourseCode, sub.Code, err.Error()))
 			c.Status(http.StatusInternalServerError)
 			return
 		}
 
-		successors, err := subject.GetSucessors(DB, sub)
+		successors, err := subject.GetSuccessors(DB, sub)
 		if err != nil {
+			log.Println(fmt.Errorf("error fetching subject %s/%s successors: %s", sub.CourseCode, sub.Code, err.Error()))
 			c.Status(http.StatusInternalServerError)
 			return
 		}
