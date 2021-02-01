@@ -1,8 +1,9 @@
-package entity
+package iddigital
 
 import (
 	"errors"
 	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -19,8 +20,8 @@ type PDF struct {
 }
 
 type Records struct {
-	Grades []Grade `json:"grades"`
-	Nusp   string  `json:"nusp"`
+	Grades []entity.Grade `json:"grades"`
+	Nusp   string         `json:"nusp"`
 }
 
 // NewPDF takes the Grades PDF response object and creates a new PDF object
@@ -146,7 +147,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 
 			// determine subject course origin
 			for _, s := range snaps {
-				c := Course{}
+				c := entity.Course{}
 				_ = s.DataTo(&c)
 				_, exists := c.SubjectCodes[subCode]
 
@@ -159,7 +160,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 				}
 			}
 
-			rec.Grades = append(rec.Grades, Grade{
+			rec.Grades = append(rec.Grades, entity.Grade{
 				Subject:   subCode,
 				Grade:     grade,
 				Frequency: freq,

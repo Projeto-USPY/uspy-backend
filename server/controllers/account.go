@@ -76,7 +76,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			return
 		}
 
-		if pdf := entity.NewPDF(resp); pdf.Error != nil {
+		if pdf := iddigital.NewPDF(resp); pdf.Error != nil {
 			// error converting PDF to text
 			log.Println(errors.New("error converting pdf to text: " + pdf.Error.Error()))
 			c.Status(http.StatusInternalServerError)
@@ -101,11 +101,10 @@ func Signup(DB db.Env) func(g *gin.Context) {
 				return
 			}
 
-			// user doent exist, must register
 			newUser, hashErr := entity.User{
 				Login:      data.Nusp,
 				Password:   signupForm.Password,
-				LastUpdate: time.Now(),
+				LastUpdate: pdf.CreationDate,
 			}.WithHash()
 
 			if hashErr != nil {

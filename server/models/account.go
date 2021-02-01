@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/tpreischadt/ProjetoJupiter/iddigital"
 	"golang.org/x/crypto/bcrypt"
 	"os"
 	"time"
@@ -42,7 +43,7 @@ func ValidateJWT(tokenString string) error {
 }
 
 // Signup inserts a new user into the DB
-func Signup(DB db.Env, u entity.User, recs entity.Records) error {
+func Signup(DB db.Env, u entity.User, recs iddigital.Records) error {
 	objs := []db.Object{
 		{
 			Collection: "users",
