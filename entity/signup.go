@@ -48,5 +48,4 @@ type Signup struct {
 	AccessKey string `json:"access_key" binding:"required,validateAccessKey"`
 	Password  string `json:"password" binding:"required,validatePassword"`
 	Captcha   string `json:"captcha" binding:"required,alphanum,len=4"`
-	Terms     bool   `json:"terms" binding:"required,eq=true"`
 }
