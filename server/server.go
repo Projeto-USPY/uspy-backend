@@ -104,7 +104,8 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		restrictedGroup := apiGroup.Group("/restricted")
 		restrictedGroup.Use(middleware.JWTMiddleware())
 		{
-			restrictedGroup.GET("/grades", controllers.GetSubjectGrades(DB))
+			subRestricted := restrictedGroup.Group("/subject")
+			subRestricted.GET("/grades", controllers.GetSubjectGrades(DB))
 		}
 	}
 
