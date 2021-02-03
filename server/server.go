@@ -113,9 +113,9 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	privateGroup := r.Group("/private")
 	privateGroup.Use(middleware.JWTMiddleware())
 	{
-		reviewGroup := privateGroup.Group("/review")
-		reviewGroup.GET("/subject")
-		reviewGroup.POST("/subject")
+		subPrivate := privateGroup.Group("/subject")
+		subPrivate.GET("/review")
+		subPrivate.POST("/review")
 	}
 
 	return r, nil
