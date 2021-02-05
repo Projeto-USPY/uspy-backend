@@ -12,7 +12,7 @@ type User struct {
 	// only used because of REST requests, do not store in DB!!!
 	Login    string `json:"login" firestore:"-" binding:"required,numeric"`
 	Password string `json:"pwd" firestore:"-" binding:"required"`
-	Remember bool   `json:"remember"`
+	Remember bool   `json:"remember" firestore:"-"`
 
 	// bcrypt hashing cause password is more sensitive
 	PasswordHash string `firestore:"password"`
