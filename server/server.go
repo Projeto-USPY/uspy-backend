@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
@@ -13,8 +14,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/gin-gonic/gin"
 )
 
 // Todo (return default page)
@@ -79,7 +78,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	}
 
 	if os.Getenv("MODE") == "dev" {
-		r.Use(middleware.AllowAnyOriginMiddleware())
+		r.Use(middleware.AllowAnyOrigin())
 	}
 
 	// Login, Logout, Sign-in and other account related operations
@@ -88,34 +87,37 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		accountGroup.POST("/login", controllers.Login(DB))
 		accountGroup.GET("/captcha", controllers.SignupCaptcha())
 		accountGroup.POST("/create", controllers.Signup(DB))
-
-		accountGroup.GET("/logout", middleware.JWTMiddleware(), controllers.Logout())
+		accountGroup.GET("/logout", middleware.JWT(), controllers.Logout())
 	}
 
 	apiGroup := r.Group("/api")
-	subjectAPI := apiGroup.Group("/subject")
 	{
-		// Available for guests
-		subjectAPI.GET("", controllers.GetSubjectByCode(DB))
-		subjectAPI.GET("/relations", controllers.GetSubjectGraph(DB))
-		subjectAPI.GET("/all", controllers.GetSubjects(DB))
-
-		// Restricted means all registered users can see.
-		restrictedGroup := apiGroup.Group("/restricted")
-		restrictedGroup.Use(middleware.JWTMiddleware())
+		apiGroup.GET("/subject/all", controllers.GetSubjects(DB))
+		subjectAPI := apiGroup.Group("/subject", middleware.Subject())
 		{
-			subRestricted := restrictedGroup.Group("/subject")
-			subRestricted.GET("/grades", controllers.GetSubjectGrades(DB))
+			// Available for guests
+			subjectAPI.GET("", controllers.GetSubjectByCode(DB))
+			subjectAPI.GET("/relations", controllers.GetSubjectGraph(DB))
+
+			// Restricted means all registered users can see.
+			restrictedGroup := apiGroup.Group("/restricted", middleware.JWT())
+			{
+				subRestricted := restrictedGroup.Group("/subject", middleware.Subject())
+				{
+					subRestricted.GET("/grades", controllers.GetSubjectGrades(DB))
+				}
+			}
 		}
 	}
 
 	// Private means the user can only interact with data related to them.
-	privateGroup := r.Group("/private")
-	privateGroup.Use(middleware.JWTMiddleware())
+	privateGroup := r.Group("/private", middleware.JWT())
 	{
-		subPrivate := privateGroup.Group("/subject")
-		subPrivate.GET("/review")
-		subPrivate.POST("/review")
+		subPrivate := privateGroup.Group("/subject", middleware.Subject())
+		{
+			subPrivate.GET("/review", controllers.GetSubjectReview(DB))
+			subPrivate.POST("/review")
+		}
 	}
 
 	return r, nil

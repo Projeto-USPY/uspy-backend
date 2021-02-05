@@ -3,7 +3,10 @@ package controllers
 import (
 	"errors"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/tpreischadt/ProjetoJupiter/server/models"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,12 +30,7 @@ func GetSubjects(DB db.Env) func(c *gin.Context) {
 
 func GetSubjectByCode(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		sub := entity.Subject{}
-		bindErr := c.BindQuery(&sub)
-		if bindErr != nil {
-			return
-		}
-
+		sub := c.MustGet("Subject").(entity.Subject)
 		sub, err := models.Get(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
@@ -45,15 +43,12 @@ func GetSubjectByCode(DB db.Env) func(c *gin.Context) {
 
 func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		sub := entity.Subject{}
-		bindErr := c.BindQuery(&sub)
-		if bindErr != nil {
-			return
-		}
+		sub := c.MustGet("Subject").(entity.Subject)
 
 		buckets, err := models.GetGrades(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
+			return
 		}
 
 		avg, approval := 0.0, 0.0
@@ -84,13 +79,8 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 
 func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		sub := entity.Subject{}
-		bindErr := c.BindQuery(&sub)
-		if bindErr != nil {
-			return
-		}
-
-		sub, err := models.Get(DB, sub)
+		ent := c.MustGet("Subject").(entity.Subject)
+		sub, err := models.Get(DB, ent)
 		if err != nil {
 			c.Status(http.StatusNotFound)
 			return
@@ -129,5 +119,34 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"predecessors": predecessorsResult, "successors": successorsResult})
+	}
+}
+
+func GetSubjectReview(DB db.Env) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		token := c.MustGet("access_token")
+		sub := c.MustGet("Subject").(entity.Subject)
+
+		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
+		userID := claims["user"].(string)
+
+		userHash := entity.User{Login: userID}.Hash()
+		subHash := entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code}.Hash()
+
+		// TODO: Check if user has done subject
+
+		snap, err := DB.Restore("users/"+userHash+"/subject_reviews", subHash)
+		if status.Code(err) == codes.NotFound {
+			// user has not yet reviewed the subject
+			c.Status(http.StatusNotFound)
+		} else if err == nil {
+			// user has already reviewed the subject
+			review := entity.SubjectReview{}
+			_ = snap.DataTo(&review)
+			c.JSON(http.StatusOK, review)
+		} else {
+			c.Status(http.StatusInternalServerError)
+		}
+
 	}
 }
