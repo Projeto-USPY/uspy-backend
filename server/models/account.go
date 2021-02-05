@@ -59,9 +59,12 @@ func Signup(DB db.Env, u entity.User, recs iddigital.Records) error {
 			Frequency: g.Frequency,
 		}
 
+		subHash := entity.Subject{Code: g.Subject, CourseCode: g.Course}.Hash()
+
 		// store all user records
 		objs = append(objs, db.Object{
-			Collection: "users/" + u.Hash() + "/final_scores",
+			Collection: "users/" + u.Hash() + "/final_scores/" + subHash + "/records",
+			Doc:        mf.Hash(),
 			Data:       mf,
 		})
 
