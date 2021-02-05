@@ -26,7 +26,7 @@ func GenerateJWT(user entity.User) (jwtString string, err error) {
 }
 
 // ValidateJWT takes a JWT token string and validates it
-func ValidateJWT(tokenString string) error {
+func ValidateJWT(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -36,10 +36,10 @@ func ValidateJWT(tokenString string) error {
 	})
 
 	if token == nil || !token.Valid {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return token, nil
 }
 
 // Signup inserts a new user into the DB

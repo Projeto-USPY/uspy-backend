@@ -36,7 +36,7 @@ func TestValidateToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = ValidateJWT(jwt)
+	_, err = ValidateJWT(jwt)
 
 	if err != nil {
 		t.Fatal(err)
