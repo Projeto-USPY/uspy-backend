@@ -7,8 +7,8 @@ import (
 )
 
 type SubjectReview struct {
-	Subject string          `json:"code" firestore:"code"`
-	Review  map[string]bool `json:"reviews" firestore:"reviews"`
+	Subject string          `json:"-" firestore:"-"`
+	Review  map[string]bool `json:"categories" firestore:"categories"`
 }
 
 func (sr SubjectReview) Hash() string {
