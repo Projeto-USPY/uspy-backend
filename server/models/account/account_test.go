@@ -1,6 +1,7 @@
-package models
+package account
 
 import (
+	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 	"testing"
 
 	"github.com/joho/godotenv"
@@ -14,7 +15,7 @@ func TestGenerateToken(t *testing.T) {
 	user.Login = "login"
 	user.Password = "pass"
 
-	jwt, err := GenerateJWT(user)
+	jwt, err := middleware.GenerateJWT(user)
 
 	if err != nil {
 		t.Fatal(err)
@@ -30,13 +31,13 @@ func TestValidateToken(t *testing.T) {
 	user.Login = "login"
 	user.Password = "pass"
 
-	jwt, err := GenerateJWT(user)
+	jwt, err := middleware.GenerateJWT(user)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = ValidateJWT(jwt)
+	_, err = middleware.ValidateJWT(jwt)
 
 	if err != nil {
 		t.Fatal(err)

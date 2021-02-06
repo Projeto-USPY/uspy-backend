@@ -1,46 +1,11 @@
-package models
+package account
 
 import (
-	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/iddigital"
 	"golang.org/x/crypto/bcrypt"
-	"os"
-	"time"
-
-	"github.com/dgrijalva/jwt-go"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
 )
-
-// GenerateJWT generates a JWT from user struct
-func GenerateJWT(user entity.User) (jwtString string, err error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user":      user.Login,
-		"timestamp": time.Now().Unix(),
-	})
-
-	secret := os.Getenv("JWT_SECRET")
-	jwtString, err = token.SignedString([]byte(secret))
-
-	return
-}
-
-// ValidateJWT takes a JWT token string and validates it
-func ValidateJWT(tokenString string) (*jwt.Token, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-
-	if token == nil || !token.Valid {
-		return nil, err
-	}
-
-	return token, nil
-}
 
 // Signup inserts a new user into the DB
 func Signup(DB db.Env, u entity.User, recs iddigital.Records) error {

@@ -9,7 +9,10 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/populator"
-	"github.com/tpreischadt/ProjetoJupiter/server/controllers"
+	"github.com/tpreischadt/ProjetoJupiter/server/controllers/account"
+	"github.com/tpreischadt/ProjetoJupiter/server/controllers/private"
+	"github.com/tpreischadt/ProjetoJupiter/server/controllers/public"
+	"github.com/tpreischadt/ProjetoJupiter/server/controllers/restricted"
 	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 	"log"
 	"net/http"
@@ -84,27 +87,27 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	// Login, Logout, Sign-in and other account related operations
 	accountGroup := r.Group("/account")
 	{
-		accountGroup.POST("/login", controllers.Login(DB))
-		accountGroup.GET("/captcha", controllers.SignupCaptcha())
-		accountGroup.POST("/create", controllers.Signup(DB))
-		accountGroup.GET("/logout", middleware.JWT(), controllers.Logout())
+		accountGroup.POST("/login", account.Login(DB))
+		accountGroup.GET("/captcha", account.SignupCaptcha())
+		accountGroup.POST("/create", account.Signup(DB))
+		accountGroup.GET("/logout", middleware.JWT(), account.Logout())
 	}
 
 	apiGroup := r.Group("/api")
 	{
-		apiGroup.GET("/subject/all", controllers.GetSubjects(DB))
+		apiGroup.GET("/subject/all", public.GetSubjects(DB))
 		subjectAPI := apiGroup.Group("/subject", middleware.Subject())
 		{
 			// Available for guests
-			subjectAPI.GET("", controllers.GetSubjectByCode(DB))
-			subjectAPI.GET("/relations", controllers.GetSubjectGraph(DB))
+			subjectAPI.GET("", public.GetSubjectByCode(DB))
+			subjectAPI.GET("/relations", public.GetSubjectGraph(DB))
 
 			// Restricted means all registered users can see.
 			restrictedGroup := apiGroup.Group("/restricted", middleware.JWT())
 			{
 				subRestricted := restrictedGroup.Group("/subject", middleware.Subject())
 				{
-					subRestricted.GET("/grades", controllers.GetSubjectGrades(DB))
+					subRestricted.GET("/grades", restricted.GetSubjectGrades(DB))
 				}
 			}
 		}
@@ -115,7 +118,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	{
 		subPrivate := privateGroup.Group("/subject", middleware.Subject())
 		{
-			subPrivate.GET("/review", controllers.GetSubjectReview(DB))
+			subPrivate.GET("/review", private.GetSubjectReview(DB))
 			subPrivate.POST("/review")
 		}
 	}

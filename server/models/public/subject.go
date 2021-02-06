@@ -1,8 +1,6 @@
-package models
+package public
 
 import (
-	"fmt"
-
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"google.golang.org/api/iterator"
@@ -23,7 +21,6 @@ func Get(DB db.Env, sub entity.Subject) (entity.Subject, error) {
 
 // GetPredecessors returns all subjects which are pre-requisite of sub.
 func GetPredecessors(DB db.Env, sub entity.Subject) ([]entity.Subject, error) {
-
 	results := make([]entity.Subject, 0, 15)
 	for _, code := range sub.Requirements {
 		req := sub
@@ -78,23 +75,4 @@ func GetSuccessors(DB db.Env, sub entity.Subject) ([]entity.Subject, error) {
 	}
 
 	return results, nil
-}
-
-// GetGrades returns all grades from a given subject
-func GetGrades(DB db.Env, sub entity.Subject) (map[string]int, error) {
-	buckets := make(map[string]int)
-	snaps, err := DB.RestoreCollection(fmt.Sprintf("subjects/%s/grades", sub.Hash()))
-	if err != nil {
-		return map[string]int{}, err
-	}
-	for _, s := range snaps {
-		g := entity.Grade{}
-		err := s.DataTo(&g)
-		if err != nil {
-			return map[string]int{}, err
-		}
-		buckets[fmt.Sprintf("%.1f", g.Grade)]++
-	}
-
-	return buckets, nil
 }

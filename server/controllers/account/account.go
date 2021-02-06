@@ -1,4 +1,4 @@
-package controllers
+package account
 
 import (
 	"errors"
@@ -7,7 +7,8 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/iddigital"
-	"github.com/tpreischadt/ProjetoJupiter/server/models"
+	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
+	"github.com/tpreischadt/ProjetoJupiter/server/models/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log"
@@ -32,12 +33,12 @@ func Login(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		if err := models.Login(DB, user); err != nil {
+		if err := account.Login(DB, user); err != nil {
 			c.Status(http.StatusUnauthorized)
 			return
 		}
 
-		if jwt, err := models.GenerateJWT(user); err != nil {
+		if jwt, err := middleware.GenerateJWT(user); err != nil {
 			log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
 			c.Status(http.StatusInternalServerError)
 		} else {
@@ -116,7 +117,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			_, err = DB.Restore("users", newUser.Hash())
 			if status.Code(err) == codes.NotFound {
 				// user is new
-				signupErr := models.Signup(DB, newUser, data)
+				signupErr := account.Signup(DB, newUser, data)
 				if signupErr != nil {
 					log.Println(errors.New("error inserting user into db: " + signupErr.Error()))
 					c.Status(http.StatusInternalServerError)

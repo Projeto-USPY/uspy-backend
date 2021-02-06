@@ -1,4 +1,4 @@
-package models
+package public
 
 import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
