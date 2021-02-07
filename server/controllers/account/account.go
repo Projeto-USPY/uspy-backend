@@ -1,4 +1,4 @@
-package controllers
+package account
 
 import (
 	"errors"
@@ -130,6 +130,16 @@ func Signup(DB db.Env) func(g *gin.Context) {
 				return
 			}
 
+			jwt, err := middleware.GenerateJWT(newUser)
+			if err != nil {
+				log.Println(errors.New("error generating jwt for new user: " + err.Error()))
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+
+			domain := os.Getenv("DOMAIN")
+			secureCookie := os.Getenv("MODE") == "prod"
+			c.SetCookie("access_token", jwt, 0, "/", domain, secureCookie, true)
 			c.JSON(http.StatusOK, data)
 		}
 	}
