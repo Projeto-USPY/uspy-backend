@@ -1,8 +1,13 @@
-package account
+package controllers
 
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
@@ -11,10 +16,6 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/server/models/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log"
-	"net/http"
-	"os"
-	"time"
 )
 
 func Logout() func(c *gin.Context) {
@@ -146,9 +147,8 @@ func SignupCaptcha() func(c *gin.Context) {
 
 		cookies := resp.Cookies()
 		for _, ck := range cookies {
-			domain := os.Getenv("DOMAIN")
 			secureCookie := os.Getenv("MODE") == "prod"
-			c.SetCookie(ck.Name, ck.Value, ck.MaxAge, "/account/create", domain, secureCookie, ck.HttpOnly)
+			c.SetCookie(ck.Name, ck.Value, ck.MaxAge, "/", "", false, secureCookie)
 		}
 
 		c.DataFromReader(
