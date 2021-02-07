@@ -119,7 +119,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		subPrivate := privateGroup.Group("/subject", middleware.Subject())
 		{
 			subPrivate.GET("/review", private.GetSubjectReview(DB))
-			subPrivate.POST("/review")
+			subPrivate.POST("/review", private.UpdateSubjectReview(DB))
 		}
 	}
 

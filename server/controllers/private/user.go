@@ -21,10 +21,9 @@ func GetSubjectReview(DB db.Env) func(c *gin.Context) {
 		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
 		userID := claims["user"].(string)
 
-		userHash := entity.User{Login: userID}.Hash()
-		subHash := entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code}.Hash()
+		user, sub := entity.User{Login: userID}, entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code}
 
-		review, err := private.GetSubjectReview(DB, userHash, subHash)
+		review, err := private.GetSubjectReview(DB, user, sub)
 
 		if err == nil {
 			// user has already reviewed the subject
@@ -41,5 +40,33 @@ func GetSubjectReview(DB db.Env) func(c *gin.Context) {
 			log.Println(fmt.Errorf("error fetching review for subject %v, user %v: %v", sub, userID, err))
 			c.Status(http.StatusInternalServerError)
 		}
+	}
+}
+
+func UpdateSubjectReview(DB db.Env) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		sub := c.MustGet("Subject").(entity.Subject)
+		sr := entity.SubjectReview{Subject: sub.Code, Course: sub.CourseCode}
+
+		err := c.ShouldBindJSON(&sr)
+		if err != nil {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
+		token := c.MustGet("access_token")
+		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
+		userID := claims["user"].(string)
+
+		user := entity.User{Login: userID}
+
+		err = private.UpdateSubjectReview(DB, user, sr)
+		if err != nil {
+			log.Println(fmt.Errorf("error updating subject review: " + err.Error()))
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		c.Status(http.StatusOK)
 	}
 }
