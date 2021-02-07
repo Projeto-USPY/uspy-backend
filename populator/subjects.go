@@ -18,8 +18,8 @@ func PopulateICMCSubjects(DB db.Env) (int, error) {
 		courseSubNames := make(map[string]string)
 		for _, sub := range course.Subjects {
 			sub.Stats = map[string]int{
-				"qtWorthIt": 0,
-				"qtReviews": 0,
+				"worth_it": 0,
+				"total":    0,
 			}
 			log.Println("inserting subjects from course", course.Name)
 			go DB.Insert(sub, "subjects")
