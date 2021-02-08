@@ -1,3 +1,4 @@
+// package subject contains useful functions require to scrape icmc subject data from jupiterweb
 package subject
 
 import (

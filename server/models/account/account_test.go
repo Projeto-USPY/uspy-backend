@@ -1,3 +1,4 @@
+// package account contains functions that implement backend-db communication for every /account endpoint
 package account
 
 import (

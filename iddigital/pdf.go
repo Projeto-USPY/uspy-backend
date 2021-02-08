@@ -1,3 +1,4 @@
+/* package iddigital contains all logic necessary to interact with uspdigital */
 package iddigital
 
 import (
@@ -13,12 +14,15 @@ import (
 	"time"
 )
 
+// iddigital.PDF represents the pdf file retrieved from uspdigital
+// See PostAuthCode for more info.
 type PDF struct {
 	Body         string
 	Error        error
 	CreationDate time.Time
 }
 
+// iddigital.Records represents the parsed data retrieved from the user's PDF file\
 type Records struct {
 	Grades []entity.Grade `json:"grades"`
 	Nusp   string         `json:"nusp"`
@@ -40,6 +44,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 		panic(errors.New("error reading pdf response body: " + err.Error()))
 	}
 
+	// transform PDF to string
 	parser := exec.Command("pdftotext", "-q", "-eol", "unix", "-enc", "UTF-8", "-layout", "-", "-")
 	stdin, _ := parser.StdinPipe()
 	_, _ = stdin.Write(bodyPDF)
@@ -52,6 +57,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 
 	body := string(parsed)
 
+	// Get PDF CreationDate in ISO format
 	dataExtractor := exec.Command("pdfinfo", "-isodates", "-")
 	stdin, _ = dataExtractor.StdinPipe()
 	_, _ = stdin.Write(bodyPDF)
@@ -70,7 +76,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 		fields[1] = strings.Trim(fields[1], " \n\t")
 		if fields[0] == "CreationDate" {
 			layout := "2006-01-02T15:04:05-0700"
-			c, err := time.Parse(layout, fields[1]+"00")
+			c, err := time.Parse(layout, fields[1]+"00") // must add 00 to adapt to timezone layout
 			if err != nil {
 				panic(errors.New("error parsing time: " + err.Error()))
 			} else {
@@ -87,7 +93,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 	}
 }
 
-// Parse takes the (already read) PDF and parses it into records
+// Parse takes the (already read) PDF and parses it into a Records object
 func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -96,7 +102,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 		}
 	}()
 
-	// Look for User NUSP
+	// Look for User NUSP (user identifier) in PDF Header
 	nuspMatches := regexp.MustCompile(`Aluno:\s+(\d+)`).FindStringSubmatch(pdf.Body)
 
 	if nuspMatches == nil || len(nuspMatches) < 2 {
@@ -118,6 +124,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 		panic(errors.New("could not fetch courses from firestore"))
 	}
 
+	// Divide records data into each semester/year
 	pairs := regexp.MustCompile(`\s+\d{4} [1-2]º\. Semestre\s+`).FindAllStringIndex(pdf.Body, -1)
 
 	for i := 0; i < len(pairs)-1; i++ {

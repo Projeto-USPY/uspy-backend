@@ -1,3 +1,4 @@
+// package account contains functions that implement backend-db communication for every /account endpoint
 package account
 
 import (
@@ -40,11 +41,12 @@ func Signup(DB db.Env, u entity.User, recs iddigital.Records) error {
 		}
 
 		objs = append(objs, db.Object{
-			Collection: "subjects/" + entity.Subject{Code: g.Subject, CourseCode: g.Course}.Hash() + "/grades",
+			Collection: "subjects/" + subHash + "/grades",
 			Data:       gradeObj,
 		})
 	}
 
+	// write atomically
 	writeErr := DB.BatchWrite(objs)
 	if writeErr != nil {
 		return writeErr
@@ -53,6 +55,7 @@ func Signup(DB db.Env, u entity.User, recs iddigital.Records) error {
 	return nil
 }
 
+// Login performs the user login by comparing the inserted password and the stored hash
 func Login(DB db.Env, u entity.User) error {
 	snap, err := DB.Restore("users", u.Hash())
 	if err != nil {

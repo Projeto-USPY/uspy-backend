@@ -1,3 +1,4 @@
+/* Package db contains useful functions related to the Firestore Database */
 package entity
 
 import (
@@ -8,6 +9,9 @@ import (
 	"time"
 )
 
+// entity.User represents a user not only in the Firestore DB but also as input for some endpoints
+// Example: {"12345678", "mypwd123", true, hash("mypwd123"), LastUpdate}
+// LastUpdate is the creation time of the last PDF records submitted by the user, either on signup or profile update
 type User struct {
 	// only used because of REST requests, do not store in DB!!!
 	Login    string `json:"login" firestore:"-" binding:"required,numeric"`

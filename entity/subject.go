@@ -1,3 +1,4 @@
+/* Package db contains useful functions related to the Firestore Database */
 package entity
 
 import (
@@ -6,7 +7,15 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 )
 
-// Subject describes a subject (example: SMA0356 - Cálculo IV)
+// entity.Subject describes a subject
+// Example: {"SMA0354", "55041", "Cálculo IV", "...", 4, 1, 60, []string{"Cálculo I", ...}, false, Stats}
+// Stats will be a map of review stats that may look like:
+/*
+	stats = {
+		"total": 3,
+		"worth_it": 2
+	}
+*/
 type Subject struct {
 	Code          string         `json:"code" form:"code" firestore:"code" binding:"required,alphanum"`
 	CourseCode    string         `json:"course" form:"course" firestore:"course" binding:"required,alphanum"`

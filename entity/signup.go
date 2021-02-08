@@ -1,3 +1,4 @@
+/* Package db contains useful functions related to the Firestore Database */
 package entity
 
 import (
@@ -6,7 +7,7 @@ import (
 	"unicode"
 )
 
-func ValidateAccessKey(f1 validator.FieldLevel) bool {
+func validateAccessKey(f1 validator.FieldLevel) bool {
 	auth := f1.Field().String()
 	fields := strings.Split(auth, "-")
 
@@ -25,7 +26,7 @@ func ValidateAccessKey(f1 validator.FieldLevel) bool {
 	return true
 }
 
-func ValidatePassword(f1 validator.FieldLevel) bool {
+func validatePassword(f1 validator.FieldLevel) bool {
 	pass := f1.Field().String()
 	if len(pass) < 8 || len(pass) > 20 {
 		return false
@@ -44,6 +45,8 @@ func ValidatePassword(f1 validator.FieldLevel) bool {
 	return letter > 0 && num > 0 && symbol > 0
 }
 
+// entity.Signup is a struct used for signup input validation
+// see /server/controllers/account.Signup for more details
 type Signup struct {
 	AccessKey string `json:"access_key" binding:"required,validateAccessKey"`
 	Password  string `json:"password" binding:"required,validatePassword"`

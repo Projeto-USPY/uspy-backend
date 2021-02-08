@@ -1,3 +1,4 @@
+/* package entity contains structs that will be used for backend input validation and DB operations */
 package entity
 
 import (
@@ -6,6 +7,9 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 )
 
+// entity.FinalScore is a user's final score that is stored in the Firestore DB
+// Example: {10.0, "A", 2019, 1, 90, offeringHash}
+// Be aware the final score does not include the entity.Subject data, because that is included in the offeringHash
 type FinalScore struct {
 	Grade        float64 `firestore:"grade"`
 	Status       string  `firestore:"status"`

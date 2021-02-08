@@ -1,3 +1,5 @@
+// package populator contains useful functions for populating/building the Firestore database
+// Use with caution, because it can overwrite most data present in the database, including reviews and statistics
 package populator
 
 import (

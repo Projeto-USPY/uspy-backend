@@ -1,3 +1,4 @@
+// package server contains basic setup functions to start up the web server
 package server
 
 import (

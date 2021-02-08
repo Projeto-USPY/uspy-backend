@@ -1,3 +1,4 @@
+// package public contains functions that implement backend-db communication for every public (not only logged users) /api endpoint
 package public
 
 import (
@@ -6,6 +7,7 @@ import (
 )
 
 // GetAll returns list of all subjects
+// GetAll is the model implementation for /server/controllers/public.GetSubjects
 func GetAll(DB db.Env) ([]entity.Course, error) {
 	snaps, err := DB.RestoreCollection("courses")
 	if err != nil {

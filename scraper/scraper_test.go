@@ -1,3 +1,4 @@
+// package scraper contains useful functions to get data from the urania api
 package scraper
 
 import (

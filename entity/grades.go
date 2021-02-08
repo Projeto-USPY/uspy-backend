@@ -1,3 +1,4 @@
+/* package entity contains structs that will be used for backend input validation and DB operations */
 package entity
 
 import (
@@ -6,6 +7,8 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 )
 
+// entity.Grade represents a grade that can be parsed from a user's records PDF
+// Example: {10533702, 10.0, 90, "A", "SMA0354", "55041", 1, 2019}
 type Grade struct {
 	User      string  `json:"-" firestore:"-"`
 	Grade     float64 `json:"grade" firestore:"value"`

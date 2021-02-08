@@ -1,3 +1,5 @@
+// package restricted contains the callbacks for every restricted (allowed only to users) /api/restricted endpoint
+// for backend-db communication, see /server/models/restricted
 package restricted
 
 import (
@@ -9,10 +11,12 @@ import (
 	"strconv"
 )
 
+// GetSubjectGrades is a closure for the GET /api/restricted/subject/grades endpoint
 func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		sub := c.MustGet("Subject").(entity.Subject)
 
+		// get all grades in buckets of frequency
 		buckets, err := restricted.GetGrades(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
@@ -22,6 +26,7 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 		avg, approval := 0.0, 0.0
 		cnt := 0
 
+		// calculate average grade and approval rate
 		for k, v := range buckets {
 			f, _ := strconv.ParseFloat(k, 64)
 			avg += f * float64(v)

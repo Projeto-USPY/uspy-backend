@@ -1,3 +1,4 @@
+// package private contains functions that implement backend-db communication for every /private endpoint
 package private
 
 import (
@@ -10,16 +11,34 @@ import (
 	"reflect"
 )
 
-func checkReviewPermission(DB db.Env, userHash, subHash string) error {
-	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
+func checkSubjectExists(DB db.Env, subHash string) error {
+	snap, err := DB.Restore("subjects", subHash)
+	if snap == nil || !snap.Exists() {
+		return errors.New("subject does not exist")
+	}
+	return err
+}
 
-	if len(col) == 0 || err != nil { // user has not done subject
+func checkSubjectRecords(DB db.Env, userHash, subHash string) error {
+	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
+	if len(col) == 0 {
 		return errors.New("user has not done subject")
+	}
+	return err
+}
+
+func checkReviewPermission(DB db.Env, userHash, subHash string) error {
+	errSub, errRec := checkSubjectExists(DB, subHash), checkSubjectRecords(DB, userHash, subHash)
+	if errSub != nil {
+		return errSub
+	} else if errRec != nil {
+		return errRec
 	}
 
 	return nil
 }
 
+// GetSubjectReview is the model implementation for /server/controller/user.GetSubjectReview
 func GetSubjectReview(DB db.Env, user entity.User, sub entity.Subject) (entity.SubjectReview, error) {
 	userHash, subHash := user.Hash(), sub.Hash()
 	review := entity.SubjectReview{}
@@ -30,6 +49,7 @@ func GetSubjectReview(DB db.Env, user entity.User, sub entity.Subject) (entity.S
 	}
 
 	snap, err := DB.Restore("users/"+userHash+"/subject_reviews", subHash)
+
 	if err != nil { // user has not reviewed subject
 		return review, err
 	}
@@ -38,6 +58,7 @@ func GetSubjectReview(DB db.Env, user entity.User, sub entity.Subject) (entity.S
 	return review, err
 }
 
+// UpdateSubjectReview is the model implementation for /server/controller/user.UpdateSubjectReview
 func UpdateSubjectReview(DB db.Env, user entity.User, review entity.SubjectReview) error {
 	userHash, rvHash := user.Hash(), review.Hash()
 	err := checkReviewPermission(DB, userHash, rvHash)
@@ -51,7 +72,7 @@ func UpdateSubjectReview(DB db.Env, user entity.User, review entity.SubjectRevie
 	err = DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		rev, _ := tx.Get(revRef) // get existing review
 
-		if rev.Exists() { // user has already reviewed subject so we must remove it and propagate
+		if rev != nil && rev.Exists() { // user has already reviewed subject so we must remove it and propagate
 			if err != nil {
 				return err
 			}

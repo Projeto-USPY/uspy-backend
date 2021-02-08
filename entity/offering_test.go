@@ -1,3 +1,4 @@
+/* Package db contains useful functions related to the Firestore Database */
 package entity
 
 import (

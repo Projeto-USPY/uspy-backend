@@ -1,3 +1,4 @@
+// package public contains functions that implement backend-db communication for every public (not only logged users) /api endpoint
 package public
 
 import (
@@ -7,6 +8,7 @@ import (
 )
 
 // GetByCode returns entity.Subject with code 'code'
+// It is the model implementation for /server/models/public.GetSubjectByCode
 func Get(DB db.Env, sub entity.Subject) (entity.Subject, error) {
 	snap, err := DB.Restore("subjects", sub.Hash())
 	if err != nil {

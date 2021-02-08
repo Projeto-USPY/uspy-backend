@@ -1,3 +1,4 @@
+// package professor contains useful functions require to scrape professor data from icmcpessoas
 package professor
 
 import (

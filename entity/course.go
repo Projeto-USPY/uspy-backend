@@ -1,3 +1,4 @@
+/* package entity contains structs that will be used for backend input validation and DB operations */
 package entity
 
 import (
@@ -6,7 +7,8 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 )
 
-// Course represents a course/major (example: BCC)
+// entity.Course represents a course/major
+// Example: {"Bacharelado em Ciências de Computação", "55041", []Subjects{...}, map[string]string{"SMA0356": "Cálculo IV", ...}}
 type Course struct {
 	Name         string            `json:"name" firestore:"name"`
 	Code         string            `json:"code" firestore:"code"`

@@ -1,3 +1,4 @@
+// package middleware contains useful middleware handlers
 package middleware
 
 import (
@@ -6,6 +7,7 @@ import (
 	"net/http"
 )
 
+// Subject is a middleware for binding subject data
 func Subject() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		subject := entity.Subject{}

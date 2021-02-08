@@ -1,3 +1,4 @@
+// package utils contain useful helper functions
 package utils
 
 import (

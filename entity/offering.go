@@ -1,3 +1,4 @@
+/* package entity contains structs that will be used for backend input validation and DB operations */
 package entity
 
 import (
@@ -6,7 +7,8 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 )
 
-// Offering describes an offering of a subject (example: Cálculo IV - 2019.2)
+// entity.Offering describes an offering of a subject
+// Example: {1, 2019, id("Fulano da Silva"), "SMA0356"}
 type Offering struct {
 	Semester  int    `json:"semester" firestore:"semester"`
 	Year      int    `json:"year" firestore:"year"`

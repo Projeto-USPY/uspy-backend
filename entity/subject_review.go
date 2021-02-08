@@ -1,3 +1,4 @@
+/* Package db contains useful functions related to the Firestore Database */
 package entity
 
 import (
@@ -9,7 +10,7 @@ import (
 	"sort"
 )
 
-func ValidateSubjectReview(f1 validator.FieldLevel) bool {
+func validateSubjectReview(f1 validator.FieldLevel) bool {
 	keys := f1.Field().MapKeys()
 	keysStr := make([]string, 0)
 
@@ -35,6 +36,8 @@ func ValidateSubjectReview(f1 validator.FieldLevel) bool {
 	return true
 }
 
+// entity.SubjectReview represents a review made to a subject by a user
+// Example: {"SMA0354", "55041", map[string]interface{}{"worth_it": true}}
 type SubjectReview struct {
 	Subject string                 `json:"-" firestore:"-" binding:"required,alphanum"`
 	Course  string                 `json:"-" firestore:"-" binding:"required,alphanum"`

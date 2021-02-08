@@ -1,29 +1,37 @@
+/* Package db contains useful functions related to the Firestore Database */
 package db
 
 import (
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
+	"github.com/joho/godotenv"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 	"log"
 	"os"
 )
 
+// Manager will be implemented by almost all entities
 type Manager interface {
 	Insert(db Env, collection string) error
 }
 
+// Object is used for batched writes that can contain different types that implement Manager
+// Set Doc to empty string if you'd like to use a random Hash
 type Object struct {
 	Collection string
 	Doc        string
 	Data       Manager
 }
 
+// Env is passed to /server/models functions that require DB operations
 type Env struct {
 	Client *firestore.Client
 	Ctx    context.Context
 }
 
+// Env.Restore restores a document with a specific HashID and collection origin from Firestore
+// collection cannot end in "/"
 func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, error) {
 	snap, err := db.Client.Collection(collection).Doc(HashID).Get(db.Ctx)
 	if err != nil {
@@ -33,6 +41,8 @@ func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, e
 	return snap, nil
 }
 
+// Env.RestoreCollection is similar to Env.Restore, but restores all documents from a collection
+// collection cannot end in "/"
 func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapshot, error) {
 	snap, err := db.Client.Collection(collection).Documents(db.Ctx).GetAll()
 	if err != nil {
@@ -42,6 +52,7 @@ func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapsho
 	return snap, nil
 }
 
+// Env.Insert inserts an entity that implements Manager into a DB collection
 func (db Env) Insert(obj Manager, collection string) error {
 	err := obj.Insert(db, collection)
 	if err != nil {
@@ -50,11 +61,12 @@ func (db Env) Insert(obj Manager, collection string) error {
 	return nil
 }
 
+// Env.BatchWrite will perform inserts atomically
 func (db Env) BatchWrite(objs []Object) error {
 	batch := db.Client.Batch()
 
 	for _, o := range objs {
-		if o.Doc == "" {
+		if o.Doc == "" { // create document with random hash
 			batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.Data)
 		} else {
 			batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.Data)
@@ -64,6 +76,7 @@ func (db Env) BatchWrite(objs []Object) error {
 	return err
 }
 
+// InitFirestore receives a mode (dev/prod/build) and initiates the DB Environment
 func InitFireStore(mode string) Env {
 	var DB = Env{
 		Ctx: context.Background(),
@@ -102,4 +115,9 @@ func InitFireStore(mode string) Env {
 	}
 
 	return DB
+}
+
+func SetupDB(envPath string) Env {
+	_ = godotenv.Load(envPath)
+	return InitFireStore(os.Getenv("MODE"))
 }

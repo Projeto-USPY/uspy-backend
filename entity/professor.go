@@ -1,3 +1,4 @@
+/* package entity contains structs that will be used for backend input validation and DB operations */
 package entity
 
 import (
@@ -7,7 +8,18 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// Professor represents a ICMC professor (example: {Moacir Ponti SCC})
+// entity.Professor represents a ICMC professor
+// Example: {1234567, "Fulano da Silva", SCC, Stats, Offerings}
+/* Stats will be a map of review statistics, that looks like:
+stats = {
+	"total": 5,
+	"worth_it": 3,
+	"is_difficult": 4,
+	"has_attendance": 0,
+	"has_didactics": 4
+}
+*/
+// Offerings contains a list of all offerings the professor was responsible for since 2010
 type Professor struct {
 	CodPes     int    `json:"code" firestore:"code"`
 	Name       string `json:"name" firestore:"name"`

@@ -1,3 +1,5 @@
+// package account contains the callbacks for every /account endpoint
+// for backend-db communication, see /server/models/account
 package account
 
 import (
@@ -18,53 +20,67 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Logout is a closure for the GET /account/logout endpoint
 func Logout() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		domain := os.Getenv("DOMAIN")
 		secureCookie := os.Getenv("MODE") == "prod"
+
+		// delete access_token cookie
 		c.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
 	}
 }
 
+// Login is a closure for the POST /account/login endpoint
 func Login(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var user entity.User
+
+		// validate user data
 		if err := c.ShouldBindJSON(&user); err != nil {
 			c.Status(http.StatusBadRequest)
 			return
 		}
 
+		// check if password is correct
 		if err := account.Login(DB, user); err != nil {
 			c.Status(http.StatusUnauthorized)
 			return
 		}
 
+		// generate access_token
 		if jwt, err := middleware.GenerateJWT(user); err != nil {
 			log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
 			c.Status(http.StatusInternalServerError)
 		} else {
 			domain := os.Getenv("DOMAIN")
 
-			// expiration date = 1 monthFirestore
+			// expiration date = 1 month
 			secureCookie := os.Getenv("MODE") == "prod"
 			cookieAge := 0
+
+			// remember this login?
 			if user.Remember {
 				cookieAge = 30 * 24 * 3600 // 30 days in seconds
 			}
+
 			c.SetCookie("access_token", jwt, cookieAge, "/", domain, secureCookie, true)
 			c.Status(http.StatusOK)
 		}
 	}
 }
 
+// Signup is a closure for the POST /account/create endpoint
 func Signup(DB db.Env) func(g *gin.Context) {
 	return func(c *gin.Context) {
+		// validate user data
 		var signupForm entity.Signup
 		if err := c.ShouldBindJSON(&signupForm); err != nil {
 			c.Status(http.StatusBadRequest)
 			return
 		}
 
+		// get user records
 		cookies := c.Request.Cookies()
 		resp, err := iddigital.PostAuthCode(signupForm.AccessKey, signupForm.Captcha, cookies)
 		if err != nil {
@@ -130,6 +146,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 				return
 			}
 
+			// generate JWT to auto-login user for the current session
 			jwt, err := middleware.GenerateJWT(newUser)
 			if err != nil {
 				log.Println(errors.New("error generating jwt for new user: " + err.Error()))
@@ -145,6 +162,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 	}
 }
 
+// SignupCaptcha is a closure for the GET /account/captcha endpoint
 func SignupCaptcha() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		resp, err := iddigital.GetCaptcha()

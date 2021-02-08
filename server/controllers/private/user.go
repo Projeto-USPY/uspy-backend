@@ -1,3 +1,5 @@
+// package private contains the callbacks for every /private endpoint
+// for backend-db communication, see /server/models/private
 package private
 
 import (
@@ -13,8 +15,10 @@ import (
 	"net/http"
 )
 
+// GetSubjectReview is a closure for the GET /private/subject/review endpoint
 func GetSubjectReview(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		// get user and subject info
 		token := c.MustGet("access_token")
 		sub := c.MustGet("Subject").(entity.Subject)
 
@@ -31,10 +35,10 @@ func GetSubjectReview(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		if status.Code(err) == codes.NotFound {
-			// user has not yet reviewed the subject or the subject doesnt exist
+		// subject does not exist or user has not reviewed it yet
+		if err.Error() == "subject does not exist" || status.Code(err) == codes.NotFound {
 			c.Status(http.StatusNotFound)
-		} else if err.Error() == "user has not done subject" {
+		} else if err.Error() == "user has not done subject" { // user has no permission to review subject
 			c.Status(http.StatusForbidden)
 		} else {
 			log.Println(fmt.Errorf("error fetching review for subject %v, user %v: %v", sub, userID, err))
@@ -43,8 +47,10 @@ func GetSubjectReview(DB db.Env) func(c *gin.Context) {
 	}
 }
 
+// UpdateSubjectReview is a closure for the POST /private/subject/review endpoint
 func UpdateSubjectReview(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		// get subject and review data
 		sub := c.MustGet("Subject").(entity.Subject)
 		sr := entity.SubjectReview{Subject: sub.Code, Course: sub.CourseCode}
 
@@ -54,6 +60,7 @@ func UpdateSubjectReview(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
+		// get user data
 		token := c.MustGet("access_token")
 		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
 		userID := claims["user"].(string)
@@ -61,12 +68,19 @@ func UpdateSubjectReview(DB db.Env) func(c *gin.Context) {
 		user := entity.User{Login: userID}
 
 		err = private.UpdateSubjectReview(DB, user, sr)
-		if err != nil {
-			log.Println(fmt.Errorf("error updating subject review: " + err.Error()))
-			c.Status(http.StatusInternalServerError)
+		if err == nil {
+			c.Status(http.StatusOK)
 			return
 		}
 
-		c.Status(http.StatusOK)
+		if err.Error() == "subject does not exist" { // subject doesnt exist
+			c.Status(http.StatusNotFound)
+		} else if err.Error() == "user has not done subject" { // user has no permission to review subject
+			c.Status(http.StatusForbidden)
+		} else {
+			log.Println(fmt.Errorf("error fetching review for subject %v, user %v: %v", sub, userID, err))
+			c.Status(http.StatusInternalServerError)
+		}
+
 	}
 }

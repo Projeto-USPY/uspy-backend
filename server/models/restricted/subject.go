@@ -1,3 +1,4 @@
+// package restricted contains functions that implement backend-db communication for every restricted (logged in users) /api/restricted endpoint
 package restricted
 
 import (
