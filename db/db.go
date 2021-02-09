@@ -54,11 +54,13 @@ func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapsho
 
 // Env.Insert inserts an entity that implements Manager into a DB collection
 func (db Env) Insert(obj Manager, collection string) error {
-	err := obj.Insert(db, collection)
-	if err != nil {
-		return err
-	}
-	return nil
+	return obj.Insert(db, collection)
+}
+
+// Env.Update performs one or more updates in a single document
+func (db Env) Update(doc, col string, updates []firestore.Update) error {
+	_, err := db.Client.Collection(col).Doc(doc).Update(db.Ctx, updates)
+	return err
 }
 
 // Env.BatchWrite will perform inserts atomically
