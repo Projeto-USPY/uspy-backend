@@ -21,6 +21,62 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// ResetPassword is a closure for PUT /account/password_reset
+// It differs from ChangePassword because the user does not have to be logged in.
+func ResetPassword(DB db.Env) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// validate user data
+		var signupForm entity.Signup
+		if err := c.ShouldBindJSON(&signupForm); err != nil {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
+		// get user records
+		cookies := c.Request.Cookies()
+		resp, err := iddigital.PostAuthCode(signupForm.AccessKey, signupForm.Captcha, cookies)
+		if err != nil {
+			// error getting PDF from iddigital
+			log.Println(errors.New("error getting pdf from iddigital: " + err.Error()))
+			c.Status(http.StatusInternalServerError)
+			return
+		} else if resp.Header.Get("Content-Type") != "application/pdf" {
+			// wrong captcha or auth
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
+		if pdf := iddigital.NewPDF(resp); pdf.Error != nil {
+			// error converting PDF to text
+			log.Println(errors.New("error converting pdf to text: " + pdf.Error.Error()))
+			c.Status(http.StatusInternalServerError)
+		} else {
+			data, err := pdf.Parse(DB)
+
+			if err != nil {
+				// error parsing pdf
+				log.Println(errors.New("error parsing pdf: " + err.Error()))
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+
+			// change user password
+			user := entity.User{Login: data.Nusp}
+			err = account.ChangePassword(DB, user, signupForm.Password)
+			if err != nil {
+				// error changing password
+				log.Println(fmt.Errorf("error changing password of user %v to %v: %s", user.Login, signupForm.Password, err.Error()))
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+
+			c.Status(http.StatusOK)
+		}
+	}
+}
+
+// ChangePassword is a closure for PUT /account/password_change
+// It differs from ResetPassword because the user must be logged in.
 func ChangePassword(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// get user info

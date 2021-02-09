@@ -38,10 +38,14 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	accountGroup := r.Group("/account")
 	{
 		accountGroup.POST("/login", account.Login(DB))
+
 		accountGroup.GET("/captcha", account.SignupCaptcha())
 		accountGroup.POST("/create", account.Signup(DB))
+
 		accountGroup.GET("/logout", middleware.JWT(), account.Logout())
+
 		accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
+		accountGroup.PUT("/password_reset", account.ResetPassword(DB))
 	}
 
 	apiGroup := r.Group("/api")
