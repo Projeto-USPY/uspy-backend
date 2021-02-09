@@ -5,6 +5,7 @@ package account
 import (
 	"errors"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
 	"os"
@@ -19,6 +20,35 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func ChangePassword(DB db.Env) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// get user info
+		token := c.MustGet("access_token")
+		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
+		userID := claims["user"].(string)
+
+		var reset entity.Reset
+		// bind old and new password
+		if err := c.ShouldBindJSON(&reset); err != nil {
+			c.Status(http.StatusBadRequest)
+		} else {
+			user := entity.User{Login: userID, Password: reset.OldPassword}
+			if loginErr := account.Login(DB, user); loginErr != nil { // old_password is incorrect
+				c.Status(http.StatusForbidden)
+				return
+			}
+
+			changeErr := account.ChangePassword(DB, user, reset.NewPassword)
+			if changeErr != nil {
+				c.Status(http.StatusInternalServerError)
+				return
+			}
+
+			c.Status(http.StatusOK)
+		}
+	}
+}
 
 // Logout is a closure for the GET /account/logout endpoint
 func Logout() func(c *gin.Context) {
@@ -49,7 +79,7 @@ func Login(DB db.Env) func(c *gin.Context) {
 		}
 
 		// generate access_token
-		if jwt, err := middleware.GenerateJWT(user); err != nil {
+		if jwtToken, err := middleware.GenerateJWT(user); err != nil {
 			log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
 			c.Status(http.StatusInternalServerError)
 		} else {
@@ -64,7 +94,7 @@ func Login(DB db.Env) func(c *gin.Context) {
 				cookieAge = 30 * 24 * 3600 // 30 days in seconds
 			}
 
-			c.SetCookie("access_token", jwt, cookieAge, "/", domain, secureCookie, true)
+			c.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
 			c.Status(http.StatusOK)
 		}
 	}
@@ -147,7 +177,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			}
 
 			// generate JWT to auto-login user for the current session
-			jwt, err := middleware.GenerateJWT(newUser)
+			jwtToken, err := middleware.GenerateJWT(newUser)
 			if err != nil {
 				log.Println(errors.New("error generating jwt for new user: " + err.Error()))
 				c.Status(http.StatusInternalServerError)
@@ -156,7 +186,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 
 			domain := os.Getenv("DOMAIN")
 			secureCookie := os.Getenv("MODE") == "prod"
-			c.SetCookie("access_token", jwt, 0, "/", domain, secureCookie, true)
+			c.SetCookie("access_token", jwtToken, 0, "/", domain, secureCookie, true)
 			c.JSON(http.StatusOK, data)
 		}
 	}

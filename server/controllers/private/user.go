@@ -20,10 +20,9 @@ func GetSubjectReview(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// get user and subject info
 		token := c.MustGet("access_token")
-		sub := c.MustGet("Subject").(entity.Subject)
-
 		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
 		userID := claims["user"].(string)
+		sub := c.MustGet("Subject").(entity.Subject)
 
 		user, sub := entity.User{Login: userID}, entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code}
 

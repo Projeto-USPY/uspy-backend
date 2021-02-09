@@ -2,6 +2,7 @@
 package account
 
 import (
+	"cloud.google.com/go/firestore"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/iddigital"
@@ -69,4 +70,14 @@ func Login(DB db.Env, u entity.User) error {
 	}
 
 	return bcrypt.CompareHashAndPassword([]byte(storedUser.PasswordHash), []byte(u.Password))
+}
+
+// ChangePassword changes the current password hash to a new one
+func ChangePassword(DB db.Env, u entity.User, newPassword string) error {
+	newHash, err := entity.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	pwdUpdates := []firestore.Update{{Path: "password", Value: newHash}}
+	return DB.Update(u.Hash(), "users", pwdUpdates)
 }
