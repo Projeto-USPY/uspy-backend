@@ -9,6 +9,7 @@ import (
 
 type SubjectBuilder struct{}
 
+// SubjectBuilder.Build scrapes all icmc courses and subjects and builds them onto Firestore
 func (SubjectBuilder) Build(DB db.Env) error {
 	courses, err := subject.ScrapeICMCCourses()
 	if err != nil {
