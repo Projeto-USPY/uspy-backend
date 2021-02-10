@@ -1,21 +1,21 @@
-// package populator contains useful functions for populating/building the Firestore database
+// package builder contains useful functions for building the Firestore database
 // Use with caution, because it can overwrite most data present in the database, including reviews and statistics
-package populator
+package builder
 
 import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/scraper/icmc/subject"
-	"log"
 )
 
-func PopulateICMCSubjects(DB db.Env) (int, error) {
-	log.Println("scraping icmc courses")
+type SubjectBuilder struct{}
+
+func (SubjectBuilder) Build(DB db.Env) error {
 	courses, err := subject.ScrapeICMCCourses()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	cntCourses, cntSubjects := 0, 0
+	objs := make([]db.Object, 0)
 	for _, course := range courses {
 		courseSubNames := make(map[string]string)
 		for _, sub := range course.Subjects {
@@ -23,18 +23,23 @@ func PopulateICMCSubjects(DB db.Env) (int, error) {
 				"worth_it": 0,
 				"total":    0,
 			}
-			log.Println("inserting subjects from course", course.Name)
-			go DB.Insert(sub, "subjects")
+			objs = append(objs, db.Object{Collection: "subjects", Doc: sub.Hash(), Data: sub})
 			courseSubNames[sub.Code] = sub.Name
-			cntSubjects++
 		}
 		course.SubjectCodes = courseSubNames
-		err := DB.Insert(course, "courses")
-		log.Println("inserting course", course.Name)
-		if err != nil {
-			return 0, nil
-		}
-		cntCourses++
+		objs = append(objs, db.Object{Collection: "courses", Doc: course.Hash(), Data: course})
 	}
-	return cntCourses + cntSubjects, nil
+
+	for _, o := range objs {
+		var err error
+		go func() {
+			err = DB.Insert(o.Data, o.Collection)
+		}()
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
