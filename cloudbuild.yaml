@@ -1,0 +1,24 @@
+steps:
+# Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$_PROJECT_ID/uspy', '.']
+  dir: .
+
+# Deploy image to Cloud Run
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: ['run', 'deploy', 'uspy-backend',
+      '--image=gcr.io/$_PROJECT_ID/uspy',
+      '--region=us-east1',
+      '--platform=managed',
+      "--set-env-vars=\
+      DOMAIN=$_DOMAIN,\
+      MODE=$_MODE,\
+      PROJECT_ID=$_PROJECT_ID,\
+      JWT_SECRET=$_JWT_SECRET"]
+
+# Assign 100% of the traffic to the latest version
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: ['run', 'services', 'update-traffic', 'uspy-backend',
+         '--region=us-east1',
+         '--platform=managed',
+         '--to-latest']
