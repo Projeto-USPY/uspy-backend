@@ -5,6 +5,7 @@ package builder
 import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/scraper/icmc/subject"
+	"log"
 )
 
 type SubjectBuilder struct{}
@@ -35,6 +36,7 @@ func (SubjectBuilder) Build(DB db.Env) error {
 		var err error
 		go func() {
 			err = DB.Insert(o.Data, o.Collection)
+			log.Printf("inserting %v into %v\n", o.Data, o.Collection)
 		}()
 
 		if err != nil {
