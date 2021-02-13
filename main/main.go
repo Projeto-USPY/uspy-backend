@@ -14,6 +14,7 @@ func main() {
 
 	if s, ok := os.LookupEnv("BUILD"); ok && s == "true" {
 		for _, b := range builder.Builders {
+			log.Println("executing builder", b)
 			err := b.Build(DB)
 			if err != nil {
 				log.Fatal("failed to build: ", err)
