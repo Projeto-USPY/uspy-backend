@@ -4,6 +4,10 @@ steps:
   args: ['build', '--tag', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA', '.']
   dir: .
 
+# Push the container image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA']
+
 # Deploy image to Cloud Run
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['run', 'deploy', 'uspy-backend',
@@ -15,10 +19,6 @@ steps:
       MODE=$_MODE,\
       PROJECT_ID=$_PROJECT_ID,\
       JWT_SECRET=$_JWT_SECRET"]
-
-# Push the container image to Container Registry
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA']
 
 # Assign 100% of the traffic to the latest version
 - name: 'gcr.io/cloud-builders/gcloud'
