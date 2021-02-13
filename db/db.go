@@ -78,7 +78,7 @@ func (db Env) BatchWrite(objs []Object) error {
 	return err
 }
 
-// InitFirestore receives a mode (dev/prod/build) and initiates the DB Environment
+// InitFirestore receives a mode dev/prod and initiates the DB Environment
 func InitFireStore(mode string) Env {
 	var DB = Env{
 		Ctx: context.Background(),
@@ -99,7 +99,7 @@ func InitFireStore(mode string) Env {
 		} else {
 			log.Fatal("missing env variable PROJECT_ID")
 		}
-	} else { // build or dev
+	} else if mode == "dev" {
 		if key, ok := os.LookupEnv("FIRESTORE_KEY"); ok {
 			sa := option.WithCredentialsFile(key)
 			app, err := firebase.NewApp(DB.Ctx, nil, sa)
