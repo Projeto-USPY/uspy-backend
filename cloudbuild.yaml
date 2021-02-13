@@ -1,13 +1,13 @@
 steps:
 # Build the container image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$_PROJECT_ID/uspy', '.']
+  args: ['build', '-t', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA', '.']
   dir: .
 
 # Deploy image to Cloud Run
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['run', 'deploy', 'uspy-backend',
-      '--image=gcr.io/$_PROJECT_ID/uspy',
+      '--image=gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA',
       '--region=us-east1',
       '--platform=managed',
       "--set-env-vars=\
