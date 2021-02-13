@@ -1,7 +1,7 @@
 steps:
 # Build the container image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA', '.']
+  args: ['build', '--tag', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA', '.']
   dir: .
 
 # Deploy image to Cloud Run
