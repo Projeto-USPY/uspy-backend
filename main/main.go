@@ -2,17 +2,18 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/tpreischadt/ProjetoJupiter/builder"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/server"
-	"log"
-	"os"
 )
 
 func main() {
 	DB := db.SetupDB(".env")
 
-	if s, ok := os.LookupEnv("BUILD"); ok && s == "true" {
+	if s, ok := os.LookupEnv("BUILD"); ok && s == "TRUE" {
 		for _, b := range builder.Builders {
 			log.Println("executing builder", b)
 			err := b.Build(DB)

@@ -79,12 +79,12 @@ func (db Env) BatchWrite(objs []Object) error {
 }
 
 // InitFirestore receives a mode dev/prod and initiates the DB Environment
-func InitFireStore(mode string) Env {
+func InitFireStore(LOCAL string) Env {
 	var DB = Env{
 		Ctx: context.Background(),
 	}
 
-	if mode == "prod" {
+	if LOCAL == "FALSE" {
 		if id, ok := os.LookupEnv("PROJECT_ID"); ok {
 			conf := &firebase.Config{ProjectID: id}
 			app, err := firebase.NewApp(DB.Ctx, conf)
@@ -99,7 +99,7 @@ func InitFireStore(mode string) Env {
 		} else {
 			log.Fatal("missing env variable PROJECT_ID")
 		}
-	} else if mode == "dev" {
+	} else {
 		if key, ok := os.LookupEnv("FIRESTORE_KEY"); ok {
 			sa := option.WithCredentialsFile(key)
 			app, err := firebase.NewApp(DB.Ctx, nil, sa)
@@ -121,5 +121,5 @@ func InitFireStore(mode string) Env {
 
 func SetupDB(envPath string) Env {
 	_ = godotenv.Load(envPath)
-	return InitFireStore(os.Getenv("MODE"))
+	return InitFireStore(os.Getenv("LOCAL"))
 }

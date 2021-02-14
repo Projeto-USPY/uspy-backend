@@ -5,11 +5,12 @@ package account
 import (
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/db"
@@ -110,7 +111,7 @@ func ChangePassword(DB db.Env) func(c *gin.Context) {
 func Logout() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		domain := os.Getenv("DOMAIN")
-		secureCookie := os.Getenv("MODE") == "prod"
+		secureCookie := os.Getenv("LOCAL") == "FALSE"
 
 		// delete access_token cookie
 		c.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
@@ -142,7 +143,7 @@ func Login(DB db.Env) func(c *gin.Context) {
 			domain := os.Getenv("DOMAIN")
 
 			// expiration date = 1 month
-			secureCookie := os.Getenv("MODE") == "prod"
+			secureCookie := os.Getenv("LOCAL") == "FALSE"
 			cookieAge := 0
 
 			// remember this login?
@@ -241,7 +242,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			}
 
 			domain := os.Getenv("DOMAIN")
-			secureCookie := os.Getenv("MODE") == "prod"
+			secureCookie := os.Getenv("LOCAL") == "FALSE"
 			c.SetCookie("access_token", jwtToken, 0, "/", domain, secureCookie, true)
 			c.JSON(http.StatusOK, data)
 		}
@@ -261,8 +262,8 @@ func SignupCaptcha() func(c *gin.Context) {
 
 		cookies := resp.Cookies()
 		for _, ck := range cookies {
-			secureCookie := os.Getenv("MODE") == "prod"
-			c.SetCookie(ck.Name, ck.Value, ck.MaxAge, "/", "", false, secureCookie)
+			secureCookie := os.Getenv("LOCAL") == "FALSE"
+			c.SetCookie(ck.Name, ck.Value, ck.MaxAge, "/", "", secureCookie, true)
 		}
 
 		c.DataFromReader(

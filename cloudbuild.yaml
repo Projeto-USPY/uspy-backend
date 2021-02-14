@@ -17,6 +17,7 @@ steps:
       "--set-env-vars=\
       DOMAIN=$_DOMAIN,\
       MODE=$_MODE,\
+      LOCAL=FALSE,\
       PROJECT_ID=$_PROJECT_ID,\
       JWT_SECRET=$_JWT_SECRET"]
 

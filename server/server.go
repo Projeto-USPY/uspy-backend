@@ -2,6 +2,9 @@
 package server
 
 import (
+	"net/http"
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
@@ -10,8 +13,6 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/server/controllers/public"
 	"github.com/tpreischadt/ProjetoJupiter/server/controllers/restricted"
 	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
-	"net/http"
-	"os"
 )
 
 // Todo (return default page)
@@ -30,7 +31,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		return nil, err
 	}
 
-	if os.Getenv("MODE") == "dev" {
+	if os.Getenv("LOCAL") == "TRUE" {
 		r.Use(middleware.AllowAnyOrigin())
 	}
 
