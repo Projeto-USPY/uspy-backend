@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"os"
 )
 
@@ -14,17 +13,6 @@ func DefineDomain() gin.HandlerFunc {
 			return
 		}
 
-		if mode, ok := os.LookupEnv("MODE"); ok {
-			var frontURL string
-			if mode == "prod" {
-				frontURL = "https://uspy.me"
-			} else {
-				frontURL = "https://frontdev.uspy.me"
-			}
-
-			c.Set("front_domain", frontURL)
-		} else {
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
+		c.Set("front_domain", "uspy.me")
 	}
 }

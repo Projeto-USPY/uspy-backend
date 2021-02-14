@@ -3,6 +3,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"os"
 )
 
@@ -36,10 +37,11 @@ func AllowUSPYOrigin() gin.HandlerFunc {
 			if mode == "dev" {
 				frontURL = "https://frontdev.uspy.me"
 			} else {
-				frontURL = "https://www.uspy.me"
+				frontURL = "https://uspy.me"
 			}
 
 			c.Header("Access-Control-Allow-Origin", frontURL)
+			c.SetSameSite(http.SameSiteNoneMode)
 
 			if c.Request.Method == "OPTIONS" {
 				c.AbortWithStatus(204)
