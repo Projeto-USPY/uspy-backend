@@ -16,7 +16,7 @@ import (
 
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
-	r.Use(gin.Recovery())
+	r.Use(gin.Recovery(), middleware.DefineDomain())
 
 	err := entity.SetupValidators()
 	if err != nil {

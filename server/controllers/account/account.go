@@ -110,7 +110,7 @@ func ChangePassword(DB db.Env) func(c *gin.Context) {
 // Logout is a closure for the GET /account/logout endpoint
 func Logout() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		domain := os.Getenv("DOMAIN")
+		domain := c.MustGet("front_domain").(string)
 		secureCookie := os.Getenv("LOCAL") == "FALSE"
 
 		// delete access_token cookie
@@ -140,7 +140,7 @@ func Login(DB db.Env) func(c *gin.Context) {
 			log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
 			c.Status(http.StatusInternalServerError)
 		} else {
-			domain := os.Getenv("DOMAIN")
+			domain := c.MustGet("front_domain").(string)
 
 			// expiration date = 1 month
 			secureCookie := os.Getenv("LOCAL") == "FALSE"
@@ -241,7 +241,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 				return
 			}
 
-			domain := os.Getenv("DOMAIN")
+			domain := c.MustGet("front_domain").(string)
 			secureCookie := os.Getenv("LOCAL") == "FALSE"
 			c.SetCookie("access_token", jwtToken, 0, "/", domain, secureCookie, true)
 			c.JSON(http.StatusOK, data)
@@ -262,8 +262,9 @@ func SignupCaptcha() func(c *gin.Context) {
 
 		cookies := resp.Cookies()
 		for _, ck := range cookies {
+			domain := c.MustGet("front_domain").(string)
 			secureCookie := os.Getenv("LOCAL") == "FALSE"
-			c.SetCookie(ck.Name, ck.Value, ck.MaxAge, "/", "", secureCookie, true)
+			c.SetCookie(ck.Name, ck.Value, ck.MaxAge, "/", domain, secureCookie, true)
 		}
 
 		c.DataFromReader(
