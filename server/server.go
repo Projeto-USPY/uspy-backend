@@ -25,6 +25,8 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 
 	if os.Getenv("LOCAL") == "TRUE" {
 		r.Use(middleware.AllowAnyOrigin())
+	} else {
+		r.Use(middleware.AllowUSPYOrigin())
 	}
 
 	// Login, Logout, Sign-in and other account related operations
