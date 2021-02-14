@@ -2,7 +2,6 @@
 package server
 
 import (
-	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -15,16 +14,9 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 )
 
-// Todo (return default page)
-// Todo2 move this to a separate go file (server.go)
-func DefaultPage(c *gin.Context) {
-	c.String(http.StatusNotFound, "TODO: Default Page")
-}
-
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
 	r.Use(gin.Recovery())
-	r.NoRoute(DefaultPage) // Create a fallback, in case no route matches
 
 	err := entity.SetupValidators()
 	if err != nil {
