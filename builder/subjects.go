@@ -6,6 +6,7 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/scraper/icmc/subject"
 	"log"
+	"sync"
 )
 
 type SubjectBuilder struct{}
@@ -14,6 +15,7 @@ type SubjectBuilder struct{}
 func (SubjectBuilder) Build(DB db.Env) error {
 	log.Println("scraping subjects")
 	courses, err := subject.ScrapeICMCCourses()
+	log.Println("done")
 	if err != nil {
 		return err
 	}
@@ -33,17 +35,24 @@ func (SubjectBuilder) Build(DB db.Env) error {
 		objs = append(objs, db.Object{Collection: "courses", Doc: course.Hash(), Data: course})
 	}
 
+	var wg sync.WaitGroup
 	for _, o := range objs {
 		var err error
-		go func() {
-			err = DB.Insert(o.Data, o.Collection)
-		}()
 
-		log.Printf("inserting %v into %v\n", o.Data, o.Collection)
+		wg.Add(1)
+		go func(group *sync.WaitGroup) {
+			defer group.Done()
+			err = DB.Insert(o.Data, o.Collection)
+		}(&wg)
+
+		log.Printf("inserting %v into %v\n", o.Doc, o.Collection)
 		if err != nil {
 			return err
 		}
 	}
+
+	wg.Wait()
+	log.Printf("inserted %d total objects\n", len(objs))
 
 	return nil
 }
