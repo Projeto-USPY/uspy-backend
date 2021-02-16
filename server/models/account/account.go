@@ -9,6 +9,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func Profile(DB db.Env, u entity.User) (entity.User, error) {
+	var storedUser entity.User
+	snap, err := DB.Restore("users", u.Hash())
+	if err != nil {
+		return entity.User{}, err
+	}
+	err = snap.DataTo(&storedUser)
+	if err != nil {
+		return entity.User{}, err
+	}
+	return storedUser, nil
+}
+
 // Signup inserts a new user into the DB
 func Signup(DB db.Env, u entity.User, recs iddigital.Records) error {
 	objs := []db.Object{
@@ -57,19 +70,19 @@ func Signup(DB db.Env, u entity.User, recs iddigital.Records) error {
 }
 
 // Login performs the user login by comparing the inserted password and the stored hash
-func Login(DB db.Env, u entity.User) error {
+func Login(DB db.Env, u entity.User) (entity.User, error) {
 	snap, err := DB.Restore("users", u.Hash())
 	if err != nil {
-		return err
+		return entity.User{}, err
 	}
 
 	var storedUser entity.User
 	err = snap.DataTo(&storedUser)
 	if err != nil {
-		return err
+		return entity.User{}, err
 	}
 
-	return bcrypt.CompareHashAndPassword([]byte(storedUser.PasswordHash), []byte(u.Password))
+	return storedUser, bcrypt.CompareHashAndPassword([]byte(storedUser.PasswordHash), []byte(u.Password))
 }
 
 // ChangePassword changes the current password hash to a new one

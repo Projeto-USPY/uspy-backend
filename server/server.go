@@ -50,7 +50,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
 		accountGroup.PUT("/password_reset", account.ResetPassword(DB))
 
-		accountGroup.GET("/profile", middleware.JWT(), account.Profile())
+		accountGroup.GET("/profile", middleware.JWT(), account.Profile(DB))
 	}
 
 	apiGroup := r.Group("/api")

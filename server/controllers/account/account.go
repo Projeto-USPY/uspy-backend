@@ -5,6 +5,7 @@ package account
 import (
 	"errors"
 	"fmt"
+	"github.com/tpreischadt/ProjetoJupiter/utils"
 	"log"
 	"net/http"
 	"os"
@@ -23,13 +24,31 @@ import (
 )
 
 // Profile returns the user's profile (in v1 it only checks for authentication, but this will be incremented later)
-func Profile() func(c *gin.Context) {
+func Profile(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		token := c.MustGet("access_token")
 		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
 		userID := claims["user"].(string)
 
-		c.JSON(http.StatusOK, gin.H{"user": userID})
+		user := entity.User{Login: userID}
+		storedUser, err := account.Profile(DB, user)
+
+		if err != nil {
+			// error fetching user profile
+			log.Println(fmt.Errorf("error fetching user %v profile: %s", user, err.Error()))
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		if key, ok := os.LookupEnv("AES_KEY"); ok {
+			c.JSON(http.StatusOK, gin.H{
+				"user": userID,
+				"name": utils.AESDecrypt(storedUser.NameHash, key),
+			})
+		} else {
+			log.Println(errors.New("AES_KEY 128/196/256-bit key env variable was not provided"))
+			c.Status(http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -102,7 +121,7 @@ func ChangePassword(DB db.Env) func(c *gin.Context) {
 			c.Status(http.StatusBadRequest)
 		} else {
 			user := entity.User{Login: userID, Password: reset.OldPassword}
-			if loginErr := account.Login(DB, user); loginErr != nil { // old_password is incorrect
+			if _, loginErr := account.Login(DB, user); loginErr != nil { // old_password is incorrect
 				c.Status(http.StatusForbidden)
 				return
 			}
@@ -141,29 +160,37 @@ func Login(DB db.Env) func(c *gin.Context) {
 		}
 
 		// check if password is correct
-		if err := account.Login(DB, user); err != nil {
+		if storedUser, err := account.Login(DB, user); err != nil {
 			c.Status(http.StatusUnauthorized)
-			return
-		}
-
-		// generate access_token
-		if jwtToken, err := middleware.GenerateJWT(user); err != nil {
-			log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
-			c.Status(http.StatusInternalServerError)
 		} else {
-			domain := c.MustGet("front_domain").(string)
+			// generate access_token
+			if jwtToken, err := middleware.GenerateJWT(storedUser); err != nil {
+				log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
+				c.Status(http.StatusInternalServerError)
+			} else {
+				domain := c.MustGet("front_domain").(string)
 
-			// expiration date = 1 month
-			secureCookie := os.Getenv("LOCAL") == "FALSE"
-			cookieAge := 0
+				// expiration date = 1 month
+				secureCookie := os.Getenv("LOCAL") == "FALSE"
+				cookieAge := 0
 
-			// remember this login?
-			if user.Remember {
-				cookieAge = 30 * 24 * 3600 // 30 days in seconds
+				// remember this login?
+				if user.Remember {
+					cookieAge = 30 * 24 * 3600 // 30 days in seconds
+				}
+
+				if key, ok := os.LookupEnv("AES_KEY"); ok {
+					c.JSON(http.StatusOK, gin.H{
+						"user": user.Login,
+						"name": utils.AESDecrypt(storedUser.NameHash, key),
+					})
+					c.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
+					return
+				} else {
+					log.Println(errors.New("AES_KEY 128/196/256-bit key env variable was not provided"))
+					c.Status(http.StatusInternalServerError)
+				}
 			}
-
-			c.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
-			c.Status(http.StatusOK)
 		}
 	}
 }
@@ -217,14 +244,17 @@ func Signup(DB db.Env) func(g *gin.Context) {
 				return
 			}
 
-			newUser, hashErr := entity.User{
-				Login:      data.Nusp,
-				Password:   signupForm.Password,
-				LastUpdate: pdf.CreationDate,
-			}.WithHash()
+			newUser, userErr := entity.NewUserWithOptions(
+				data.Nusp,
+				signupForm.Password,
+				data.Name,
+				pdf.CreationDate,
+				entity.WithNameHash{},
+				entity.WithPasswordHash{},
+			)
 
-			if hashErr != nil {
-				log.Println(errors.New("error hashing password" + hashErr.Error()))
+			if userErr != nil {
+				log.Println(errors.New("error generating user" + userErr.Error()))
 				c.Status(http.StatusInternalServerError)
 				return
 			}
