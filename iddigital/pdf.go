@@ -25,6 +25,7 @@ type PDF struct {
 // iddigital.Records represents the parsed data retrieved from the user's PDF file\
 type Records struct {
 	Grades []entity.Grade `json:"grades"`
+	Name   string         `json:"name"`
 	Nusp   string         `json:"nusp"`
 }
 
@@ -97,19 +98,19 @@ func NewPDF(r *http.Response) (pdf PDF) {
 func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			rec = Records{nil, ""}
+			rec = Records{nil, "", ""}
 			err = r.(error)
 		}
 	}()
 
-	// Look for User NUSP (user identifier) in PDF Header
-	nuspMatches := regexp.MustCompile(`Aluno:\s+(\d+)`).FindStringSubmatch(pdf.Body)
+	// Look for User NUSP (user identifier) and User Name in PDF Header
+	nuspMatches := regexp.MustCompile(`Aluno:\s+(\d+)/\d - (.+)`).FindStringSubmatch(pdf.Body)
 
-	if nuspMatches == nil || len(nuspMatches) < 2 {
-		panic(errors.New("could not parse user nusp"))
+	if nuspMatches == nil || len(nuspMatches) < 3 {
+		panic(errors.New("could not parse user nusp and/or name"))
 	}
 
-	rec.Nusp = nuspMatches[1]
+	rec.Nusp, rec.Name = nuspMatches[1], nuspMatches[2]
 
 	// Look for course code in PDF Header
 	matches := regexp.MustCompile(`Curso:\s+(\d+)/\d - .*`).FindStringSubmatch(pdf.Body)
