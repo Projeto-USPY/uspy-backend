@@ -169,7 +169,7 @@ func Login(DB db.Env) func(c *gin.Context) {
 			c.Status(http.StatusUnauthorized)
 		} else {
 			// generate access_token
-			if jwtToken, err := middleware.GenerateJWT(storedUser); err != nil {
+			if jwtToken, err := middleware.GenerateJWT(user); err != nil {
 				log.Println(fmt.Errorf("error generating jwt for user %v: %s", user, err.Error()))
 				c.Status(http.StatusInternalServerError)
 			} else {
