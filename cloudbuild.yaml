@@ -19,7 +19,8 @@ steps:
       MODE=$_MODE,\
       LOCAL=FALSE,\
       PROJECT_ID=$_PROJECT_ID,\
-      JWT_SECRET=$_JWT_SECRET"]
+      JWT_SECRET=$_JWT_SECRET,\
+      RATE_LIMIT=$_RATE_LIMIT"]
 
 # Assign 100% of the traffic to the latest version
 - name: 'gcr.io/cloud-builders/gcloud'

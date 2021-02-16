@@ -2,6 +2,7 @@
 package server
 
 import (
+	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -17,6 +18,13 @@ import (
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
 	r.Use(gin.Recovery(), middleware.DefineDomain())
+
+	if rateLimit, ok := os.LookupEnv("RATE_LIMIT"); ok {
+		r.Use(middleware.RateLimiter(rateLimit))
+	} else {
+		r.Use(middleware.RateLimiter("5-S"))
+		log.Println("env variable RATE_LIMIT not set, using 5-S (5 requests per second)")
+	}
 
 	err := entity.SetupValidators()
 	if err != nil {
