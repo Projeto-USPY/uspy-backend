@@ -41,10 +41,15 @@ func Profile(DB db.Env) func(c *gin.Context) {
 		}
 
 		if key, ok := os.LookupEnv("AES_KEY"); ok {
-			c.JSON(http.StatusOK, gin.H{
-				"user": userID,
-				"name": utils.AESDecrypt(storedUser.NameHash, key),
-			})
+			if name, err := utils.AESDecrypt(storedUser.NameHash, key); err != nil {
+				log.Println("error decrypting name hash")
+				c.Status(http.StatusInternalServerError)
+			} else {
+				c.JSON(http.StatusOK, gin.H{
+					"user": userID,
+					"name": name,
+				})
+			}
 		} else {
 			log.Println(errors.New("AES_KEY 128/196/256-bit key env variable was not provided"))
 			c.Status(http.StatusInternalServerError)
@@ -180,12 +185,16 @@ func Login(DB db.Env) func(c *gin.Context) {
 				}
 
 				if key, ok := os.LookupEnv("AES_KEY"); ok {
-					c.JSON(http.StatusOK, gin.H{
-						"user": user.Login,
-						"name": utils.AESDecrypt(storedUser.NameHash, key),
-					})
-					c.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
-					return
+					if name, err := utils.AESDecrypt(storedUser.NameHash, key); err != nil {
+						log.Println("error decrypting name hash")
+						c.Status(http.StatusInternalServerError)
+					} else {
+						c.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
+						c.JSON(http.StatusOK, gin.H{
+							"user": user.Login,
+							"name": name,
+						})
+					}
 				} else {
 					log.Println(errors.New("AES_KEY 128/196/256-bit key env variable was not provided"))
 					c.Status(http.StatusInternalServerError)

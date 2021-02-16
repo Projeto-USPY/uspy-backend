@@ -60,7 +60,10 @@ type WithNameHash struct{}
 
 func (WithNameHash) Apply(u *User) error {
 	if key, ok := os.LookupEnv("AES_KEY"); ok {
-		nHash := utils.AESEncrypt(u.Name, key)
+		nHash, err := utils.AESEncrypt(u.Name, key)
+		if err != nil {
+			return err
+		}
 		u.NameHash = nHash
 	} else {
 		return errors.New("AES_KEY 128/196/256-bit key env variable was not provided")
