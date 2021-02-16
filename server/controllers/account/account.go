@@ -22,6 +22,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Profile returns the user's profile (in v1 it only checks for authentication, but this will be incremented later)
+func Profile() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		token := c.MustGet("access_token")
+		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
+		userID := claims["user"].(string)
+
+		c.JSON(http.StatusOK, gin.H{"user": userID})
+	}
+}
+
 // ResetPassword is a closure for PUT /account/password_reset
 // It differs from ChangePassword because the user does not have to be logged in.
 func ResetPassword(DB db.Env) func(c *gin.Context) {
