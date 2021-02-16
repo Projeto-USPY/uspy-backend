@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// DefineDomain is a middleware for setting the cookie domain values
 func DefineDomain() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if os.Getenv("LOCAL") == "TRUE" {
