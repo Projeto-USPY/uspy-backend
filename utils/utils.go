@@ -92,7 +92,7 @@ func HTTPPostWithUTF8(url string, values url.Values) (*http.Response, io.Reader)
 }
 
 // Encrypts using AES. keyString must be 128, 196 or 256 bits.
-func AESEncrypt(stringToEncrypt string, keyString string) (encryptedString string) {
+func AESEncrypt(stringToEncrypt string, keyString string) (encryptedString string, err error) {
 
 	//Since the key is in string, we need to convert decode it to bytes
 	key, _ := hex.DecodeString(keyString)
@@ -101,14 +101,14 @@ func AESEncrypt(stringToEncrypt string, keyString string) (encryptedString strin
 	//Create a new Cipher Block from the key
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err.Error())
+		return "", err
 	}
 
 	//Create a new GCM - https://en.wikipedia.org/wiki/Galois/Counter_Mode
 	//https://golang.org/pkg/crypto/cipher/#NewGCM
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		panic(err.Error())
+		return "", err
 	}
 
 	//Create a nonce. Nonce should be from GCM
@@ -120,24 +120,24 @@ func AESEncrypt(stringToEncrypt string, keyString string) (encryptedString strin
 	//Encrypt the data using aesGCM.Seal
 	//Since we don't want to save the nonce somewhere else in this case, we add it as a prefix to the encrypted data. The first nonce argument in Seal is the prefix.
 	ciphertext := aesGCM.Seal(nonce, nonce, plaintext, nil)
-	return fmt.Sprintf("%x", ciphertext)
+	return fmt.Sprintf("%x", ciphertext), nil
 }
 
 // Encrypts using AES. keyString must be 128, 196 or 256 bits.
-func AESDecrypt(encryptedString string, keyString string) (decryptedString string) {
+func AESDecrypt(encryptedString string, keyString string) (decryptedString string, err error) {
 	key, _ := hex.DecodeString(keyString)
 	enc, _ := hex.DecodeString(encryptedString)
 
 	//Create a new Cipher Block from the key
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err.Error())
+		return "", err
 	}
 
 	//Create a new GCM
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		panic(err.Error())
+		return "", err
 	}
 
 	//Get the nonce size
@@ -152,5 +152,5 @@ func AESDecrypt(encryptedString string, keyString string) (decryptedString strin
 		panic(err.Error())
 	}
 
-	return fmt.Sprintf("%s", plaintext)
+	return fmt.Sprintf("%s", plaintext), nil
 }
