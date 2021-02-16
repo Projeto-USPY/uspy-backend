@@ -3,9 +3,12 @@ package entity
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/tpreischadt/ProjetoJupiter/utils"
 	"golang.org/x/crypto/bcrypt"
+	"os"
 	"time"
 )
 
@@ -21,6 +24,12 @@ type User struct {
 	// bcrypt hashing cause password is more sensitive
 	PasswordHash string `firestore:"password"`
 
+	// Name is sensitive, do not store in DB!!!
+	Name string `json:"name" firestore:"-"`
+
+	// NameHash is AES encrypted since it has to be decrypted
+	NameHash string `firestore:"name"`
+
 	LastUpdate time.Time `firestore:"last_update"`
 }
 
@@ -32,12 +41,42 @@ func HashPassword(str string) (string, error) {
 	return string(pass), nil
 }
 
-func (u User) WithHash() (User, error) {
+type UserOptions interface {
+	Apply(*User) error
+}
+
+type WithPasswordHash struct{}
+
+func (WithPasswordHash) Apply(u *User) error {
 	pHash, err := HashPassword(u.Password)
 	if err != nil {
-		return User{}, err
+		return err
 	}
 	u.PasswordHash = pHash
+	return nil
+}
+
+type WithNameHash struct{}
+
+func (WithNameHash) Apply(u *User) error {
+	if key, ok := os.LookupEnv("AES_KEY"); ok {
+		nHash := utils.AESEncrypt(u.Name, key)
+		u.NameHash = nHash
+	} else {
+		return errors.New("AES_KEY 128/196/256-bit key env variable was not provided")
+	}
+
+	return nil
+}
+
+func NewUserWithOptions(login, password, name string, lastUpdate time.Time, opts ...UserOptions) (User, error) {
+	u := User{Login: login, Password: password, Name: name, LastUpdate: lastUpdate}
+	for _, opt := range opts {
+		if err := opt.Apply(&u); err != nil {
+			return User{}, err
+		}
+	}
+
 	return u, nil
 }
 
@@ -46,11 +85,7 @@ func (u User) Hash() string {
 }
 
 func (u User) Insert(DB db.Env, collection string) error {
-	u, err := u.WithHash()
-	if err != nil {
-		return err
-	}
-	_, err = DB.Client.Collection(collection).Doc(u.Hash()).Set(DB.Ctx, u)
+	_, err := DB.Client.Collection(collection).Doc(u.Hash()).Set(DB.Ctx, u)
 	if err != nil {
 		return err
 	}
