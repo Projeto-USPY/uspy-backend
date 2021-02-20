@@ -38,7 +38,33 @@ func checkReviewPermission(DB db.Env, userHash, subHash string) error {
 	return nil
 }
 
-// GetSubjectReview is the model implementation for /server/controller/user.GetSubjectReview
+// GetSubjectGrade is the model implementation for /server/controller/private/user.GetSubjectGrade
+func GetSubjectGrade(DB db.Env, user entity.User, sub entity.Subject) (entity.FinalScore, error) {
+	userHash, subHash := user.Hash(), sub.Hash()
+	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
+	if err != nil {
+		return entity.FinalScore{}, err
+	} else if len(col) == 0 {
+		return entity.FinalScore{}, errors.New("user has not done subject")
+	}
+
+	best := entity.FinalScore{}
+	for _, s := range col {
+		var fs entity.FinalScore
+		err := s.DataTo(&fs)
+		if err != nil {
+			return entity.FinalScore{}, err
+		}
+
+		if fs.Grade >= best.Grade {
+			best = fs
+		}
+	}
+
+	return best, nil
+}
+
+// GetSubjectReview is the model implementation for /server/controller/private/user.GetSubjectReview
 func GetSubjectReview(DB db.Env, user entity.User, sub entity.Subject) (entity.SubjectReview, error) {
 	userHash, subHash := user.Hash(), sub.Hash()
 	review := entity.SubjectReview{}
@@ -58,7 +84,7 @@ func GetSubjectReview(DB db.Env, user entity.User, sub entity.Subject) (entity.S
 	return review, err
 }
 
-// UpdateSubjectReview is the model implementation for /server/controller/user.UpdateSubjectReview
+// UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
 func UpdateSubjectReview(DB db.Env, user entity.User, review entity.SubjectReview) error {
 	userHash, rvHash := user.Hash(), review.Hash()
 	err := checkReviewPermission(DB, userHash, rvHash)

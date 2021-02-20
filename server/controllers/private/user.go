@@ -15,6 +15,27 @@ import (
 	"net/http"
 )
 
+// GetSubjectGrade is a closure for the GET /private/subject/grade endpoint
+func GetSubjectGrade(DB db.Env) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		// get user and subject info
+		token := c.MustGet("access_token")
+		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
+		userID := claims["user"].(string)
+		sub := c.MustGet("Subject").(entity.Subject)
+
+		user, sub := entity.User{Login: userID}, entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code}
+		score, err := private.GetSubjectGrade(DB, user, sub)
+
+		if err == nil {
+			c.JSON(http.StatusOK, score)
+			return
+		}
+
+		c.Status(http.StatusNotFound)
+	}
+}
+
 // GetSubjectReview is a closure for the GET /private/subject/review endpoint
 func GetSubjectReview(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {

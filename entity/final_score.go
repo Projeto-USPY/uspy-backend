@@ -11,12 +11,12 @@ import (
 // Example: {10.0, "A", 2019, 1, 90, offeringHash}
 // Be aware the final score does not include the entity.Subject data, because that is included in the offeringHash
 type FinalScore struct {
-	Grade        float64 `firestore:"grade"`
-	Status       string  `firestore:"status"`
-	Year         int     `firestore:"-"`
-	Semester     int     `firestore:"-"`
-	Frequency    int     `firestore:"frequency"`
-	OfferingHash string  `firestore:"offering,omitempty"`
+	Grade        float64 `json:"grade" firestore:"grade"`
+	Status       string  `json:"status" firestore:"status"`
+	Year         int     `json:"-" firestore:"-"`
+	Semester     int     `json:"-" firestore:"-"`
+	Frequency    int     `json:"frequency" firestore:"frequency"`
+	OfferingHash string  `json:"-" firestore:"offering,omitempty"`
 }
 
 func (mf FinalScore) Hash() string {

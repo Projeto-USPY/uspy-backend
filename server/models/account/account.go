@@ -9,6 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Profile retrieves the user profile. In v1 that only contains name and id info
 func Profile(DB db.Env, u entity.User) (entity.User, error) {
 	var storedUser entity.User
 	snap, err := DB.Restore("users", u.Hash())

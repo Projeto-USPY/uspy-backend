@@ -80,6 +80,8 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		{
 			subPrivate.GET("/review", private.GetSubjectReview(DB))
 			subPrivate.POST("/review", private.UpdateSubjectReview(DB))
+
+			subPrivate.GET("/grade", private.GetSubjectGrade(DB))
 		}
 	}
 
