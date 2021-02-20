@@ -5,11 +5,12 @@ package account
 import (
 	"errors"
 	"fmt"
-	"github.com/tpreischadt/ProjetoJupiter/utils"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/tpreischadt/ProjetoJupiter/utils"
 
 	"github.com/dgrijalva/jwt-go"
 
@@ -201,6 +202,30 @@ func Login(DB db.Env) func(c *gin.Context) {
 				}
 			}
 		}
+	}
+}
+
+// Remove is a closure for the removes the account, forever!!
+func Remove(DB db.Env) func(g *gin.Context) {
+	return func(c *gin.Context) {
+		domain := os.Getenv("DOMAIN")
+		secureCookie := os.Getenv("MODE") == "prod"
+
+		// delete access_token cookie
+		c.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
+
+		// get user info
+		token := c.MustGet("access_token")
+		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
+		userID := claims["user"].(string)
+
+		u := entity.User{Login: userID}
+		if err := account.Remove(DB, u); err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		c.Status(http.StatusOK)
 	}
 }
 
