@@ -123,8 +123,8 @@ func Remove(DB db.Env, u entity.User) error {
 		channelErr := make(chan error, len(finalScoresDocs)*100)
 
 		for _, subRef := range finalScoresDocs {
-			go func() {
-				wg.Add(1)
+			wg.Add(1)
+			go func(subRef *firestore.DocumentRef) {
 				defer wg.Done()
 
 				recordsDocs, err := subRef.Collection("records").DocumentRefs(DB.Ctx).GetAll()
@@ -136,12 +136,12 @@ func Remove(DB db.Env, u entity.User) error {
 
 				// get grades to remove
 				for _, recordRef := range recordsDocs {
-					go func() {
-						wg.Add(1)
+					wg.Add(1)
+					go func(recordRef *firestore.DocumentRef) {
 						defer wg.Done()
 
 						// get value of record
-						snap, err := recordRef.Get(ctx)
+						snap, err := tx.Get(recordRef)
 						if err != nil {
 							channelErr <- err
 						}
@@ -160,14 +160,24 @@ func Remove(DB db.Env, u entity.User) error {
 
 						// delete the grade documents (there must be exactly one)
 						for _, gradeSnap := range gradeDocsToRemove {
-							_, err := gradeSnap.Ref.Delete(ctx)
+							err := tx.Delete(gradeSnap.Ref)
 							if err != nil {
 								channelErr <- err
 							}
 						}
-					}()
+
+						// delete the record of the subject
+						if err = tx.Delete(recordRef); err != nil {
+							channelErr <- err
+						}
+					}(recordRef)
 				}
-			}()
+
+				// delete the subject reference of final_grades
+				if err = tx.Delete(subRef); err != nil {
+					channelErr <- err
+				}
+			}(subRef)
 		}
 
 		wg.Wait()
@@ -180,7 +190,7 @@ func Remove(DB db.Env, u entity.User) error {
 
 		// For all review documents
 		for _, reviewRef := range subjectReviewsDocs {
-			rev, err := reviewRef.Get(ctx) // get review snapshot
+			rev, err := tx.Get(reviewRef) // get review snapshot
 			if err != nil {
 				return err
 			}
@@ -208,11 +218,15 @@ func Remove(DB db.Env, u entity.User) error {
 			if err != nil {
 				return err
 			}
+
+			// delete review
+			if err = tx.Delete(reviewRef); err != nil {
+				return err
+			}
 		}
 
-		userRef.Delete(ctx) // deletes the user
-
-		return nil
+		// delete user
+		return tx.Delete(userRef)
 	})
 
 	return err
