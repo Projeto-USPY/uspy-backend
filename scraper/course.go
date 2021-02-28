@@ -7,6 +7,7 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -60,6 +61,7 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 		// Get each semester/period
 		for j := 0; j < periods.Length(); j++ {
 			period := periods.Eq(j)
+
 			subjects := period.NextUntilSelection(periods.Union(sections)).Find("a")
 
 			// Get subjects in current section and semester
@@ -91,7 +93,7 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 					} else if row.Has(".txt_arial_8pt_red").Length() > 0 { // "row" is an actual requirement
 						code := row.Children().Eq(0).Text()
 						strongText := row.Children().Eq(1).Text()
-						isStrong := !strings.Contains(strongText, "fraco")
+						isStrong := strings.Contains(strongText, "requisito") && !strings.Contains(strongText, "fraco")
 
 						if rg, err := regexp.Compile(`\w{3}\d{4,5}`); err != nil {
 							return nil, err
@@ -113,6 +115,7 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 
 				subject.Requirements = requirementLists
 				subject.Optional = optional
+				subject.Semester, _ = strconv.Atoi(strings.Split(period.Find(".txt_arial_8pt_black").Text(), "º")[0])
 				course.Subjects = append(course.Subjects, subject)
 			}
 		}

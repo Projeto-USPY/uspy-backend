@@ -22,6 +22,7 @@ type Subject struct {
 	Specialization string          `json:"specialization" form:"specialization" firestore:"specialization" binding:"required,alphanum"`
 	Name           string          `json:"name" firestore:"name"`
 	Description    string          `json:"description" firestore:"desc"`
+	Semester       int             `json:"semester" firestore:"semester"`
 	ClassCredits   int             `json:"class" firestore:"class"`
 	AssignCredits  int             `json:"assign" firestore:"assign"`
 	TotalHours     string          `json:"hours" firestore:"hours"`
