@@ -5,9 +5,9 @@ import (
 )
 
 type Institute struct {
-	Name    string
-	Code    string
-	Courses []Course
+	Name    string   `json:"name"`
+	Code    string   `json:"code"`
+	Courses []Course `json:"courses"`
 }
 
 func (i Institute) Insert(DB db.Env, collection string) error {

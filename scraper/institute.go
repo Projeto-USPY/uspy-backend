@@ -7,6 +7,7 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"io"
 	"regexp"
+	"strings"
 )
 
 type InstituteScraper struct {
@@ -33,7 +34,7 @@ func (sc InstituteScraper) Scrape(reader io.Reader) (obj db.Manager, err error) 
 	}
 
 	institute := entity.Institute{
-		Name:    doc.Find("span > b").Text(),
+		Name:    strings.TrimSpace(doc.Find("span > b").Text()),
 		Code:    sc.Code,
 		Courses: make([]entity.Course, 0, 50),
 	}
@@ -63,12 +64,12 @@ func getCourseIdentifiers(node *goquery.Selection) (string, string, error) {
 		courseCodeMatches := regexCode.FindStringSubmatch(courseURL)
 
 		if len(courseCodeMatches) < 3 {
-			return "", "", CourseNotExistError
+			return "", "", ErrorCourseNotExist
 		}
 
 		courseCode, courseSpec := courseCodeMatches[1], courseCodeMatches[2]
 		return courseCode, courseSpec, nil
 	} else {
-		return "", "", CourseNotExistError
+		return "", "", ErrorCourseNotExist
 	}
 }

@@ -38,39 +38,102 @@ func (sc SubjectScraper) Scrape(reader io.Reader) (db.Manager, error) {
 		return nil, err
 	}
 
+	fullName := doc.Find("span.txt_arial_10pt_black > b").Text()
+	fields := strings.Split(fullName, "-")
+	name := strings.TrimSpace(fields[len(fields)-1])
+
 	subject := entity.Subject{
 		Code:           sc.Code,
 		CourseCode:     sc.CourseCode,
 		Specialization: sc.Specialization,
-		Name:           doc.Find("span.txt_arial_10pt_black > b").Text(),
+		Name:           name,
 		Stats: map[string]int{
 			"total":    0,
 			"worth_it": 0,
 		},
 	}
 
+	if description, err := getDescription(doc); err == nil {
+		subject.Description = description
+	} else {
+		return nil, err
+	}
+
 	search := doc.Find("tr[valign=\"TOP\"][align=\"LEFT\"] > td > font > span[class=\"txt_arial_8pt_gray\"]")
-	classCredits := strings.TrimSpace(search.Eq(0).Text())
-	if class, err := strconv.Atoi(classCredits); err != nil {
-		return subject, err
-	} else {
+	if class, err := getClassCredits(search); err == nil {
 		subject.ClassCredits = class
+	} else {
+		return nil, err
 	}
 
-	assignCredits := strings.TrimSpace(search.Eq(1).Text())
-	if assign, err := strconv.Atoi(assignCredits); err != nil {
-		return subject, err
-	} else {
+	if assign, err := getAssignCredits(search); err == nil {
 		subject.AssignCredits = assign
+	} else {
+		return nil, err
 	}
 
-	totalHours := strings.Trim(search.Eq(2).Text(), " \n\t")
-	if space, err := regexp.Compile(`\s+`); err != nil {
-		return subject, err
-	} else {
-		total := space.ReplaceAllString(totalHours, " ")
+	if total, err := getTotalHours(search); err == nil {
 		subject.TotalHours = total
+	} else {
+		return nil, err
 	}
 
 	return subject, nil
+}
+
+func getDescription(doc *goquery.Document) (string, error) {
+	var objetivosNode *goquery.Selection = nil
+	bold := doc.Find("b")
+
+	for i := 0; i < bold.Length(); i++ {
+		s := bold.Eq(i)
+		text := s.Text() // get inner html
+
+		if strings.TrimSpace(text) == "Objetivos" { // found
+			objetivosNode = s
+		}
+	}
+
+	if objetivosNode == nil {
+		return "", nil
+	}
+
+	objetivosTr := objetivosNode.Closest("tr") // get tr parent
+	descriptionTr := objetivosTr.Next()        // tr with description is next <tr>
+
+	desc := strings.TrimSpace(descriptionTr.Text())
+	return desc, nil
+}
+
+func getClassCredits(search *goquery.Selection) (int, error) {
+	classCredits := strings.TrimSpace(search.Eq(0).Text())
+	class, err := strconv.Atoi(classCredits)
+
+	if err != nil {
+		return -1, err
+	}
+
+	return class, nil
+}
+
+func getAssignCredits(search *goquery.Selection) (int, error) {
+	assignCredits := strings.TrimSpace(search.Eq(1).Text())
+	assign, err := strconv.Atoi(assignCredits)
+
+	if err != nil {
+		return -1, err
+	}
+
+	return assign, nil
+}
+
+func getTotalHours(search *goquery.Selection) (string, error) {
+	totalHours := strings.Trim(search.Eq(2).Text(), " \n\t")
+	space, err := regexp.Compile(`\s+`)
+	if err != nil {
+		return "", err
+	}
+
+	total := space.ReplaceAllString(totalHours, " ")
+	return total, nil
 }

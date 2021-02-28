@@ -15,7 +15,8 @@ var (
 )
 
 var (
-	CourseNotExistError = errors.New("could not fetch course in institute page")
+	ErrorCourseNotExist   = errors.New("could not fetch course in institute page")
+	ErrorCourseNoSubjects = errors.New("could not fetch subjects in course page")
 )
 
 type Starter interface {

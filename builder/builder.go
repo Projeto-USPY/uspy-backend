@@ -10,6 +10,4 @@ type Builder interface {
 }
 
 // Builders contains all the builders that we'd like to run in build mode
-var Builders = map[string]Builder{
-	"SubjectBuilder": SubjectBuilder{},
-}
+var Builders = map[string]Builder{}

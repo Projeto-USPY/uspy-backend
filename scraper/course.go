@@ -6,6 +6,8 @@ import (
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"io"
+	"regexp"
+	"strings"
 )
 
 type CourseScraper struct {
@@ -35,13 +37,92 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 	}
 
 	course := entity.Course{
-		Name:         doc.Find("td > font:nth-child(2) > span").Last().Text(),
-		Code:         sc.Code,
-		Subjects:     make([]entity.Subject, 0, 1000),
-		SubjectCodes: make(map[string]string, 0),
+		Name:           doc.Find("td > font:nth-child(2) > span").Last().Text(),
+		Code:           sc.Code,
+		Specialization: sc.Specialization,
+		Subjects:       make([]entity.Subject, 0, 1000),
+		SubjectCodes:   make(map[string]string, 0),
 	}
 
 	// Get Subjects
+	sections := doc.Find("tr[bgcolor='#658CCF']") // Finds section "Disciplinas Obrigatórias"
+
+	if sections.Length() == 0 {
+		return nil, ErrorCourseNoSubjects
+	}
+
+	optional := false
+	// For each section (obrigatorias, eletivas)
+	for i := 0; i < sections.Length(); i++ {
+		s := sections.Eq(i)
+		periods := s.NextUntil("tr[bgcolor='#658CCF']").Filter("tr[bgcolor='#CCCCCC']") // Periods section, for each subject
+
+		// Get each semester/period
+		for j := 0; j < periods.Length(); j++ {
+			period := periods.Eq(j)
+			subjects := period.NextUntilSelection(periods.Union(sections)).Find("a")
+
+			// Get subjects in current section and semester
+			for k := 0; k < subjects.Length(); k++ { // for each <tr>
+				subjectNode := subjects.Eq(k).Closest("tr")
+				rows := subjectNode.NextUntilSelection(subjects.Union(periods).Union(sections))
+
+				subjectObj := subjectNode.Find("a")
+
+				subjectScraper := NewSubjectScraper(strings.TrimSpace(subjectObj.Text()), course.Code, course.Specialization)
+				obj, err := subjectScraper.Start()
+
+				if err != nil {
+					return nil, err
+				}
+
+				subject := obj.(entity.Subject)
+
+				requirementLists := [][]entity.Requirement{}
+				requirements := []entity.Requirement{}
+
+				// Get requirements of subject
+				for l := 0; l < rows.Length(); l++ {
+					row := rows.Eq(l)
+
+					if row.Has("b").Length() > 0 { // "row" is an "or"
+						requirementLists = append(requirementLists, requirements)
+						requirements = []entity.Requirement{}
+					} else if row.Has(".txt_arial_8pt_red").Length() > 0 { // "row" is an actual requirement
+						code := row.Children().Eq(0).Text()
+						strongText := row.Children().Eq(1).Text()
+						isStrong := !strings.Contains(strongText, "fraco")
+
+						if rg, err := regexp.Compile(`\w{3}\d{4,5}`); err != nil {
+							return nil, err
+						} else {
+							subCode := rg.FindString(code)
+							requirements = append(requirements, entity.Requirement{
+								Subject: subCode,
+								Strong:  isStrong,
+							})
+						}
+					} else { // "row" is an empty <tr>
+						break
+					}
+				}
+
+				if len(requirements) > 0 {
+					requirementLists = append(requirementLists, requirements)
+				}
+
+				subject.Requirements = requirementLists
+				subject.Optional = optional
+				course.Subjects = append(course.Subjects, subject)
+			}
+		}
+
+		optional = true // after the first section, all subjects are optional
+	}
+
+	for _, s := range course.Subjects {
+		course.SubjectCodes[s.Code] = s.Name
+	}
 
 	return course, nil
 }
