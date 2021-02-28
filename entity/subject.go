@@ -17,18 +17,19 @@ import (
 	}
 */
 type Subject struct {
-	Code           string          `json:"code" form:"code" firestore:"code" binding:"required,alphanum"`
-	CourseCode     string          `json:"course" form:"course" firestore:"course" binding:"required,alphanum"`
-	Specialization string          `json:"specialization" form:"specialization" firestore:"specialization" binding:"required,alphanum"`
-	Name           string          `json:"name" firestore:"name"`
-	Description    string          `json:"description" firestore:"desc"`
-	Semester       int             `json:"semester" firestore:"semester"`
-	ClassCredits   int             `json:"class" firestore:"class"`
-	AssignCredits  int             `json:"assign" firestore:"assign"`
-	TotalHours     string          `json:"hours" firestore:"hours"`
-	Requirements   [][]Requirement `json:"requirements" firestore:"requirements"`
-	Optional       bool            `json:"optional" firestore:"optional"`
-	Stats          map[string]int  `json:"stats" firestore:"stats"`
+	Code             string          `json:"code" form:"code" firestore:"code" binding:"required,alphanum"`
+	CourseCode       string          `json:"course" form:"course" firestore:"course" binding:"required,alphanum"`
+	Specialization   string          `json:"specialization" form:"specialization" firestore:"specialization" binding:"required,alphanum"`
+	Name             string          `json:"name" firestore:"name"`
+	Description      string          `json:"description" firestore:"desc"`
+	Semester         int             `json:"semester" firestore:"semester"`
+	ClassCredits     int             `json:"class" firestore:"class"`
+	AssignCredits    int             `json:"assign" firestore:"assign"`
+	TotalHours       string          `json:"hours" firestore:"hours"`
+	Requirements     [][]Requirement `json:"requirements" firestore:"requirements"`
+	TrueRequirements []Requirement   `json:"true_requirements" firestore:"true_requirements"`
+	Optional         bool            `json:"optional" firestore:"optional"`
+	Stats            map[string]int  `json:"stats" firestore:"stats"`
 }
 
 func (s Subject) Hash() string {

@@ -116,6 +116,18 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 				subject.Requirements = requirementLists
 				subject.Optional = optional
 				subject.Semester, _ = strconv.Atoi(strings.Split(period.Find(".txt_arial_8pt_black").Text(), "º")[0])
+				subject.TrueRequirements = make([]entity.Requirement, 0)
+
+				count := make(map[string]int, 0)
+				for _, group := range subject.Requirements {
+					for _, s := range group {
+						count[s.Subject]++
+						if count[s.Subject] == len(subject.Requirements) {
+							subject.TrueRequirements = append(subject.TrueRequirements, s)
+						}
+					}
+				}
+
 				course.Subjects = append(course.Subjects, subject)
 			}
 		}
