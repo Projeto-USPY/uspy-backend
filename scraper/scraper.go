@@ -1,115 +1,48 @@
-// package scraper contains useful functions to get data from the urania api
 package scraper
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"io/ioutil"
-	"log"
+	"errors"
+	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/tpreischadt/ProjetoJupiter/utils"
+	"io"
 	"net/http"
-	"strconv"
 )
 
-func getProfessorByCode(codPes int) (entity.Professor, int, error) {
-	infoURL := "https://uspdigital.usp.br/datausp/servicos/publico/indicadores_pos/perfil/docente/"
-	infoURL += strconv.Itoa(codPes)
-	resp, err := http.Get(infoURL)
+var (
+	DefaultInstituteURLMask = "https://uspdigital.usp.br/jupiterweb/jupCursoLista?codcg=%s&tipo=N"
+	DefaultCourseURLMask    = "https://uspdigital.usp.br/jupiterweb/listarGradeCurricular?codcg=%s&codcur=%s&codhab=%s&tipo=N"
+	DefaultSubjectURLMask   = "https://uspdigital.usp.br/jupiterweb/obterDisciplina?sgldis=%s&codcur=%s&codhab=%s"
+)
 
-	if err != nil {
-		return entity.Professor{}, -1, err
-	} else if resp.StatusCode != http.StatusOK {
-		return entity.Professor{}, resp.StatusCode, nil
-	} else {
-		defer resp.Body.Close()
-	}
+var (
+	CourseNotExistError = errors.New("could not fetch course in institute page")
+)
 
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return entity.Professor{}, -1, fmt.Errorf("error reading json with codPes %v", codPes)
-	}
-
-	var data map[string]interface{}
-	_ = json.Unmarshal(body, &data)
-
-	prof := entity.Professor{
-		CodPes: codPes,
-		Name:   fmt.Sprintf("%s", data["nompes"]),
-	}
-
-	return prof, http.StatusOK, nil
+type Starter interface {
+	Start() (db.Manager, error)
 }
 
-// GetProfessorHistory gets you the offerings since a given year for a given professor
-func GetProfessorHistory(codPes, since int) ([]entity.Offering, error) {
-	offerMask := "https://uspdigital.usp.br/datausp/servicos/publico/academico/aulas_ministradas/%d/%d/0/0/br"
-	offerURL := fmt.Sprintf(offerMask, codPes, since)
-	resp, err := http.Get(offerURL)
+type Scraper interface {
+	Starter
+	Scrape(reader io.Reader) (db.Manager, error)
+}
 
-	if err != nil {
+func Start(scraper Scraper, startURL string) (db.Manager, error) {
+	client := &http.Client{
+		Timeout: 0,
+	}
+
+	var object db.Manager
+
+	if resp, reader, err := utils.HTTPGetWithUTF8(client, startURL); err != nil {
 		return nil, err
-	} else if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not get professor %v", codPes)
 	} else {
+		// successfully got start page
 		defer resp.Body.Close()
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return nil, fmt.Errorf("error reading json with codPes %v", codPes)
-	}
-
-	var data map[string]interface{}
-	_ = json.Unmarshal(body, &data)
-
-	history := data["aulasGradPorAno"].(map[string]interface{})
-	results := make([]entity.Offering, 0, 100)
-
-	for k, v := range history {
-		offs := v.([]interface{})
-		for _, subj := range offs {
-			year, _ := strconv.Atoi(k)
-			semester := int(fmt.Sprintf("%s", subj.(map[string]interface{})["codtur"])[4] - '0')
-			subjName := fmt.Sprintf("%s", subj.(map[string]interface{})["coddis"])
-
-			results = append(results, entity.Offering{
-				Semester:  semester,
-				Professor: codPes,
-				Year:      year,
-				Subject:   subjName,
-			})
+		if object, err = scraper.Scrape(reader); err != nil {
+			return nil, err
 		}
 	}
 
-	return results, nil
-}
-
-func ScrapeAllOfferings() {
-	jobQueue := make(chan chan int)
-	numWorkers := 1000
-
-	for i := 0; i < numWorkers; i++ {
-		jobChannel := make(chan int)
-
-		// Workers will take from queue when available and process
-		go func() {
-			for {
-				jobQueue <- jobChannel
-				job := <-jobChannel
-				prof, status, _ := getProfessorByCode(job)
-
-				if status == http.StatusOK {
-					log.Printf("%v %v %v\n", job, prof.Name, status)
-				}
-			}
-		}()
-	}
-
-	for i := 1; i <= int(1e8); i++ {
-		jobChannel := <-jobQueue
-		jobChannel <- i
-	}
-
+	return object, nil
 }

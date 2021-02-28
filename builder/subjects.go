@@ -3,8 +3,8 @@
 package builder
 
 import (
+	"github.com/tpreischadt/ProjetoJupiter/crawler/icmc/subject"
 	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/scraper/icmc/subject"
 	"log"
 	"sync"
 )
