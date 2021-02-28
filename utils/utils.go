@@ -63,32 +63,34 @@ func CheckResponse(res *http.Response) {
 
 // Returns HTTP response and io.Reader from http.Get, which should substitute http.Body, so characters are read with UTF-8 encoding
 // Already panics if error, remember to close response.Body
-func HTTPGetWithUTF8(url string) (*http.Response, io.Reader) {
-	resp, err := http.Get(url)
-
-	CheckPanic(err)
-	CheckResponse(resp)
+func HTTPGetWithUTF8(client *http.Client, url string) (*http.Response, io.Reader, error) {
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	reader, err := charset.NewReader(resp.Body, resp.Header["Content-Type"][0])
+	if err != nil {
+		return nil, nil, err
+	}
 
-	CheckPanic(err)
-
-	return resp, reader
+	return resp, reader, nil
 }
 
 // Returns HTTP response and io.Reader from http.Post, which should substitute http.Body, so characters are read with UTF-8 encoding
 // Already panics if error, remember to close response.Body
-func HTTPPostWithUTF8(url string, values url.Values) (*http.Response, io.Reader) {
-	resp, err := http.PostForm(url, values)
-
-	CheckPanic(err)
-	CheckResponse(resp)
+func HTTPPostWithUTF8(client *http.Client, url string, values url.Values) (*http.Response, io.Reader, error) {
+	resp, err := client.PostForm(url, values)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	reader, err := charset.NewReader(resp.Body, resp.Header["Content-Type"][0])
+	if err != nil {
+		return nil, nil, err
+	}
 
-	CheckPanic(err)
-
-	return resp, reader
+	return resp, reader, nil
 }
 
 // Encrypts using AES. keyString must be 128, 196 or 256 bits.
