@@ -39,13 +39,14 @@ func validateSubjectReview(f1 validator.FieldLevel) bool {
 // entity.SubjectReview represents a review made to a subject by a user
 // Example: {"SMA0354", "55041", map[string]interface{}{"worth_it": true}}
 type SubjectReview struct {
-	Subject string                 `json:"-" firestore:"-" binding:"required,alphanum"`
-	Course  string                 `json:"-" firestore:"-" binding:"required,alphanum"`
-	Review  map[string]interface{} `json:"categories" firestore:"categories" binding:"required,validateSubjectReview"`
+	Subject        string                 `json:"-" firestore:"-" binding:"required,alphanum"`
+	Course         string                 `json:"-" firestore:"-" binding:"required,alphanum"`
+	Specialization string                 `json:"-" firestore:"-" binding:"required,alphanum"`
+	Review         map[string]interface{} `json:"categories" firestore:"categories" binding:"required,validateSubjectReview"`
 }
 
 func (sr SubjectReview) Hash() string {
-	str := fmt.Sprintf("%s%s", sr.Subject, sr.Course)
+	str := fmt.Sprintf("%s%s%s", sr.Subject, sr.Course, sr.Specialization)
 	return fmt.Sprintf("%x", md5.Sum([]byte(str)))
 }
 
