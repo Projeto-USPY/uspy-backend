@@ -50,14 +50,7 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		predecessors, err := public.GetPredecessors(DB, sub)
-		if err != nil {
-			log.Println(fmt.Errorf("error fetching subject %s/%s predecessors: %s", sub.CourseCode, sub.Code, err.Error()))
-			c.Status(http.StatusInternalServerError)
-			return
-		}
-
-		successors, err := public.GetSuccessors(DB, sub)
+		weakSuc, strongSuc, err := public.GetSuccessors(DB, sub)
 		if err != nil {
 			log.Println(fmt.Errorf("error fetching subject %s/%s successors: %s", sub.CourseCode, sub.Code, err.Error()))
 			c.Status(http.StatusInternalServerError)
@@ -65,23 +58,22 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 		}
 
 		type result struct {
-			Code string `json:"code"`
-			Name string `json:"name"`
-		}
-		predecessorsResult := make([]result, 0, 15)
-
-		for i := range predecessors {
-			r := result{predecessors[i].Code, predecessors[i].Name}
-			predecessorsResult = append(predecessorsResult, r)
+			Code   string `json:"code"`
+			Name   string `json:"name"`
+			Strong bool   `json:"strong"`
 		}
 
 		successorsResult := make([]result, 0, 15)
-
-		for i := range successors {
-			r := result{successors[i].Code, successors[i].Name}
+		for i := range weakSuc {
+			r := result{weakSuc[i].Code, weakSuc[i].Name, false}
 			successorsResult = append(successorsResult, r)
 		}
 
-		c.JSON(http.StatusOK, gin.H{"predecessors": predecessorsResult, "successors": successorsResult})
+		for i := range strongSuc {
+			r := result{strongSuc[i].Code, strongSuc[i].Name, true}
+			successorsResult = append(successorsResult, r)
+		}
+
+		c.JSON(http.StatusOK, gin.H{"predecessors": sub.Requirements, "successors": successorsResult})
 	}
 }

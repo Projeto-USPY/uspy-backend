@@ -26,7 +26,7 @@ type Subject struct {
 	ClassCredits     int                      `json:"class" firestore:"class"`
 	AssignCredits    int                      `json:"assign" firestore:"assign"`
 	TotalHours       string                   `json:"hours" firestore:"hours"`
-	Requirements     map[string][]Requirement `json:"-" firestore:"requirements"`
+	Requirements     map[string][]Requirement `json:"requirements" firestore:"requirements"`
 	TrueRequirements []Requirement            `json:"true_requirements" firestore:"true_requirements"`
 	Optional         bool                     `json:"optional" firestore:"optional"`
 	Stats            map[string]int           `json:"stats" firestore:"stats"`
