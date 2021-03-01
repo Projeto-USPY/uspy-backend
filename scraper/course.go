@@ -95,7 +95,7 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 					} else if row.Has(".txt_arial_8pt_red").Length() > 0 { // "row" is an actual requirement
 						code := row.Children().Eq(0).Text()
 						strongText := row.Children().Eq(1).Text()
-						isStrong := strings.Contains(strongText, "requisito") && !strings.Contains(strongText, "fraco")
+						isStrong := strings.Contains(strongText, "Requisito") && !strings.Contains(strongText, "fraco")
 
 						if rg, err := regexp.Compile(`\w{3}\d{4,5}`); err != nil {
 							return nil, err
