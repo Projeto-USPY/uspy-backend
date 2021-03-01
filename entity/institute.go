@@ -10,12 +10,4 @@ type Institute struct {
 	Courses []Course `json:"courses"`
 }
 
-func (i Institute) Insert(DB db.Env, collection string) error {
-	for _, c := range i.Courses {
-		if err := c.Insert(DB, "courses"); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+func (i Institute) Insert(DB db.Env, collection string) error { return nil }

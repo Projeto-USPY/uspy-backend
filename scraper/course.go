@@ -80,15 +80,17 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 
 				subject := obj.(entity.Subject)
 
-				requirementLists := [][]entity.Requirement{}
+				requirementLists := make(map[string][]entity.Requirement, 0)
 				requirements := []entity.Requirement{}
+				groupIndex := 0
 
 				// Get requirements of subject
 				for l := 0; l < rows.Length(); l++ {
 					row := rows.Eq(l)
 
 					if row.Has("b").Length() > 0 { // "row" is an "or"
-						requirementLists = append(requirementLists, requirements)
+						groupIndex++
+						requirementLists[strconv.Itoa(groupIndex)] = requirements
 						requirements = []entity.Requirement{}
 					} else if row.Has(".txt_arial_8pt_red").Length() > 0 { // "row" is an actual requirement
 						code := row.Children().Eq(0).Text()
@@ -110,7 +112,8 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 				}
 
 				if len(requirements) > 0 {
-					requirementLists = append(requirementLists, requirements)
+					groupIndex++
+					requirementLists[strconv.Itoa(groupIndex)] = requirements
 				}
 
 				subject.Requirements = requirementLists
