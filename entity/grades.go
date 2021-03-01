@@ -10,14 +10,15 @@ import (
 // entity.Grade represents a grade that can be parsed from a user's records PDF
 // Example: {10533702, 10.0, 90, "A", "SMA0354", "55041", 1, 2019}
 type Grade struct {
-	User      string  `json:"-" firestore:"-"`
-	Grade     float64 `json:"grade" firestore:"value"`
-	Frequency int     `json:"frequency" firestore:"-"`
-	Status    string  `json:"status" firestore:"-"`
-	Subject   string  `json:"subject" firestore:"-"`
-	Course    string  `json:"course" firestore:"-"`
-	Semester  int     `json:"semester" firestore:"-"`
-	Year      int     `json:"year" firestore:"-"`
+	User           string  `json:"-" firestore:"-"`
+	Grade          float64 `json:"grade" firestore:"value"`
+	Frequency      int     `json:"frequency" firestore:"-"`
+	Status         string  `json:"status" firestore:"-"`
+	Subject        string  `json:"subject" firestore:"-"`
+	Course         string  `json:"course" firestore:"-"`
+	Specialization string  `json:"specialization" firestore:"-"`
+	Semester       int     `json:"semester" firestore:"-"`
+	Year           int     `json:"year" firestore:"-"`
 }
 
 func (g Grade) Hash() string {

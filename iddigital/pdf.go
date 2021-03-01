@@ -113,13 +113,13 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 	rec.Nusp, rec.Name = nuspMatches[1], nuspMatches[2]
 
 	// Look for course code in PDF Header
-	matches := regexp.MustCompile(`Curso:\s+(\d+)/\d - .*`).FindStringSubmatch(pdf.Body)
+	matches := regexp.MustCompile(`Curso:\s+(\d+)/(\d+) - .*`).FindStringSubmatch(pdf.Body)
 
-	if matches == nil || len(matches) < 2 {
-		panic(errors.New("could not parse user course code"))
+	if matches == nil || len(matches) < 3 {
+		panic(errors.New("could not parse user course code and/or specialization"))
 	}
 
-	course := matches[1]
+	course, specialization := matches[1], matches[2]
 	snaps, err := DB.RestoreCollection("courses")
 	if err != nil {
 		panic(errors.New("could not fetch courses from firestore"))
@@ -152,6 +152,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 			grade, _ := strconv.ParseFloat(values[2], 64)
 			status := values[3]
 			subCourse := ""
+			subSpecialization := ""
 
 			// determine subject course origin
 			for _, s := range snaps {
@@ -160,22 +161,25 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 				_, exists := c.SubjectCodes[subCode]
 
 				if exists {
-					if c.Code == course { // if subject is from students course, then subject's course should be it
+					if c.Code == course && c.Specialization == specialization { // if subject is from students course, then subject's course should be it
 						subCourse = c.Code
-					} else if subCourse == "" { // otherwise choose any course to be the subject course
+						subSpecialization = c.Specialization
+					} else if subCourse == "" && subSpecialization == "" { // otherwise choose any course to be the subject course
 						subCourse = c.Code
+						subSpecialization = c.Specialization
 					}
 				}
 			}
 
 			rec.Grades = append(rec.Grades, entity.Grade{
-				Subject:   subCode,
-				Grade:     grade,
-				Frequency: freq,
-				Status:    status,
-				Course:    subCourse,
-				Semester:  semester,
-				Year:      year,
+				Subject:        subCode,
+				Grade:          grade,
+				Frequency:      freq,
+				Status:         status,
+				Course:         subCourse,
+				Specialization: subSpecialization,
+				Semester:       semester,
+				Year:           year,
 			})
 		}
 	}
