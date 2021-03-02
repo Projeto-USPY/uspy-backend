@@ -1,14 +1,15 @@
 package scraper
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"strconv"
+	"strings"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"io"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 type CourseScraper struct {
@@ -93,19 +94,24 @@ func (sc CourseScraper) Scrape(reader io.Reader) (db.Manager, error) {
 						requirementLists[strconv.Itoa(groupIndex)] = requirements
 						requirements = []entity.Requirement{}
 					} else if row.Has(".txt_arial_8pt_red").Length() > 0 { // "row" is an actual requirement
-						code := row.Children().Eq(0).Text()
+						reqText := row.Children().Eq(0).Text()
 						strongText := row.Children().Eq(1).Text()
+
+						reqSplitText := strings.SplitN(reqText, "-", 2)
+						if len(reqSplitText) < 2 {
+							return nil, errors.New("Couldn't parse requirement")
+						}
+
+						reqCode, reqName := strings.TrimSpace(reqSplitText[0]), strings.TrimSpace(reqSplitText[1])
+
 						isStrong := strings.Contains(strongText, "Requisito") && !strings.Contains(strongText, "fraco")
 
-						if rg, err := regexp.Compile(`\w{3}\d{4,5}`); err != nil {
-							return nil, err
-						} else {
-							subCode := rg.FindString(code)
-							requirements = append(requirements, entity.Requirement{
-								Subject: subCode,
-								Strong:  isStrong,
-							})
-						}
+						requirements = append(requirements, entity.Requirement{
+							Subject: reqCode,
+							Name:    reqName,
+							Strong:  isStrong,
+						})
+
 					} else { // "row" is an empty <tr>
 						break
 					}
