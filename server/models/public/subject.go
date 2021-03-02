@@ -23,7 +23,7 @@ func Get(DB db.Env, sub entity.Subject) (entity.Subject, error) {
 
 // GetSuccessors returns all subjects that sub is a pre-requisite of.
 func GetSuccessors(DB db.Env, sub entity.Subject) (weak, strong []entity.Subject, err error) {
-	requirement := entity.Requirement{Subject: sub.Code, Strong: false}
+	requirement := entity.Requirement{Subject: sub.Code, Name: sub.Name, Strong: false}
 	iter := DB.Client.Collection("subjects").
 		Where("true_requirements", "array-contains", requirement).
 		Where("course", "==", sub.CourseCode).
@@ -49,7 +49,7 @@ func GetSuccessors(DB db.Env, sub entity.Subject) (weak, strong []entity.Subject
 	}
 	iter.Stop()
 
-	requirement = entity.Requirement{Subject: sub.Code, Strong: true}
+	requirement = entity.Requirement{Subject: sub.Code, Name: sub.Name, Strong: true}
 	iter = DB.Client.Collection("subjects").
 		Where("true_requirements", "array-contains", requirement).
 		Where("course", "==", sub.CourseCode).
