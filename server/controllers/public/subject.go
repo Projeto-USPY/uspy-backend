@@ -5,12 +5,13 @@ package public
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/server/models/public"
-	"log"
-	"net/http"
 )
 
 // GetSubject is a closure for the GET /api/subject/all endpoint
@@ -26,17 +27,36 @@ func GetSubjects(DB db.Env) func(c *gin.Context) {
 	}
 }
 
+// Transforms from map[string][]entity.Requirement to [][]entity.Requirement
+func transformRequirements(sub entity.Subject) [][]entity.Requirement {
+	requirements := [][]entity.Requirement{}
+	for _, val := range sub.Requirements {
+		requirements = append(requirements, val)
+	}
+	return requirements
+}
+
 // GetSubjectByCode is a closure for the GET /api/subject endpoint
 func GetSubjectByCode(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		sub := c.MustGet("Subject").(entity.Subject)
+
 		sub, err := public.Get(DB, sub)
 		if err != nil {
 			c.Status(http.StatusNotFound)
 			return
 		}
 
-		c.JSON(http.StatusOK, sub)
+		type response struct {
+			entity.Subject
+			Requirements [][]entity.Requirement `json:"requirements"`
+		}
+
+		res := response{}
+		res.Subject = sub
+		res.Requirements = transformRequirements(sub)
+
+		c.JSON(http.StatusOK, res)
 	}
 }
 
@@ -74,6 +94,6 @@ func GetSubjectGraph(DB db.Env) func(c *gin.Context) {
 			successorsResult = append(successorsResult, r)
 		}
 
-		c.JSON(http.StatusOK, gin.H{"predecessors": sub.Requirements, "successors": successorsResult})
+		c.JSON(http.StatusOK, gin.H{"predecessors": transformRequirements(sub), "successors": successorsResult})
 	}
 }

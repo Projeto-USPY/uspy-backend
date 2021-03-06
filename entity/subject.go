@@ -4,6 +4,7 @@ package entity
 import (
 	"crypto/md5"
 	"fmt"
+
 	"github.com/tpreischadt/ProjetoJupiter/db"
 )
 
@@ -27,7 +28,7 @@ type Subject struct {
 	AssignCredits    int                      `json:"assign" firestore:"assign"`
 	TotalHours       string                   `json:"hours" firestore:"hours"`
 	Requirements     map[string][]Requirement `json:"requirements" firestore:"requirements"`
-	TrueRequirements []Requirement            `json:"true_requirements" firestore:"true_requirements"`
+	TrueRequirements []Requirement            `json:"-" firestore:"true_requirements"`
 	Optional         bool                     `json:"optional" firestore:"optional"`
 	Stats            map[string]int           `json:"stats" firestore:"stats"`
 }
