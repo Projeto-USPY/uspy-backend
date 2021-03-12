@@ -24,7 +24,7 @@ func GetSubjectGrade(DB db.Env) func(c *gin.Context) {
 		userID := claims["user"].(string)
 		sub := c.MustGet("Subject").(entity.Subject)
 
-		user, sub := entity.User{Login: userID}, entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code}
+		user, sub := entity.User{Login: userID}, entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code, Specialization: sub.Specialization}
 		score, err := private.GetSubjectGrade(DB, user, sub)
 
 		if err == nil {
@@ -45,7 +45,7 @@ func GetSubjectReview(DB db.Env) func(c *gin.Context) {
 		userID := claims["user"].(string)
 		sub := c.MustGet("Subject").(entity.Subject)
 
-		user, sub := entity.User{Login: userID}, entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code}
+		user, sub := entity.User{Login: userID}, entity.Subject{CourseCode: sub.CourseCode, Code: sub.Code, Specialization: sub.Specialization}
 
 		review, err := private.GetSubjectReview(DB, user, sub)
 
@@ -72,7 +72,7 @@ func UpdateSubjectReview(DB db.Env) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// get subject and review data
 		sub := c.MustGet("Subject").(entity.Subject)
-		sr := entity.SubjectReview{Subject: sub.Code, Course: sub.CourseCode}
+		sr := entity.SubjectReview{Subject: sub.Code, Course: sub.CourseCode, Specialization: sub.Specialization}
 
 		err := c.ShouldBindJSON(&sr)
 		if err != nil {
