@@ -3,12 +3,13 @@
 package restricted
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tpreischadt/ProjetoJupiter/db"
 	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"github.com/tpreischadt/ProjetoJupiter/server/models/restricted"
-	"net/http"
-	"strconv"
 )
 
 // GetSubjectGrades is a closure for the GET /api/restricted/subject/grades endpoint
@@ -38,13 +39,10 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 			cnt += v
 		}
 
-		if len(buckets) == 0 {
-			c.Status(http.StatusNotFound)
-			return
+		if cnt > 0 {
+			avg /= float64(cnt)
+			approval /= float64(cnt)
 		}
-
-		avg /= float64(cnt)
-		approval /= float64(cnt)
 
 		c.JSON(http.StatusOK, gin.H{"grades": buckets, "average": avg, "approval": approval})
 	}
