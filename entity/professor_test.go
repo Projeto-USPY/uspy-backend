@@ -3,8 +3,8 @@ package entity
 
 import (
 	"fmt"
+	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/joho/godotenv"
-	"github.com/tpreischadt/ProjetoJupiter/db"
 	"reflect"
 	"testing"
 )

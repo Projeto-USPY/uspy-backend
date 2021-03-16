@@ -3,8 +3,8 @@ package iddigital
 
 import (
 	"errors"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
 	"io/ioutil"
 	"net/http"
 	"os/exec"

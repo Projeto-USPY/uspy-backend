@@ -1,8 +1,8 @@
 package scraper
 
 import (
+	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/go-playground/assert/v2"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"testing"
 )
 

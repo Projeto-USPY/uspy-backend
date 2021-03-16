@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/server/models/restricted"
 	"github.com/gin-gonic/gin"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/server/models/restricted"
 )
 
 // GetSubjectGrades is a closure for the GET /api/restricted/subject/grades endpoint

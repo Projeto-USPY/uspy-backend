@@ -5,8 +5,8 @@ import (
 	"cloud.google.com/go/firestore"
 	"errors"
 	"fmt"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
 	"golang.org/x/net/context"
 	"reflect"
 )

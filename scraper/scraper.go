@@ -2,8 +2,8 @@ package scraper
 
 import (
 	"errors"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/utils"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 	"io"
 	"net/http"
 )

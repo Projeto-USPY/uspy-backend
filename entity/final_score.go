@@ -4,7 +4,7 @@ package entity
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/Projeto-USPY/uspy-backend/db"
 )
 
 // entity.FinalScore is a user's final score that is stored in the Firestore DB

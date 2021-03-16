@@ -10,16 +10,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/tpreischadt/ProjetoJupiter/utils"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 
 	"github.com/dgrijalva/jwt-go"
 
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/iddigital"
+	"github.com/Projeto-USPY/uspy-backend/server/middleware"
+	"github.com/Projeto-USPY/uspy-backend/server/models/account"
 	"github.com/gin-gonic/gin"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/iddigital"
-	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
-	"github.com/tpreischadt/ProjetoJupiter/server/models/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -202,30 +202,6 @@ func Login(DB db.Env) func(c *gin.Context) {
 				}
 			}
 		}
-	}
-}
-
-// Remove is a closure for the removes the account, forever!!
-func Remove(DB db.Env) func(g *gin.Context) {
-	return func(c *gin.Context) {
-		domain := os.Getenv("DOMAIN")
-		secureCookie := os.Getenv("MODE") == "prod"
-
-		// delete access_token cookie
-		c.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
-
-		// get user info
-		token := c.MustGet("access_token")
-		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
-		userID := claims["user"].(string)
-
-		u := entity.User{Login: userID}
-		if err := account.Remove(DB, u); err != nil {
-			c.Status(http.StatusInternalServerError)
-			return
-		}
-
-		c.Status(http.StatusOK)
 	}
 }
 

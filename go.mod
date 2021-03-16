@@ -1,4 +1,4 @@
-module github.com/tpreischadt/ProjetoJupiter
+module github.com/Projeto-USPY/uspy-backend
 
 go 1.15
 

@@ -3,8 +3,8 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"net/http"
 	"os"
 	"time"

@@ -4,11 +4,11 @@ package private
 
 import (
 	"fmt"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/server/models/private"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/server/models/private"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log"

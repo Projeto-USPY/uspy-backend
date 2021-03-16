@@ -4,8 +4,8 @@ package entity
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/go-playground/validator/v10"
-	"github.com/tpreischadt/ProjetoJupiter/db"
 	"reflect"
 	"sort"
 )

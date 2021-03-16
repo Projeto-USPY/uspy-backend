@@ -2,8 +2,8 @@
 package entity
 
 import (
+	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/joho/godotenv"
-	"github.com/tpreischadt/ProjetoJupiter/db"
 	"testing"
 )
 

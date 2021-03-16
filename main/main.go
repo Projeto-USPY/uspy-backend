@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/tpreischadt/ProjetoJupiter/builder"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/server"
+	"github.com/Projeto-USPY/uspy-backend/builder"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/server"
 )
 
 func main() {

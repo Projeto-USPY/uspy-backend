@@ -8,10 +8,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/server/models/public"
 	"github.com/gin-gonic/gin"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/server/models/public"
 )
 
 // GetSubject is a closure for the GET /api/subject/all endpoint

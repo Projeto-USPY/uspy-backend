@@ -4,7 +4,7 @@ package entity
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/Projeto-USPY/uspy-backend/db"
 )
 
 // entity.Offering describes an offering of a subject

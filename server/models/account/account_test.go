@@ -2,11 +2,11 @@
 package account
 
 import (
-	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
+	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 	"testing"
 
+	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/joho/godotenv"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
 )
 
 func TestGenerateToken(t *testing.T) {

@@ -2,9 +2,9 @@ package scraper
 
 import (
 	"fmt"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"io"
 	"regexp"
 	"strings"

@@ -2,8 +2,8 @@
 package middleware
 
 import (
+	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/gin-gonic/gin"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
 	"net/http"
 )
 

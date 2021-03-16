@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/Projeto-USPY/uspy-backend/db"
 )
 
 type Institute struct {

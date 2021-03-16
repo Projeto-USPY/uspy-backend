@@ -4,7 +4,7 @@ package entity
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/tpreischadt/ProjetoJupiter/db"
+	"github.com/Projeto-USPY/uspy-backend/db"
 )
 
 // entity.Grade represents a grade that can be parsed from a user's records PDF

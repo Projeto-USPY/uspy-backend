@@ -4,8 +4,8 @@ package restricted
 import (
 	"fmt"
 
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
 )
 
 // GetGrades returns all grades from a given subject

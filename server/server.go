@@ -5,14 +5,14 @@ import (
 	"log"
 	"os"
 
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/server/controllers/account"
+	"github.com/Projeto-USPY/uspy-backend/server/controllers/private"
+	"github.com/Projeto-USPY/uspy-backend/server/controllers/public"
+	"github.com/Projeto-USPY/uspy-backend/server/controllers/restricted"
+	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 	"github.com/gin-gonic/gin"
-	"github.com/tpreischadt/ProjetoJupiter/db"
-	"github.com/tpreischadt/ProjetoJupiter/entity"
-	"github.com/tpreischadt/ProjetoJupiter/server/controllers/account"
-	"github.com/tpreischadt/ProjetoJupiter/server/controllers/private"
-	"github.com/tpreischadt/ProjetoJupiter/server/controllers/public"
-	"github.com/tpreischadt/ProjetoJupiter/server/controllers/restricted"
-	"github.com/tpreischadt/ProjetoJupiter/server/middleware"
 )
 
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
@@ -46,7 +46,6 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		accountGroup.POST("/create", account.Signup(DB))
 
 		accountGroup.GET("/logout", middleware.JWT(), account.Logout())
-		//accountGroup.DELETE("", middleware.JWT(), account.Remove(DB))
 
 		accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
 		accountGroup.PUT("/password_reset", account.ResetPassword(DB))
