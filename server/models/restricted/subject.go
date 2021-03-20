@@ -3,7 +3,6 @@ package restricted
 
 import (
 	"fmt"
-
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity"
 )
@@ -12,9 +11,11 @@ import (
 func GetGrades(DB db.Env, sub entity.Subject) (map[string]int, error) {
 	buckets := make(map[string]int)
 	snaps, err := DB.RestoreCollection(fmt.Sprintf("subjects/%s/grades", sub.Hash()))
+
 	if err != nil {
 		return map[string]int{}, err
 	}
+
 	for _, s := range snaps {
 		g := entity.Grade{}
 		err := s.DataTo(&g)
