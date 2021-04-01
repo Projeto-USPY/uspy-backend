@@ -145,8 +145,12 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 			row, subCode := match[0], match[1]
 
 			// get subject values (grade, frequency and status)
-			gradeRXP := regexp.MustCompile(`(\d{1,3})\s+(\d{1,2}.\d{1,2}) ([A-Z]+)`)
+			gradeRXP := regexp.MustCompile(`(\d{1,3})\s+(\d{1,2}\.\d{1,2}) ([A-Z]+)`)
 			values := gradeRXP.FindStringSubmatch(row)
+
+			if len(values) < 4 { // array must be [whole string, grade, frequency, status]
+				continue
+			}
 
 			freq, _ := strconv.Atoi(values[1])
 			grade, _ := strconv.ParseFloat(values[2], 64)
