@@ -40,8 +40,5 @@ func (s Subject) Hash() string {
 
 func (s Subject) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Set(DB.Ctx, s)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

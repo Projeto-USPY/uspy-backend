@@ -52,11 +52,7 @@ func (sr SubjectReview) Hash() string {
 
 func (sr SubjectReview) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(sr.Hash()).Set(DB.Ctx, sr)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func getCategories() []string {

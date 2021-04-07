@@ -89,9 +89,5 @@ func (u User) Hash() string {
 
 func (u User) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(u.Hash()).Set(DB.Ctx, u)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
