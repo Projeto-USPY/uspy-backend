@@ -2,9 +2,11 @@
 package entity
 
 import (
+	"cloud.google.com/go/firestore"
 	"crypto/md5"
 	"fmt"
 	"github.com/Projeto-USPY/uspy-backend/db"
+	"reflect"
 )
 
 // entity.Course represents a course/major
@@ -24,9 +26,21 @@ func (c Course) Hash() string {
 
 func (c Course) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Set(DB.Ctx, c)
-	if err != nil {
-		return err
+	return err
+}
+
+func (c Course) Update(DB db.Env, collection string) error {
+	updates := make([]firestore.Update, 0)
+	fields := reflect.TypeOf(c)
+	values := reflect.ValueOf(c)
+
+	for i := 0; i < fields.NumField(); i++ {
+		fieldValue := values.Field(i).Interface()
+		if tag := fields.Field(i).Tag.Get("firestore"); tag != "-" && tag != "stats" {
+			updates = append(updates, firestore.Update{Path: tag, Value: fieldValue})
+		}
 	}
 
-	return nil
+	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Update(DB.Ctx, updates)
+	return err
 }

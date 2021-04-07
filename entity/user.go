@@ -91,3 +91,5 @@ func (u User) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(u.Hash()).Set(DB.Ctx, u)
 	return err
 }
+
+func (u User) Update(DB db.Env, collection string) error { return nil }
