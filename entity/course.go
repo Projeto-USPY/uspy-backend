@@ -36,7 +36,7 @@ func (c Course) Update(DB db.Env, collection string) error {
 
 	for i := 0; i < fields.NumField(); i++ {
 		fieldValue := values.Field(i).Interface()
-		if tag := fields.Field(i).Tag.Get("firestore"); tag != "-" && tag != "stats" {
+		if tag := fields.Field(i).Tag.Get("firestore"); tag != "-" {
 			updates = append(updates, firestore.Update{Path: tag, Value: fieldValue})
 		}
 	}
