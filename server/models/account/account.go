@@ -2,7 +2,6 @@
 package account
 
 import (
-	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
@@ -92,6 +91,6 @@ func ChangePassword(DB db.Env, u entity.User, newPassword string) error {
 	if err != nil {
 		return err
 	}
-	pwdUpdates := []firestore.Update{{Path: "password", Value: newHash}}
-	return DB.Update(u.Hash(), "users", pwdUpdates)
+	u.PasswordHash = newHash
+	return DB.Update(u, "users")
 }

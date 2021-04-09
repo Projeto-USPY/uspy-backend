@@ -68,10 +68,9 @@ func (db Env) Insert(obj Inserter, collection string) error {
 	return obj.Insert(db, collection)
 }
 
-// Env.Update performs one or more updates in a single document
-func (db Env) Update(doc, col string, updates []firestore.Update) error {
-	_, err := db.Client.Collection(col).Doc(doc).Update(db.Ctx, updates)
-	return err
+// Env.Update updates entity in firestore with data in object variable
+func (db Env) Update(obj Updater, collection string) error {
+	return obj.Update(db, collection)
 }
 
 // Env.BatchWrite will perform inserts atomically
