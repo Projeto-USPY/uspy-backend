@@ -11,17 +11,28 @@ import (
 	"os"
 )
 
-// Manager will be implemented by almost all entities
-type Manager interface {
+// Inserter will be implemented by almost all entities
+type Inserter interface {
 	Insert(db Env, collection string) error
 }
 
-// Object is used for batched writes that can contain different types that implement Manager
+// Updater will be implemented by almost all entities
+type Updater interface {
+	Update(db Env, collection string) error
+}
+
+// Writer implements Inserter and Updater (InserterUpdater is a bad name)
+type Writer interface {
+	Inserter
+	Updater
+}
+
+// Object is used for batched writes that can contain different types that implement Inserter
 // Set Doc to empty string if you'd like to use a random Hash
 type Object struct {
 	Collection string
 	Doc        string
-	Data       Manager
+	Data       Writer
 }
 
 // Env is passed to /server/models functions that require DB operations
@@ -52,15 +63,14 @@ func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapsho
 	return snap, nil
 }
 
-// Env.Insert inserts an entity that implements Manager into a DB collection
-func (db Env) Insert(obj Manager, collection string) error {
+// Env.Insert inserts an entity that implements Inserter into a DB collection
+func (db Env) Insert(obj Inserter, collection string) error {
 	return obj.Insert(db, collection)
 }
 
-// Env.Update performs one or more updates in a single document
-func (db Env) Update(doc, col string, updates []firestore.Update) error {
-	_, err := db.Client.Collection(col).Doc(doc).Update(db.Ctx, updates)
-	return err
+// Env.Update updates entity in firestore with data in object variable
+func (db Env) Update(obj Updater, collection string) error {
+	return obj.Update(db, collection)
 }
 
 // Env.BatchWrite will perform inserts atomically

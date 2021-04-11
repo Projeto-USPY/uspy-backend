@@ -27,8 +27,7 @@ func (g Grade) Hash() string {
 
 func (g Grade) Insert(DB db.Env, collection string) error {
 	_, _, err := DB.Client.Collection(collection).Add(DB.Ctx, g)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
+
+func (g Grade) Update(DB db.Env, collection string) error { return nil }

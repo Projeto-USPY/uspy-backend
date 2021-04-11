@@ -11,3 +11,5 @@ type Institute struct {
 }
 
 func (i Institute) Insert(DB db.Env, collection string) error { return nil }
+
+func (i Institute) Update(DB db.Env, collection string) error { return nil }

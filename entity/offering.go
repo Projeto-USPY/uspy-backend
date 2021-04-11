@@ -30,9 +30,7 @@ func (off Offering) Hash() string {
 
 func (off Offering) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(off.Hash()).Set(DB.Ctx, off)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
+
+func (off Offering) Update(DB db.Env, collection string) error { return nil }

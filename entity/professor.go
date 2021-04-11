@@ -69,9 +69,5 @@ func (prof Professor) Hash() string {
 
 func (prof Professor) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(prof.Hash()).Set(DB.Ctx, prof)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

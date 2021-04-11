@@ -26,8 +26,7 @@ func (mf FinalScore) Hash() string {
 
 func (mf FinalScore) Insert(DB db.Env, collection string) error {
 	_, _, err := DB.Client.Collection(collection).Add(DB.Ctx, mf)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
+
+func (mf FinalScore) Update(DB db.Env, collection string) error { return nil }

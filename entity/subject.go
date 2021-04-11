@@ -2,8 +2,10 @@
 package entity
 
 import (
+	"cloud.google.com/go/firestore"
 	"crypto/md5"
 	"fmt"
+	"reflect"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
 )
@@ -40,8 +42,21 @@ func (s Subject) Hash() string {
 
 func (s Subject) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Set(DB.Ctx, s)
-	if err != nil {
-		return err
+	return err
+}
+
+func (s Subject) Update(DB db.Env, collection string) error {
+	updates := make([]firestore.Update, 0)
+	fields := reflect.TypeOf(s)
+	values := reflect.ValueOf(s)
+
+	for i := 0; i < fields.NumField(); i++ {
+		fieldValue := values.Field(i).Interface()
+		if tag := fields.Field(i).Tag.Get("firestore"); tag != "-" && tag != "stats" {
+			updates = append(updates, firestore.Update{Path: tag, Value: fieldValue})
+		}
 	}
-	return nil
+
+	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Update(DB.Ctx, updates)
+	return err
 }

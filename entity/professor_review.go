@@ -29,9 +29,5 @@ func (pr ProfessorReview) Hash() string {
 
 func (pr ProfessorReview) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(pr.Hash()).Set(DB.Ctx, pr)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
