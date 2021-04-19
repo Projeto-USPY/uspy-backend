@@ -328,3 +328,25 @@ func SignupCaptcha() func(c *gin.Context) {
 
 	}
 }
+
+// Signup is a closure for the DELETE /account endpoint
+func Delete(DB db.Env) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		token := c.MustGet("access_token")
+		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
+		userID := claims["user"].(string)
+
+		// delete access_token cookie
+		domain := c.MustGet("front_domain").(string)
+		secureCookie := os.Getenv("LOCAL") == "FALSE"
+		c.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
+
+		if err := account.Delete(DB, entity.User{Login: userID}); err != nil {
+			log.Printf("error deleting user %v: %v\n", userID, err)
+			c.Status(http.StatusInternalServerError)
+		} else {
+			c.Status(http.StatusOK)
+		}
+
+	}
+}
