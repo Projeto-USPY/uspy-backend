@@ -51,6 +51,8 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		accountGroup.PUT("/password_reset", account.ResetPassword(DB))
 
 		accountGroup.GET("/profile", middleware.JWT(), account.Profile(DB))
+
+		accountGroup.DELETE("", middleware.JWT(), account.Delete(DB))
 	}
 
 	apiGroup := r.Group("/api")
