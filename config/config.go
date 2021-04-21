@@ -30,7 +30,7 @@ type Typer interface {
 
 type Config struct {
 	Domain    string `envconfig:"USPY_DOMAIN" required:"true" default:"localhost"`
-	Port      string `envconfig:"USPY_PORT" required:"true" default:"8081"`
+	Port      string `envconfig:"USPY_PORT" required:"true" default:"8080"` // careful with this because cloud run must run on port 8080
 	JWTSecret string `envconfig:"USPY_JWT_SECRET" required:"true" default:"my_secret"`
 	Mode      string `envconfig:"USPY_MODE" required:"true" default:"dev"`
 	AESKey    string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
