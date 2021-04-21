@@ -2,19 +2,18 @@
 package main
 
 import (
-	"log"
-	"os"
-
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/server"
+	"log"
 )
 
 func main() {
-	DB := db.SetupDB(".env")
+	DB := db.SetupDB()
 	r, err := server.SetupRouter(DB)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_ = r.Run(os.Getenv("DOMAIN") + ":" + os.Getenv("PORT"))
+	_ = r.Run(config.Env.Domain + ":" + config.Env.Port)
 }

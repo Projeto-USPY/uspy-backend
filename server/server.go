@@ -2,9 +2,7 @@
 package server
 
 import (
-	"log"
-	"os"
-
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/account"
@@ -18,20 +16,14 @@ import (
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
 	r.Use(gin.Recovery(), middleware.DefineDomain())
-
-	if rateLimit, ok := os.LookupEnv("RATE_LIMIT"); ok {
-		r.Use(middleware.RateLimiter(rateLimit))
-	} else {
-		r.Use(middleware.RateLimiter("5-S"))
-		log.Println("env variable RATE_LIMIT not set, using 5-S (5 requests per second)")
-	}
+	r.Use(middleware.RateLimiter(config.Env.RateLimit))
 
 	err := entity.SetupValidators()
 	if err != nil {
 		return nil, err
 	}
 
-	if os.Getenv("LOCAL") == "TRUE" {
+	if config.Env.IsLocal() {
 		r.Use(middleware.AllowAnyOrigin())
 	} else {
 		r.Use(middleware.AllowUSPYOrigin())

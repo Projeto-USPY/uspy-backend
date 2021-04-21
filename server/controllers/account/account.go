@@ -5,9 +5,9 @@ package account
 import (
 	"errors"
 	"fmt"
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/Projeto-USPY/uspy-backend/utils"
@@ -41,20 +41,16 @@ func Profile(DB db.Env) func(c *gin.Context) {
 			return
 		}
 
-		if key, ok := os.LookupEnv("AES_KEY"); ok {
-			if name, err := utils.AESDecrypt(storedUser.NameHash, key); err != nil {
-				log.Println("error decrypting name hash")
-				c.Status(http.StatusInternalServerError)
-			} else {
-				c.JSON(http.StatusOK, gin.H{
-					"user": userID,
-					"name": name,
-				})
-			}
-		} else {
-			log.Println(errors.New("AES_KEY 128/196/256-bit key env variable was not provided"))
+		if name, err := utils.AESDecrypt(storedUser.NameHash, config.Env.AESKey); err != nil {
+			log.Println("error decrypting name hash")
 			c.Status(http.StatusInternalServerError)
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"user": userID,
+				"name": name,
+			})
 		}
+
 	}
 }
 
@@ -147,7 +143,7 @@ func ChangePassword(DB db.Env) func(c *gin.Context) {
 func Logout() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		domain := c.MustGet("front_domain").(string)
-		secureCookie := os.Getenv("LOCAL") == "FALSE"
+		secureCookie := !config.Env.IsLocal()
 
 		// delete access_token cookie
 		c.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
@@ -177,7 +173,7 @@ func Login(DB db.Env) func(c *gin.Context) {
 				domain := c.MustGet("front_domain").(string)
 
 				// expiration date = 1 month
-				secureCookie := os.Getenv("LOCAL") == "FALSE"
+				secureCookie := !config.Env.IsLocal()
 				cookieAge := 0
 
 				// remember this login?
@@ -185,20 +181,15 @@ func Login(DB db.Env) func(c *gin.Context) {
 					cookieAge = 30 * 24 * 3600 // 30 days in seconds
 				}
 
-				if key, ok := os.LookupEnv("AES_KEY"); ok {
-					if name, err := utils.AESDecrypt(storedUser.NameHash, key); err != nil {
-						log.Println("error decrypting name hash")
-						c.Status(http.StatusInternalServerError)
-					} else {
-						c.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
-						c.JSON(http.StatusOK, gin.H{
-							"user": user.Login,
-							"name": name,
-						})
-					}
-				} else {
-					log.Println(errors.New("AES_KEY 128/196/256-bit key env variable was not provided"))
+				if name, err := utils.AESDecrypt(storedUser.NameHash, config.Env.AESKey); err != nil {
+					log.Println("error decrypting name hash")
 					c.Status(http.StatusInternalServerError)
+				} else {
+					c.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
+					c.JSON(http.StatusOK, gin.H{
+						"user": user.Login,
+						"name": name,
+					})
 				}
 			}
 		}
@@ -237,7 +228,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			data, err := pdf.Parse(DB)
 
 			var maxPDFAge float64
-			if os.Getenv("MODE") == "dev" {
+			if config.Env.Mode == "dev" {
 				maxPDFAge = 24 * 30 // a month
 			} else {
 				maxPDFAge = 1.0 // an hour
@@ -293,7 +284,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 			}
 
 			domain := c.MustGet("front_domain").(string)
-			secureCookie := os.Getenv("LOCAL") == "FALSE"
+			secureCookie := !config.Env.IsLocal()
 			c.SetCookie("access_token", jwtToken, 0, "/", domain, secureCookie, true)
 			c.JSON(http.StatusOK, data)
 		}
@@ -314,7 +305,7 @@ func SignupCaptcha() func(c *gin.Context) {
 		cookies := resp.Cookies()
 		for _, ck := range cookies {
 			domain := c.MustGet("front_domain").(string)
-			secureCookie := os.Getenv("LOCAL") == "FALSE"
+			secureCookie := !config.Env.IsLocal()
 			c.SetCookie(ck.Name, ck.Value, ck.MaxAge, "/", domain, secureCookie, true)
 		}
 
@@ -338,7 +329,7 @@ func Delete(DB db.Env) func(c *gin.Context) {
 
 		// delete access_token cookie
 		domain := c.MustGet("front_domain").(string)
-		secureCookie := os.Getenv("LOCAL") == "FALSE"
+		secureCookie := !config.Env.IsLocal()
 		c.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
 
 		if err := account.Delete(DB, entity.User{Login: userID}); err != nil {

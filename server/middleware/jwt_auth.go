@@ -3,10 +3,10 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/dgrijalva/jwt-go"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,9 +19,7 @@ func GenerateJWT(user entity.User) (jwtString string, err error) {
 		"timestamp": time.Now().Unix(),
 	})
 
-	secret := os.Getenv("JWT_SECRET")
-	jwtString, err = token.SignedString([]byte(secret))
-
+	jwtString, err = token.SignedString([]byte(config.Env.JWTSecret))
 	return
 }
 
@@ -32,7 +30,7 @@ func ValidateJWT(tokenString string) (*jwt.Token, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(os.Getenv("JWT_SECRET")), nil
+		return []byte(config.Env.JWTSecret), nil
 	})
 
 	if token == nil || !token.Valid {
