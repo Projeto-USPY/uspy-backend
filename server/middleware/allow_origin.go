@@ -2,9 +2,9 @@
 package middleware
 
 import (
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"os"
 )
 
 // AllowAnyOrigin enables CORS for testing purposes
@@ -32,23 +32,18 @@ func AllowUSPYOrigin() gin.HandlerFunc {
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With,observe")
 
-		if mode, ok := os.LookupEnv("MODE"); ok {
-			var frontURL string
-			if mode == "dev" {
-				frontURL = "https://frontdev.uspy.me"
-			} else {
-				frontURL = "https://uspy.me"
-			}
-
-			c.Header("Access-Control-Allow-Origin", frontURL)
-			c.SetSameSite(http.SameSiteNoneMode)
-
-			if c.Request.Method == "OPTIONS" {
-				c.AbortWithStatus(204)
-				return
-			}
+		var frontURL string
+		if config.Env.Mode == "dev" {
+			frontURL = "https://frontdev.uspy.me"
 		} else {
-			c.AbortWithStatus(500)
+			frontURL = "https://uspy.me"
+		}
+
+		c.Header("Access-Control-Allow-Origin", frontURL)
+		c.SetSameSite(http.SameSiteNoneMode)
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
 			return
 		}
 	}

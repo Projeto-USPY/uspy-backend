@@ -3,12 +3,11 @@ package entity
 
 import (
 	"crypto/sha256"
-	"errors"
 	"fmt"
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"golang.org/x/crypto/bcrypt"
-	"os"
 	"time"
 )
 
@@ -59,16 +58,11 @@ func (WithPasswordHash) Apply(u *User) error {
 type WithNameHash struct{}
 
 func (WithNameHash) Apply(u *User) error {
-	if key, ok := os.LookupEnv("AES_KEY"); ok {
-		nHash, err := utils.AESEncrypt(u.Name, key)
-		if err != nil {
-			return err
-		}
-		u.NameHash = nHash
-	} else {
-		return errors.New("AES_KEY 128/196/256-bit key env variable was not provided")
+	nHash, err := utils.AESEncrypt(u.Name, config.Env.AESKey)
+	if err != nil {
+		return err
 	}
-
+	u.NameHash = nHash
 	return nil
 }
 

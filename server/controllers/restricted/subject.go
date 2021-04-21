@@ -3,8 +3,8 @@
 package restricted
 
 import (
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
@@ -44,7 +44,7 @@ func GetSubjectGrades(DB db.Env) func(c *gin.Context) {
 			avg /= float64(cnt)
 			approval /= float64(cnt)
 
-			if os.Getenv("MODE") == "prod" && cnt <= 10 { // do not return grades if there are too few grades
+			if config.Env.Mode == "prod" && cnt <= 10 { // do not return grades if there are too few grades
 				c.JSON(http.StatusOK, gin.H{"grades": map[string]int{}, "average": 0.0, "approval": 0.0})
 				return
 			}
