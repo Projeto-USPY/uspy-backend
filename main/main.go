@@ -8,6 +8,10 @@ import (
 	"log"
 )
 
+func init() {
+	config.Setup()
+}
+
 func main() {
 	DB := db.SetupDB()
 	r, err := server.SetupRouter(DB)

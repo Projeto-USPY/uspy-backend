@@ -23,3 +23,9 @@
 
 # Goland files
 .idea
+
+# Firestore emulator files
+.firebaserc
+firebase.json
+firebase-debug.log
+firestore-debug.log

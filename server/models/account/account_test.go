@@ -6,12 +6,9 @@ import (
 	"testing"
 
 	"github.com/Projeto-USPY/uspy-backend/entity"
-	"github.com/joho/godotenv"
 )
 
 func TestGenerateToken(t *testing.T) {
-	godotenv.Load(".env")
-
 	user := entity.User{}
 	user.Login = "login"
 	user.Password = "pass"
@@ -26,8 +23,6 @@ func TestGenerateToken(t *testing.T) {
 }
 
 func TestValidateToken(t *testing.T) {
-	godotenv.Load(".env")
-
 	user := entity.User{}
 	user.Login = "login"
 	user.Password = "pass"
