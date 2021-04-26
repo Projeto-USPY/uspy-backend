@@ -1,11 +1,12 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
-	"github.com/kelseyhightower/envconfig"
 	"log"
 	"os"
 	"reflect"
+
+	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
 )
 
 var Env Config
@@ -28,6 +29,7 @@ type Typer interface {
 	_isLocal() bool
 }
 
+// Configuration object, for more info see README.md
 type Config struct {
 	Domain    string `envconfig:"USPY_DOMAIN" required:"true" default:"localhost"`
 	Port      string `envconfig:"USPY_PORT" required:"true" default:"8080"` // careful with this because cloud run must run on port 8080
@@ -40,10 +42,12 @@ type Config struct {
 	Remote RemoteConfig
 }
 
+// IsLocal returns if the current context is local
 func (c Config) IsLocal() bool {
 	return !reflect.DeepEqual(c.Local, LocalConfig{})
 }
 
+// Identify tells whether the current context is local or remote
 func (c Config) Identify() string {
 	if c.IsLocal() {
 		return c.Local._identify()
@@ -52,6 +56,7 @@ func (c Config) Identify() string {
 	}
 }
 
+// Redact can be used to print the environment config without exposing secret
 func (c Config) Redact() Config {
 	c.AESKey = "[REDACTED]"
 	c.JWTSecret = "[REDACTED]"
@@ -61,7 +66,8 @@ func (c Config) Redact() Config {
 	return c
 }
 
-func init() {
+// Setup parses the .env file (or uses defaults) to determine environment constants and variables
+func Setup() {
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Println("did not parse .env file, falling to default env variables")
