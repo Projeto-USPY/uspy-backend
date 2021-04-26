@@ -1,5 +1,6 @@
 package config
 
+// For a local configuration, you must have a path to your IAM key that can support firestore read/writes
 type LocalConfig struct {
 	FirestoreKeyPath string `envconfig:"USPY_FIRESTORE_KEY"`
 }
