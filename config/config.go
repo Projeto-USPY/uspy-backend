@@ -66,6 +66,15 @@ func (c Config) Redact() Config {
 	return c
 }
 
+// TestSetup is used by the emulator, it will only load required defaults, no project-related identifiers
+func TestSetup() {
+	if err := envconfig.Process("uspy", &Env); err != nil {
+		log.Fatal("could not process default env variables: ", err)
+	}
+
+	log.Printf("env variables set: %#v\n", Env.Redact())
+}
+
 // Setup parses the .env file (or uses defaults) to determine environment constants and variables
 func Setup() {
 	err := godotenv.Load(".env")
