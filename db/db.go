@@ -2,12 +2,13 @@
 package db
 
 import (
+	"log"
+
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
-	"log"
 )
 
 // Inserter will be implemented by almost all entities
