@@ -18,7 +18,21 @@ var (
 	insertCnt  int = 0
 )
 
-func getInsertables() []db.Object {
+func getInsertables() (objects []db.Object, getError error) {
+	if user, err := entity.NewUserWithOptions(
+		"123456789",
+		"r4nd0mpass123!@#",
+		"Usuário teste",
+		time.Now(),
+		entity.WithNameHash{},
+		entity.WithPasswordHash{},
+	); err != nil {
+		objects, getError = []db.Object{}, err
+		return
+	} else {
+		objects = append(objects, db.Object{Collection: "users", Doc: user.Hash(), Data: user})
+	}
+
 	subjects := []entity.Subject{
 		{
 			Code:           "SCC0230",
@@ -70,8 +84,6 @@ func getInsertables() []db.Object {
 		},
 	}
 
-	objects := []db.Object{}
-
 	for _, s := range subjects {
 		objects = append(objects, db.Object{Collection: "subjects", Doc: s.Hash(), Data: s})
 	}
@@ -80,27 +92,17 @@ func getInsertables() []db.Object {
 		objects = append(objects, db.Object{Collection: "courses", Doc: c.Hash(), Data: c})
 	}
 
-	return objects
+	return objects, nil
 }
 
 func setup(DB db.Env) error {
 	config.TestSetup()
-	objects := getInsertables()
-	if user, err := entity.NewUserWithOptions(
-		"123456789",
-		"r4nd0mpass123!@#",
-		"Usuário teste",
-		time.Now(),
-		entity.WithNameHash{},
-		entity.WithPasswordHash{},
-	); err != nil {
+	if objects, err := getInsertables(); err != nil {
 		return err
 	} else {
-		objects = append(objects, db.Object{Collection: "users", Doc: user.Hash(), Data: user})
-	}
-
-	if err := DB.BatchWrite(objects); err != nil {
-		return err
+		if err := DB.BatchWrite(objects); err != nil {
+			return err
+		}
 	}
 
 	return nil
