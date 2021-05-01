@@ -54,7 +54,15 @@ func TestAccountSuite(t *testing.T) {
 	suite.Run(t, new(AccountSuite))
 }
 
-func (s *AccountSuite) TestProfile() {
+func (s *AccountSuite) TestAccount() {
+	s.Run("profile", s.profile)
+	s.Run("signupCaptcha", s.signupCaptcha)
+	s.Run("changePassword", s.changePassword)
+	s.Run("logout", s.logout)
+	s.Run("delete", s.delete)
+}
+
+func (s *AccountSuite) profile() {
 	// Make request without any access token
 	w := utils.MakeRequest(s.router, http.MethodGet, "/account/profile", nil)
 	s.Equal(http.StatusUnauthorized, w.Result().StatusCode, "status should be 401 because there is no jwt")
@@ -64,9 +72,15 @@ func (s *AccountSuite) TestProfile() {
 	s.Equal(http.StatusOK, w.Result().StatusCode, "profile should return 200 because we have the login cookie")
 }
 
-func (s *AccountSuite) TestSignupCaptcha() {
+func (s *AccountSuite) signupCaptcha() {
 	w := utils.MakeRequest(s.router, http.MethodGet, "/account/captcha", nil)
 
 	s.Equal(http.StatusOK, w.Result().StatusCode)
 	s.Equal([]string{"image/png"}, w.Result().Header["Content-Type"])
 }
+
+func (s *AccountSuite) changePassword() {}
+
+func (s *AccountSuite) logout() {}
+
+func (s *AccountSuite) delete() {}
