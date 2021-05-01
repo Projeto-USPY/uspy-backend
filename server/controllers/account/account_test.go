@@ -80,7 +80,5 @@ func (s *AccountSuite) signupCaptcha() {
 }
 
 func (s *AccountSuite) changePassword() {}
-
-func (s *AccountSuite) logout() {}
-
-func (s *AccountSuite) delete() {}
+func (s *AccountSuite) logout()         {}
+func (s *AccountSuite) delete()         {}
