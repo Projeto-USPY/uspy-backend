@@ -106,6 +106,14 @@ func setup(DB db.Env) error {
 	return nil
 }
 
+func MustGet() db.Env {
+	if emu, err := Get(); err != nil {
+		panic("failed to get emulator while running MustGet")
+	} else {
+		return emu
+	}
+}
+
 func Get() (testDB db.Env, getError error) {
 	if emuDB != (db.Env{}) {
 		return emuDB, nil
