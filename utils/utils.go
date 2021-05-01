@@ -8,7 +8,24 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
+
+	"github.com/gin-gonic/gin"
 )
+
+// MakeRequest runs a single request. This is used by test functions that run requests on the router
+func MakeRequest(router *gin.Engine, method, endpoint string, body io.Reader, cookies ...*http.Cookie) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(method, endpoint, body)
+
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+
+	router.ServeHTTP(w, req)
+	return w
+}
 
 // Encrypts using AES. keyString must be 128, 196 or 256 bits.
 func AESEncrypt(stringToEncrypt string, keyString string) (encryptedString string, err error) {
