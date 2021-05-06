@@ -95,7 +95,7 @@ func getInsertables() (objects []db.Object, getError error) {
 	return objects, nil
 }
 
-func setup(DB db.Env) error {
+func Setup(DB db.Env) error {
 	config.TestSetup()
 	if objects, err := getInsertables(); err != nil {
 		return err
@@ -131,7 +131,7 @@ func Get() (testDB db.Env, getError error) {
 
 	insertOnce.Do(
 		func() {
-			if err := setup(testDB); err != nil {
+			if err := Setup(testDB); err != nil {
 				getError = err
 				return
 			}
