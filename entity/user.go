@@ -4,11 +4,13 @@ package entity
 import (
 	"crypto/sha256"
 	"fmt"
+	"time"
+
+	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 )
 
 // entity.User represents a user not only in the Firestore DB but also as input for some endpoints
@@ -86,4 +88,10 @@ func (u User) Insert(DB db.Env, collection string) error {
 	return err
 }
 
-func (u User) Update(DB db.Env, collection string) error { return nil }
+func (u User) Update(DB db.Env, collection string) error {
+	_, err := DB.Client.Collection(collection).Doc(u.Hash()).Update(DB.Ctx, []firestore.Update{{
+		Path:  "password",
+		Value: u.PasswordHash,
+	}})
+	return err
+}
