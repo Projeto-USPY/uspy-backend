@@ -89,5 +89,11 @@ func (s *AccountSuite) TestChangePassword() {
 	w = utils.MakeRequest(s.router, http.MethodPost, "/account/login", bytes.NewBuffer([]byte(newLoginBody)))
 	s.Equal(http.StatusOK, w.Result().StatusCode, "failed to login with new credentials")
 }
-func (s *AccountSuite) TestLogout() {}
+func (s *AccountSuite) TestLogout() {
+	w := utils.MakeRequest(s.router, http.MethodGet, "/account/logout", nil)
+	s.Equal(http.StatusUnauthorized, w.Result().StatusCode, "managed to logout without authorization")
+
+	w = utils.MakeRequest(s.router, http.MethodGet, "/account/logout", nil, s.accessToken)
+	s.Equal(http.StatusOK, w.Result().StatusCode, "did not manage to log out")
+}
 func (s *AccountSuite) TestDelete() {}
