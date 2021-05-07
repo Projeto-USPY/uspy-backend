@@ -15,17 +15,20 @@ import (
 
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
-	r.Use(gin.Recovery(), middleware.DefineDomain())
-	r.Use(middleware.RateLimiter(config.Env.RateLimit))
 
 	err := entity.SetupValidators()
 	if err != nil {
 		return nil, err
 	}
 
+	r.Use(gin.Recovery(), middleware.DefineDomain())
+
 	if config.Env.IsLocal() {
 		r.Use(middleware.AllowAnyOrigin())
 	} else {
+		if limiter := middleware.RateLimiter(config.Env.RateLimit); limiter != nil {
+			r.Use(limiter)
+		}
 		r.Use(middleware.AllowUSPYOrigin())
 	}
 

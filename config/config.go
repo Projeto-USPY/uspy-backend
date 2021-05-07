@@ -36,7 +36,7 @@ type Config struct {
 	JWTSecret string `envconfig:"USPY_JWT_SECRET" required:"true" default:"my_secret"`
 	Mode      string `envconfig:"USPY_MODE" required:"true" default:"dev"`
 	AESKey    string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
-	RateLimit string `envconfig:"USPY_RATE_LIMIT" default:"5-S"`                                                                           // see github.com/ulule/limiter for more info
+	RateLimit string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
 
 	Local  LocalConfig
 	Remote RemoteConfig

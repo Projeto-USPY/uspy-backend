@@ -77,7 +77,7 @@ To deploy and/or run this application, there are a few requisites:
 | **USPY_JWT_SECRET**    | Private key to be used to generate `JWT` Tokens |     **Yes**      |                 |   `my_secret`   |
 | **USPY_MODE**          | Which mode to run the web server                |     **Yes**      |  `[prod, dev]`  |      `dev`      |
 | **USPY_AES_KEY**       | Private AES key to be used for AES Encryption   |     **Yes**      |     AES key     |   `71deb5...`   |
-| **USPY_RATE_LIMIT**    | `Frequency:Time` string for the rate-limiter    |      **No**      |  `F:P` string   | `5-S` (5 req/s) |
+| **USPY_RATE_LIMIT**    | `Frequency:Time` string for the rate-limiter    |      **No**      |  `F:P` string   |                 |
 | **USPY_FIRESTORE_KEY** | Path to firestore access key                    | **Only locally** |                 |                 |
 | **USPY_PROJECT_ID**    | GCP Project ID                                  | **In the Cloud** |                 |                 |
 
