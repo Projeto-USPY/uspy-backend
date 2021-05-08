@@ -1,1 +1,1 @@
-firebase emulators:exec --only firestore "go test ./... -p 1 -v"
+firebase emulators:exec --only firestore "go test ./... -p 1"
