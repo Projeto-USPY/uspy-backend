@@ -2,15 +2,16 @@
 package account
 
 import (
-	"cloud.google.com/go/firestore"
 	"context"
 	"fmt"
+	"reflect"
+	"sync"
+
+	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
 	"golang.org/x/crypto/bcrypt"
-	"reflect"
-	"sync"
 )
 
 // Profile retrieves the user profile. In v1 that only contains name and id info
@@ -119,20 +120,20 @@ func Delete(DB db.Env, u entity.User) (deleteErr error) {
 
 		finalScoresDocs, err := finalScoreRefs.GetAll()
 		if err != nil {
-			return err
+			return fmt.Errorf("could not get final scores: %v", err.Error())
 		}
 
 		subjectReviewsDocs, err := subjectReviewsRefs.GetAll()
 		if err != nil {
-			return err
+			return fmt.Errorf("could not get subject reviews: %v", err.Error())
 		}
 
 		var wg sync.WaitGroup
 		channelErr := make(chan error, len(finalScoresDocs)*100)
 
 		for _, subRef := range finalScoresDocs {
+			wg.Add(1)
 			go func(subRef *firestore.DocumentRef) {
-				wg.Add(1)
 				defer wg.Done()
 
 				recordsRef := subRef.Collection("records")
@@ -145,8 +146,8 @@ func Delete(DB db.Env, u entity.User) (deleteErr error) {
 
 				// get grades to remove
 				for _, recordRef := range recordsDocs {
+					wg.Add(1)
 					go func(recordRef *firestore.DocumentRef) {
-						wg.Add(1)
 						defer wg.Done()
 
 						// get value of record
@@ -187,7 +188,7 @@ func Delete(DB db.Env, u entity.User) (deleteErr error) {
 		close(channelErr)
 		for e := range channelErr {
 			if e != nil {
-				return e
+				return fmt.Errorf("could not delete grades and records: %v", err.Error())
 			}
 		}
 
@@ -195,12 +196,12 @@ func Delete(DB db.Env, u entity.User) (deleteErr error) {
 		for _, reviewRef := range subjectReviewsDocs {
 			rev, err := tx.Get(reviewRef) // get review snapshot
 			if err != nil {
-				return err
+				return fmt.Errorf("could not get review snapshot: %v", err.Error())
 			}
 
 			categories, err := rev.DataAt("categories") // get existing review categories
 			if err != nil {
-				return err
+				return fmt.Errorf("could not get review categories: %v", err.Error())
 			}
 
 			subRef := DB.Client.Doc("subjects/" + reviewRef.ID)
@@ -212,14 +213,14 @@ func Delete(DB db.Env, u entity.User) (deleteErr error) {
 					path := fmt.Sprintf("stats.%s", k)
 					err = tx.Update(subRef, []firestore.Update{{Path: path, Value: firestore.Increment(-1)}})
 					if err != nil {
-						return err
+						return fmt.Errorf("could not update subject categories: %v", err.Error())
 					}
 				}
 			}
 			// decrement number of total reviews
 			err = tx.Update(subRef, []firestore.Update{{Path: "stats.total", Value: firestore.Increment(-1)}})
 			if err != nil {
-				return err
+				return fmt.Errorf("could not decrement number of total reviews: %v", err.Error())
 			}
 		}
 
