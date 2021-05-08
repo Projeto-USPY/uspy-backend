@@ -19,7 +19,7 @@ type UserSuite struct {
 
 // SetupTest runs before every test
 func (s *UserSuite) SetupTest() {
-	s.DB, s.router, s.accessToken = test.MustGetEnvironment()
+	s.DB, s.router, s.accessToken = test.MustGetEnvironment(s.Suite)
 }
 
 func TestUserSuite(t *testing.T) {

@@ -21,7 +21,7 @@ type AccountSuite struct {
 
 // SetupTest runs before every test
 func (s *AccountSuite) SetupTest() {
-	s.DB, s.router, s.accessToken = test.MustGetEnvironment()
+	s.DB, s.router, s.accessToken = test.MustGetEnvironment(s.Suite)
 }
 
 func TestAccountSuite(t *testing.T) {

@@ -2,10 +2,11 @@
 package entity
 
 import (
-	"cloud.google.com/go/firestore"
 	"crypto/md5"
 	"fmt"
 	"reflect"
+
+	"cloud.google.com/go/firestore"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
 )

@@ -11,6 +11,7 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/Projeto-USPY/uspy-backend/utils/test/emulator"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/suite"
 )
 
 // setupAccessToken fetches the jwt token used for private and restricted tests
@@ -32,23 +33,20 @@ func setupAccessToken(router *gin.Engine) (*http.Cookie, error) {
 }
 
 // GetEnvironment will reinitialize the testing environment.
-// It requires a suite because it is meant to be run with suites.
-func MustGetEnvironment() (DB db.Env, router *gin.Engine, cookie *http.Cookie) {
+// It requires a suite because it is meant to be run with suites, so it can fail their test context in case of errors
+func MustGetEnvironment(s suite.Suite) (DB db.Env, router *gin.Engine, cookie *http.Cookie) {
 	DB = emulator.MustGet()
-	if err := emulator.Setup(DB); err != nil {
-		panic(err)
-	}
 
 	// setup router
 	var err error
 	router, err = server.SetupRouter(DB)
 	if err != nil {
-		panic(err)
+		s.T().Fatal(err)
 	}
 
 	// get valid AccessToken
 	if cookie, err = setupAccessToken(router); err != nil {
-		panic(err)
+		s.T().Fatal(err)
 	}
 
 	return
