@@ -43,6 +43,8 @@ func Signup(DB db.Env, u entity.User, recs iddigital.Records) error {
 			Grade:     g.Grade,
 			Status:    g.Status,
 			Frequency: g.Frequency,
+			Year:      g.Year,
+			Semester:  g.Semester,
 		}
 
 		subHash := entity.Subject{Code: g.Subject, CourseCode: g.Course, Specialization: g.Specialization}.Hash()
