@@ -1,8 +1,8 @@
 package account_test
 
 import (
-	"bytes"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
@@ -67,6 +67,13 @@ func (s *AccountSuite) TestChangePassword() {
 		}
 	`
 
+	invalidBody := `
+		{
+			"old_password": "r4nd0mpass123!@#",
+			"new_password": "shortpass"
+		}
+	`
+
 	changePwdBody := `
 		{
 			"old_password": "r4nd0mpass123!@#",
@@ -74,19 +81,22 @@ func (s *AccountSuite) TestChangePassword() {
 		}
 	`
 
-	w := utils.MakeRequest(s.router, http.MethodPost, "/account/login", bytes.NewBuffer([]byte(loginBody)))
+	w := utils.MakeRequest(s.router, http.MethodPost, "/account/login", strings.NewReader(loginBody))
 	s.Equal(http.StatusOK, w.Result().StatusCode, "failed to login with original credentials")
 
-	w = utils.MakeRequest(s.router, http.MethodPut, "/account/password_change", bytes.NewBuffer([]byte(incorrectBody)), s.accessToken)
+	w = utils.MakeRequest(s.router, http.MethodPut, "/account/password_change", strings.NewReader(incorrectBody), s.accessToken)
 	s.Equal(http.StatusForbidden, w.Result().StatusCode, "changed password with wrong old pass")
 
-	w = utils.MakeRequest(s.router, http.MethodPut, "/account/password_change", bytes.NewBuffer([]byte(changePwdBody)), s.accessToken)
+	w = utils.MakeRequest(s.router, http.MethodPut, "/account/password_change", strings.NewReader(invalidBody), s.accessToken)
+	s.Equal(http.StatusBadRequest, w.Result().StatusCode, "password should be invalid")
+
+	w = utils.MakeRequest(s.router, http.MethodPut, "/account/password_change", strings.NewReader(changePwdBody), s.accessToken)
 	s.Equal(http.StatusOK, w.Result().StatusCode, "failed to change password")
 
-	w = utils.MakeRequest(s.router, http.MethodPost, "/account/login", bytes.NewBuffer([]byte(loginBody)))
+	w = utils.MakeRequest(s.router, http.MethodPost, "/account/login", strings.NewReader(loginBody))
 	s.Equal(http.StatusUnauthorized, w.Result().StatusCode, "managed to login with old credentials")
 
-	w = utils.MakeRequest(s.router, http.MethodPost, "/account/login", bytes.NewBuffer([]byte(newLoginBody)))
+	w = utils.MakeRequest(s.router, http.MethodPost, "/account/login", strings.NewReader(newLoginBody))
 	s.Equal(http.StatusOK, w.Result().StatusCode, "failed to login with new credentials")
 }
 func (s *AccountSuite) TestLogout() {
@@ -95,5 +105,47 @@ func (s *AccountSuite) TestLogout() {
 
 	w = utils.MakeRequest(s.router, http.MethodGet, "/account/logout", nil, s.accessToken)
 	s.Equal(http.StatusOK, w.Result().StatusCode, "did not manage to log out")
+
+	// no cookies for you
+	cookies := w.Result().Cookies()
+	if len(cookies) > 0 {
+		for _, c := range cookies {
+			if c.Name == "access_token" {
+				s.Equal(cookies[0].Value, "")
+			}
+		}
+	}
 }
-func (s *AccountSuite) TestDelete() {}
+
+// func (s *AccountSuite) TestDelete() {
+// 	w := utils.MakeRequest(s.router, http.MethodDelete, "/account", nil)
+// 	s.Equal(http.StatusUnauthorized, w.Result().StatusCode, "managed to delete account without authorization")
+
+// 	w = utils.MakeRequest(s.router, http.MethodDelete, "/account", nil, s.accessToken)
+// 	s.Equal(http.StatusOK, w.Result().StatusCode, "could not delete account even with cookie")
+
+// 	user, _ := entity.NewUserWithOptions(
+// 		"123456789",
+// 		"r4nd0mpass123!@#",
+// 		"Usuário teste",
+// 		time.Now(),
+// 		entity.WithPasswordHash{},
+// 		entity.WithNameHash{},
+// 	)
+
+// 	// assert user does not exist anymore
+// 	_, err := s.DB.Restore("users", user.Hash())
+// 	s.Error(err)
+
+// 	// get all subjects
+// 	subs, err := s.DB.RestoreCollection("subjects")
+// 	s.NoError(err)
+
+// 	for _, sub := range subs {
+// 		colRef := sub.Ref.Collection("grades")
+// 		snaps, err := colRef.Documents(s.DB.Ctx).GetAll()
+
+// 		s.NoError(err)
+// 		s.Empty(snaps)
+// 	}
+// }
