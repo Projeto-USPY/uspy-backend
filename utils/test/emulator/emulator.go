@@ -14,44 +14,45 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/server/models/account"
 )
 
-var (
-	insertOnce sync.Once
-	insertCnt  int = 0
-)
-
 var testSubjects = []entity.Subject{
 	{
 		Code:           "SCC0230",
 		CourseCode:     "55090",
 		Specialization: "0",
 		Name:           "Inteligência Artificial",
+		Semester:       6,
 		Description:    "Apresentar ao aluno as idéias fundamentais da Inteligência Artificial e algumas características relacionadas à implementação desse tipo de sistemas.",
 		ClassCredits:   4,
 		AssignCredits:  1,
 		TotalHours:     "90 h",
 		Stats:          map[string]int{"total": 0, "worth_it": 0},
+		Optional:       false,
 	},
 	{
 		Code:           "SCC0222",
 		CourseCode:     "55041",
 		Specialization: "0",
 		Name:           "Laboratório de Introdução à Ciência de Computação I",
+		Semester:       2,
 		Description:    "Implementar em laboratório as técnicas de programação apresentadas em Introdução à Ciência da Computação I, utilizando uma linguagem de programação estruturada.",
 		ClassCredits:   2,
 		AssignCredits:  2,
 		TotalHours:     "90 h",
 		Stats:          map[string]int{"total": 0, "worth_it": 0},
+		Optional:       true,
 	},
 	{
 		Code:           "SCC0217",
 		CourseCode:     "55041",
 		Specialization: "0",
 		Name:           "Linguagens de Programação e Compiladores",
+		Semester:       6,
 		Description:    "Dar ao aluno as noções básicas sobre linguagens de programação e técnicas de construção de compiladores para linguagens de programação de alto nível.",
 		ClassCredits:   4,
 		AssignCredits:  2,
 		TotalHours:     "120 h",
 		Stats:          map[string]int{"total": 0, "worth_it": 0},
+		Optional:       false,
 	},
 }
 
