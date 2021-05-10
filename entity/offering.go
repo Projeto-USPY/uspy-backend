@@ -13,6 +13,7 @@ import (
 type Offering struct {
 	Professor string `json:"professor" firestore:"professor"`
 	CodPes    string `json:"-" firestore:"-"`
+	Code      string `json:"-" firestore:"-"`
 }
 
 // md5(CodPes)
