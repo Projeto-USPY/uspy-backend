@@ -4,25 +4,21 @@ package entity
 import (
 	"crypto/md5"
 	"fmt"
+
 	"github.com/Projeto-USPY/uspy-backend/db"
 )
 
 // entity.Offering describes an offering of a subject
-// Example: {1, 2019, id("Fulano da Silva"), "SMA0356"}
+// Since it is inside a subcollection of a subject, it does not have subject data
 type Offering struct {
-	Semester  int    `json:"semester" firestore:"semester"`
-	Year      int    `json:"year" firestore:"year"`
-	Professor int    `json:"professor" firestore:"professor"`
-	Subject   string `json:"subject" firestore:"subject"`
+	Professor string `json:"professor" firestore:"professor"`
+	CodPes    string `json:"-" firestore:"-"`
 }
 
-// md5(concat(subject, professor, year, semester))
+// md5(CodPes)
 func (off Offering) Hash() string {
 	concat := fmt.Sprint(
-		off.Subject,
-		off.Professor,
-		off.Year,
-		off.Semester,
+		off.CodPes,
 	)
 
 	return fmt.Sprintf("%x", md5.Sum([]byte(concat)))
