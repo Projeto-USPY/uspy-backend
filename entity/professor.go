@@ -8,10 +8,9 @@ import (
 // entity.Professor represents a professor
 // Example: {1234567, "Fulano da Silva", Stats, Offerings}
 type Professor struct {
-	CodPes int
+	CodPes string
 	Name   string
 
-	Stats     map[string]int
 	Offerings []Offering
 }
 
