@@ -11,7 +11,7 @@ import (
 // entity.Offering describes an offering of a subject
 // Since it is inside a subcollection of a subject, it does not have subject data
 type Offering struct {
-	Professor string `json:"professor" firestore:"professor"`
+	Professor string `json:"-" firestore:"professor"`
 	CodPes    string `json:"-" firestore:"-"`
 	Code      string `json:"-" firestore:"-"`
 }
