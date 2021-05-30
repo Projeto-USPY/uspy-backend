@@ -14,6 +14,7 @@ type Offering struct {
 	Professor string `json:"name" firestore:"professor"`
 	CodPes    string `json:"-" firestore:"-"`
 	Code      string `json:"code" firestore:"-"`
+	Year      string `json:"year" firestore:"year"`
 }
 
 // md5(CodPes)
