@@ -2,9 +2,10 @@
 package entity
 
 import (
-	"crypto/md5"
 	"fmt"
+
 	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
 // entity.FinalScore is a user's final score that is stored in the Firestore DB
@@ -21,7 +22,7 @@ type FinalScore struct {
 
 func (mf FinalScore) Hash() string {
 	str := fmt.Sprintf("%d%d", mf.Year, mf.Semester)
-	return fmt.Sprintf("%x", md5.Sum([]byte(str)))
+	return utils.SHA256(str)
 }
 
 func (mf FinalScore) Insert(DB db.Env, collection string) error {

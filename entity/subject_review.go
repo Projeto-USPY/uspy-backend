@@ -2,12 +2,13 @@
 package entity
 
 import (
-	"crypto/md5"
 	"fmt"
-	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/go-playground/validator/v10"
 	"reflect"
 	"sort"
+
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/utils"
+	"github.com/go-playground/validator/v10"
 )
 
 func validateSubjectReview(f1 validator.FieldLevel) bool {
@@ -47,7 +48,7 @@ type SubjectReview struct {
 
 func (sr SubjectReview) Hash() string {
 	str := fmt.Sprintf("%s%s%s", sr.Subject, sr.Course, sr.Specialization)
-	return fmt.Sprintf("%x", md5.Sum([]byte(str)))
+	return utils.SHA256(str)
 }
 
 func (sr SubjectReview) Insert(DB db.Env, collection string) error {

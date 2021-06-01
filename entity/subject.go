@@ -2,13 +2,13 @@
 package entity
 
 import (
-	"crypto/md5"
 	"fmt"
 	"reflect"
 
 	"cloud.google.com/go/firestore"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
 // entity.Subject describes a subject
@@ -38,7 +38,7 @@ type Subject struct {
 
 func (s Subject) Hash() string {
 	str := fmt.Sprintf("%s%s%s", s.Code, s.CourseCode, s.Specialization)
-	return fmt.Sprintf("%x", md5.Sum([]byte(str)))
+	return utils.SHA256(str)
 }
 
 func (s Subject) Insert(DB db.Env, collection string) error {

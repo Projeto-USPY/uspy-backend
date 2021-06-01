@@ -2,11 +2,12 @@
 package entity
 
 import (
-	"cloud.google.com/go/firestore"
-	"crypto/md5"
 	"fmt"
-	"github.com/Projeto-USPY/uspy-backend/db"
 	"reflect"
+
+	"cloud.google.com/go/firestore"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
 // entity.Course represents a course/major
@@ -21,7 +22,7 @@ type Course struct {
 
 func (c Course) Hash() string {
 	str := fmt.Sprintf("%s%s", c.Code, c.Specialization)
-	return fmt.Sprintf("%x", md5.Sum([]byte(str)))
+	return utils.SHA256(str)
 }
 
 func (c Course) Insert(DB db.Env, collection string) error {

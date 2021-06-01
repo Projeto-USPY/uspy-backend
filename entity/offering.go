@@ -2,10 +2,8 @@
 package entity
 
 import (
-	"crypto/md5"
-	"fmt"
-
 	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
 // entity.Offering describes an offering of a subject
@@ -17,13 +15,9 @@ type Offering struct {
 	Year      string `json:"year" firestore:"year"`
 }
 
-// md5(CodPes)
+// sha256(CodPes)
 func (off Offering) Hash() string {
-	concat := fmt.Sprint(
-		off.CodPes,
-	)
-
-	return fmt.Sprintf("%x", md5.Sum([]byte(concat)))
+	return utils.SHA256(off.CodPes)
 }
 
 func (off Offering) Insert(DB db.Env, collection string) error {

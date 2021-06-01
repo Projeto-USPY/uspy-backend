@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -89,4 +90,8 @@ func AESDecrypt(encryptedString string, keyString string) (decryptedString strin
 	}
 
 	return fmt.Sprintf("%s", plaintext), nil
+}
+
+func SHA256(body string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(body)))
 }
