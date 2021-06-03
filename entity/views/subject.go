@@ -9,7 +9,7 @@ type Subject struct {
 	CourseCode     string          `json:"course"`
 	Specialization string          `json:"specialization"`
 	Name           string          `json:"name"`
-	Description    string          `json:"desc"`
+	Description    string          `json:"description"`
 	Semester       int             `json:"semester"`
 	ClassCredits   int             `json:"class"`
 	AssignCredits  int             `json:"assign"`
