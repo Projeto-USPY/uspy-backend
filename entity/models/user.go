@@ -10,8 +10,8 @@ import (
 )
 
 type User struct {
-	ID   string
-	Name string
+	ID   string `firestore:"-"`
+	Name string `firestore:"-"`
 
 	// NameHash is AES encrypted since it has to be decrypted
 	NameHash string `firestore:"name"`

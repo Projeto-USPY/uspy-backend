@@ -64,9 +64,9 @@ func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controller
 		return
 	}
 
-	best := models.FinalScore{}
+	best := models.Record{}
 	for _, s := range col {
-		var fs models.FinalScore
+		var fs models.Record
 		err := s.DataTo(&fs)
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind final score: %s", err.Error()))

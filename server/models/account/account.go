@@ -41,7 +41,7 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Records) error 
 		}
 
 		for _, g := range data.Grades {
-			mf := models.FinalScore{
+			mf := models.Record{
 				Grade:     g.Value,
 				Status:    g.Status,
 				Frequency: g.Frequency,
@@ -314,14 +314,14 @@ func ResetPassword(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupFo
 func Delete(ctx *gin.Context, DB db.Env, userID string) {
 	userHash := utils.SHA256(userID)
 	userRef := DB.Client.Doc("users/" + userHash)
-	finalScores := userRef.Collection("final_scores")
+	records := userRef.Collection("final_scores")
 	subjectReviews := userRef.Collection("subject_reviews")
 
 	deleteErr := DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		// Do all the reading first
-		finalScoreRefs, subjectReviewsRefs := tx.DocumentRefs(finalScores), tx.DocumentRefs(subjectReviews)
+		recordRefs, subjectReviewsRefs := tx.DocumentRefs(records), tx.DocumentRefs(subjectReviews)
 
-		finalScoresDocs, err := finalScoreRefs.GetAll()
+		recordsDocs, err := recordRefs.GetAll()
 		if err != nil {
 			return fmt.Errorf("could not get final scores: %v", err.Error())
 		}
@@ -332,9 +332,9 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 		}
 
 		var wg sync.WaitGroup
-		channelErr := make(chan error, len(finalScoresDocs)*100)
+		channelErr := make(chan error, len(recordsDocs)*100)
 
-		for _, subRef := range finalScoresDocs {
+		for _, subRef := range recordsDocs {
 			wg.Add(1)
 			go func(subRef *firestore.DocumentRef) {
 				defer wg.Done()
@@ -360,7 +360,7 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 						}
 
 						// read final score
-						var score models.FinalScore
+						var score models.Record
 						if err = snap.DataTo(&score); err != nil {
 							channelErr <- err
 						}

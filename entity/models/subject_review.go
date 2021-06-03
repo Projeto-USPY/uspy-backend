@@ -9,9 +9,9 @@ import (
 )
 
 type SubjectReview struct {
-	Subject        string
-	Course         string
-	Specialization string
+	Subject        string `firestore:"-"`
+	Course         string `firestore:"-"`
+	Specialization string `firestore:"-"`
 
 	Review map[string]interface{} `firestore:"categories"`
 }

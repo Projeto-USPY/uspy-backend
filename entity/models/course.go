@@ -17,7 +17,7 @@ type Course struct {
 	Specialization string            `firestore:"specialization"`
 	SubjectCodes   map[string]string `firestore:"subjects"`
 
-	Subjects []Subject
+	Subjects []Subject `firestore:"-"`
 }
 
 func (c Course) Hash() string {

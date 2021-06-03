@@ -8,14 +8,14 @@ import (
 )
 
 type Grade struct {
-	User           string
-	Subject        string
-	Frequency      int
-	Status         string
-	Course         string
-	Specialization string
-	Semester       int
-	Year           int
+	User           string `firestore:"-"`
+	Subject        string `firestore:"-"`
+	Frequency      int    `firestore:"-"`
+	Status         string `firestore:"-"`
+	Course         string `firestore:"-"`
+	Specialization string `firestore:"-"`
+	Semester       int    `firestore:"-"`
+	Year           int    `firestore:"-"`
 
 	Value float64 `firestore:"value"`
 }

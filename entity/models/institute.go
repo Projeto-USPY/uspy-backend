@@ -5,11 +5,11 @@ import (
 )
 
 type Institute struct {
-	Name    string
-	Code    string
-	Courses []Course
+	Name    string   `firestore:"-"`
+	Code    string   `firestore:"-"`
+	Courses []Course `firestore:"-"`
 
-	Professors []Professor
+	Professors []Professor `firestore:"-"`
 }
 
 func (i Institute) Insert(DB db.Env, collection string) error { return nil }

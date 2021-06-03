@@ -7,23 +7,23 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
-type FinalScore struct {
-	Year     int
-	Semester int
+type Record struct {
+	Year     int `firestore:"-"`
+	Semester int `firestore:"-"`
 
 	Grade     float64 `firestore:"grade"`
 	Status    string  `firestore:"status"`
 	Frequency int     `firestore:"frequency"`
 }
 
-func (mf FinalScore) Hash() string {
+func (mf Record) Hash() string {
 	str := fmt.Sprintf("%d%d", mf.Year, mf.Semester)
 	return utils.SHA256(str)
 }
 
-func (mf FinalScore) Insert(DB db.Env, collection string) error {
+func (mf Record) Insert(DB db.Env, collection string) error {
 	_, _, err := DB.Client.Collection(collection).Add(DB.Ctx, mf)
 	return err
 }
 
-func (mf FinalScore) Update(DB db.Env, collection string) error { return nil }
+func (mf Record) Update(DB db.Env, collection string) error { return nil }

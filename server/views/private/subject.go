@@ -8,8 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetSubjectGrade(ctx *gin.Context, grade *models.FinalScore) {
-	ctx.JSON(http.StatusOK, views.NewFinalScoreFromModel(grade))
+func GetSubjectGrade(ctx *gin.Context, grade *models.Record) {
+	ctx.JSON(http.StatusOK, views.NewRecordFromModel(grade))
 }
 
 func GetSubjectReview(ctx *gin.Context, review *models.SubjectReview) {
