@@ -4,14 +4,11 @@ package account
 import (
 	"testing"
 
-	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 )
 
 func TestGenerateToken(t *testing.T) {
-	user := models.User{ID: "login"}
-
-	jwt, err := middleware.GenerateJWT(&user)
+	jwt, err := middleware.GenerateJWT("login")
 
 	if err != nil {
 		t.Fatal(err)
@@ -21,9 +18,7 @@ func TestGenerateToken(t *testing.T) {
 }
 
 func TestValidateToken(t *testing.T) {
-	user := models.User{ID: "login"}
-
-	jwt, err := middleware.GenerateJWT(&user)
+	jwt, err := middleware.GenerateJWT("login")
 
 	if err != nil {
 		t.Fatal(err)

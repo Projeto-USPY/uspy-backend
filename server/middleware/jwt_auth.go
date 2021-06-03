@@ -7,16 +7,15 @@ import (
 	"time"
 
 	"github.com/Projeto-USPY/uspy-backend/config"
-	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/dgrijalva/jwt-go"
 
 	"github.com/gin-gonic/gin"
 )
 
 // GenerateJWT generates a JWT from user struct
-func GenerateJWT(user *models.User) (jwtString string, err error) {
+func GenerateJWT(userID string) (jwtString string, err error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user":      user.ID,
+		"user":      userID,
 		"timestamp": time.Now().Unix(),
 	})
 

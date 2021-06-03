@@ -200,7 +200,7 @@ func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 		}
 
 		// generate access_token
-		if jwtToken, err := middleware.GenerateJWT(&storedUser); err != nil {
+		if jwtToken, err := middleware.GenerateJWT(login.ID); err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating jwt for user %s: %s", storedUser.ID, err.Error()))
 			return
 		} else {
