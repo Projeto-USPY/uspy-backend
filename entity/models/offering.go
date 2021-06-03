@@ -1,3 +1,4 @@
+/* package entity contains structs that will be used for backend input validation and DB operations */
 package models
 
 import (
@@ -5,6 +6,8 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
+// entity.Offering describes an offering of a subject
+// Since it is inside a subcollection of a subject, it does not have subject data
 type Offering struct {
 	CodPes string
 	Code   string
@@ -13,6 +16,7 @@ type Offering struct {
 	Year      string `firestore:"year"`
 }
 
+// sha256(CodPes)
 func (off Offering) Hash() string {
 	return utils.SHA256(off.CodPes)
 }

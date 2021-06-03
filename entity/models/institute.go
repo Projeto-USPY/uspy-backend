@@ -1,15 +1,15 @@
-package entity
+package models
 
 import (
 	"github.com/Projeto-USPY/uspy-backend/db"
 )
 
 type Institute struct {
-	Name    string   `json:"name"`
-	Code    string   `json:"code"`
-	Courses []Course `json:"courses"`
+	Name    string
+	Code    string
+	Courses []Course
 
-	Professors []Professor `json:"professors"`
+	Professors []Professor
 }
 
 func (i Institute) Insert(DB db.Env, collection string) error { return nil }
