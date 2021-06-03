@@ -41,10 +41,11 @@ func GetSubjectReview(DB db.Env) func(ctx *gin.Context) {
 // UpdateSubjectReview is a closure for the POST /private/subject/review endpoint
 func UpdateSubjectReview(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
+		sub := ctx.MustGet("Subject").(controllers.Subject)
+
 		// get subject and review data
-		sr := controllers.SubjectReview{}
-		err := ctx.ShouldBindJSON(&sr)
-		if err != nil {
+		sr := controllers.SubjectReview{Subject: sub}
+		if err := ctx.ShouldBindJSON(&sr); err != nil {
 			ctx.AbortWithStatus(http.StatusBadRequest)
 			return
 		}

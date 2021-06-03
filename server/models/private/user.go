@@ -177,13 +177,13 @@ func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *con
 		}
 
 		// add new review (overwrites if existing)
-		err := tx.Set(revRef, review)
+		err := tx.Set(revRef, reviewModel)
 		if err != nil {
 			return err
 		}
 
 		// update subject stats with new review
-		for k, v := range review.Review {
+		for k, v := range reviewModel.Review {
 			if reflect.ValueOf(v).Kind() == reflect.Bool && v.(bool) {
 				path := fmt.Sprintf("stats.%s", k)
 				err = tx.Update(subRef, []firestore.Update{{Path: path, Value: firestore.Increment(1)}})
