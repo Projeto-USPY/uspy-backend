@@ -72,7 +72,7 @@ func TestSetup() {
 		log.Fatal("could not process default env variables: ", err)
 	}
 
-	log.Printf("env variables set: %#v\n", Env.Redact())
+	log.Printf("env variables set: %#v\n", Env)
 }
 
 // Setup parses the .env file (or uses defaults) to determine environment constants and variables
