@@ -2,6 +2,9 @@ package emulator
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"os"
 	"time"
 
 	"sync"
@@ -9,12 +12,12 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
 	"github.com/Projeto-USPY/uspy-backend/server/models/account"
 )
 
-var testSubjects = []entity.Subject{
+var testSubjects = []models.Subject{
 	{
 		Code:           "SCC0230",
 		CourseCode:     "55090",
@@ -56,7 +59,7 @@ var testSubjects = []entity.Subject{
 	},
 }
 
-var testCourses = []entity.Course{
+var testCourses = []models.Course{
 	{
 		Name:           "Bacharelado em Ciência de Dados",
 		Code:           "55090",
@@ -83,7 +86,7 @@ func Setup(DB db.Env) error {
 	var wg sync.WaitGroup
 	for _, v := range testSubjects {
 		wg.Add(1)
-		go func(v entity.Subject) {
+		go func(v models.Subject) {
 			defer wg.Done()
 			errChannel <- DB.Insert(v, "subjects")
 		}(v)
@@ -91,7 +94,7 @@ func Setup(DB db.Env) error {
 
 	for _, c := range testCourses {
 		wg.Add(1)
-		go func(c entity.Course) {
+		go func(c models.Course) {
 			defer wg.Done()
 			errChannel <- DB.Insert(c, "courses")
 		}(c)
@@ -100,21 +103,19 @@ func Setup(DB db.Env) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		user, userErr := entity.NewUserWithOptions(
+		user, userErr := models.NewUser(
 			"123456789",
-			"r4nd0mpass123!@#",
 			"Usuário teste",
+			"r4nd0mpass123!@#",
 			time.Now(),
-			entity.WithPasswordHash{},
-			entity.WithNameHash{},
 		)
 
 		errChannel <- userErr
 
-		recs := iddigital.Records{
+		recs := iddigital.Transcript{
 			Name: user.Name,
-			Nusp: user.Login,
-			Grades: []entity.Grade{
+			Nusp: user.Name,
+			Grades: []models.Record{
 				{
 					Grade:          9.0,
 					Frequency:      100,
@@ -168,7 +169,7 @@ func Setup(DB db.Env) error {
 			},
 		}
 
-		errChannel <- account.Signup(DB, user, recs)
+		errChannel <- account.InsertUser(DB, user, &recs)
 	}()
 
 	wg.Wait()
@@ -184,9 +185,29 @@ func Setup(DB db.Env) error {
 	return jointErr
 }
 
+func clearDatabase() {
+	domain := os.Getenv("FIRESTORE_EMULATOR_HOST")
+
+	if req, err := http.NewRequest(
+		http.MethodDelete,
+		fmt.Sprintf("http://%s/emulator/v1/projects/test/databases/(default)/documents", domain),
+		nil,
+	); err != nil {
+		panic("could not create wipe database request: " + err.Error())
+	} else {
+		client := &http.Client{}
+		if _, err := client.Do(req); err != nil {
+			panic("could not wipe database with DELETE request: " + err.Error())
+		}
+	}
+}
+
 func MustGet() db.Env {
+	// clear the database if it already exists
+	clearDatabase()
+
 	if emu, err := Get(); err != nil {
-		panic("failed to get emulator while running MustGet")
+		panic("failed to get emulator while running MustGet:" + err.Error())
 	} else {
 		return emu
 	}

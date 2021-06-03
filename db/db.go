@@ -35,7 +35,7 @@ type Object struct {
 	Data       Writer
 }
 
-// Env is passed to /server/models functions that require DB operations
+// Env is passed to /server/dao functions that require DB operations
 type Env struct {
 	Client *firestore.Client
 	Ctx    context.Context

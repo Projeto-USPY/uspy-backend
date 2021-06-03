@@ -3,19 +3,19 @@ package middleware
 
 import (
 	"fmt"
-	"github.com/Projeto-USPY/uspy-backend/config"
-	"github.com/Projeto-USPY/uspy-backend/entity"
-	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"time"
+
+	"github.com/Projeto-USPY/uspy-backend/config"
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/gin-gonic/gin"
 )
 
 // GenerateJWT generates a JWT from user struct
-func GenerateJWT(user entity.User) (jwtString string, err error) {
+func GenerateJWT(userID string) (jwtString string, err error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user":      user.Login,
+		"user":      userID,
 		"timestamp": time.Now().Unix(),
 	})
 
@@ -42,19 +42,19 @@ func ValidateJWT(tokenString string) (*jwt.Token, error) {
 
 // JWT is used to ensure authorization with the JWT Access Cookie.
 func JWT() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		cookie, err := c.Cookie("access_token")
+	return func(ctx *gin.Context) {
+		cookie, err := ctx.Cookie("access_token")
 		if err != nil {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		token, err := ValidateJWT(cookie)
 		if err != nil {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		c.Set("access_token", token)
+		ctx.Set("access_token", token)
 	}
 }

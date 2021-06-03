@@ -3,8 +3,6 @@ package iddigital
 
 import (
 	"errors"
-	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/Projeto-USPY/uspy-backend/entity"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -12,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity/models"
 )
 
 // iddigital.PDF represents the pdf file retrieved from uspdigital
@@ -22,11 +23,11 @@ type PDF struct {
 	CreationDate time.Time
 }
 
-// iddigital.Records represents the parsed data retrieved from the user's PDF file\
-type Records struct {
-	Grades []entity.Grade `json:"grades"`
-	Name   string         `json:"name"`
-	Nusp   string         `json:"nusp"`
+// iddigital.Transcript represents the parsed data retrieved from the user's PDF file
+type Transcript struct {
+	Grades []models.Record `json:"grades"`
+	Name   string          `json:"name"`
+	Nusp   string          `json:"nusp"`
 }
 
 // NewPDF takes the Grades PDF response object and creates a new PDF object
@@ -94,11 +95,11 @@ func NewPDF(r *http.Response) (pdf PDF) {
 	}
 }
 
-// Parse takes the (already read) PDF and parses it into a Records object
-func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
+// Parse takes the (already read) PDF and parses it into a Transcript object
+func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			rec = Records{nil, "", ""}
+			rec = Transcript{nil, "", ""}
 			err = r.(error)
 		}
 	}()
@@ -160,7 +161,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 
 			// determine subject course origin
 			for _, s := range snaps {
-				c := entity.Course{}
+				c := models.Course{}
 				_ = s.DataTo(&c)
 				_, exists := c.SubjectCodes[subCode]
 
@@ -175,7 +176,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 				}
 			}
 
-			rec.Grades = append(rec.Grades, entity.Grade{
+			rec.Grades = append(rec.Grades, models.Record{
 				Subject:        subCode,
 				Grade:          grade,
 				Frequency:      freq,

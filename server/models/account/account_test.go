@@ -1,19 +1,14 @@
-// package account contains functions that implement backend-db communication for every /account endpoint
+// package models
 package account
 
 import (
-	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 	"testing"
 
-	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 )
 
 func TestGenerateToken(t *testing.T) {
-	user := entity.User{}
-	user.Login = "login"
-	user.Password = "pass"
-
-	jwt, err := middleware.GenerateJWT(user)
+	jwt, err := middleware.GenerateJWT("login")
 
 	if err != nil {
 		t.Fatal(err)
@@ -23,11 +18,7 @@ func TestGenerateToken(t *testing.T) {
 }
 
 func TestValidateToken(t *testing.T) {
-	user := entity.User{}
-	user.Login = "login"
-	user.Password = "pass"
-
-	jwt, err := middleware.GenerateJWT(user)
+	jwt, err := middleware.GenerateJWT("login")
 
 	if err != nil {
 		t.Fatal(err)

@@ -7,13 +7,13 @@ import (
 
 // DefineDomain is a middleware for setting the cookie domain values
 func DefineDomain() gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
 		if config.Env.IsLocal() {
-			c.Set("front_domain", "127.0.0.1")
-			c.Next()
+			ctx.Set("front_domain", "127.0.0.1")
+			ctx.Next()
 			return
 		}
 
-		c.Set("front_domain", "uspy.me")
+		ctx.Set("front_domain", "uspy.me")
 	}
 }

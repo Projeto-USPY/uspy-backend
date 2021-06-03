@@ -4,7 +4,7 @@ package server
 import (
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/entity/validation"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/account"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/private"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/public"
@@ -16,7 +16,7 @@ import (
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
 
-	err := entity.SetupValidators()
+	err := validation.SetupValidators()
 	if err != nil {
 		return nil, err
 	}
@@ -57,14 +57,14 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		{
 			// Available for guests
 			subjectAPI.GET("", public.GetSubjectByCode(DB))
-			subjectAPI.GET("/relations", public.GetSubjectGraph(DB))
+			subjectAPI.GET("/relations", public.GetRelations(DB))
 
 			// Restricted means all registered users can see.
 			restrictedGroup := apiGroup.Group("/restricted", middleware.JWT())
 			{
 				subRestricted := restrictedGroup.Group("/subject", middleware.Subject())
 				{
-					subRestricted.GET("/grades", restricted.GetSubjectGrades(DB))
+					subRestricted.GET("/grades", restricted.GetGrades(DB))
 				}
 			}
 		}
