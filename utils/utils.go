@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // MakeRequest runs a single request. This is used by test functions that run requests on the router
@@ -94,4 +95,16 @@ func AESDecrypt(encryptedString string, keyString string) (decryptedString strin
 
 func SHA256(body string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(body)))
+}
+
+func Bcrypt(body string) (string, error) {
+	pass, err := bcrypt.GenerateFromPassword([]byte(body), bcrypt.MinCost)
+	if err != nil {
+		return "", err
+	}
+	return string(pass), nil
+}
+
+func BcryptCompare(input, truth string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(truth), []byte(input)) == nil
 }
