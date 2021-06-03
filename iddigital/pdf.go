@@ -3,8 +3,6 @@ package iddigital
 
 import (
 	"errors"
-	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/Projeto-USPY/uspy-backend/entity"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -12,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity/models"
 )
 
 // iddigital.PDF represents the pdf file retrieved from uspdigital
@@ -24,7 +25,7 @@ type PDF struct {
 
 // iddigital.Records represents the parsed data retrieved from the user's PDF file\
 type Records struct {
-	Grades []entity.Grade `json:"grades"`
+	Grades []models.Grade `json:"grades"`
 	Name   string         `json:"name"`
 	Nusp   string         `json:"nusp"`
 }
@@ -160,7 +161,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 
 			// determine subject course origin
 			for _, s := range snaps {
-				c := entity.Course{}
+				c := models.Course{}
 				_ = s.DataTo(&c)
 				_, exists := c.SubjectCodes[subCode]
 
@@ -175,9 +176,9 @@ func (pdf PDF) Parse(DB db.Env) (rec Records, err error) {
 				}
 			}
 
-			rec.Grades = append(rec.Grades, entity.Grade{
+			rec.Grades = append(rec.Grades, models.Grade{
 				Subject:        subCode,
-				Grade:          grade,
+				Value:          grade,
 				Frequency:      freq,
 				Status:         status,
 				Course:         subCourse,
