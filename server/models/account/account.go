@@ -249,7 +249,7 @@ func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *contr
 
 		// check if old password is correct
 		if !utils.BcryptCompare(resetForm.OldPassword, storedUser.PasswordHash) {
-			ctx.AbortWithStatus(http.StatusBadRequest)
+			ctx.AbortWithStatus(http.StatusForbidden)
 			return
 		}
 
