@@ -9,12 +9,12 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
 	"github.com/Projeto-USPY/uspy-backend/server/models/account"
 )
 
-var testSubjects = []entity.Subject{
+var testSubjects = []models.Subject{
 	{
 		Code:           "SCC0230",
 		CourseCode:     "55090",
@@ -56,7 +56,7 @@ var testSubjects = []entity.Subject{
 	},
 }
 
-var testCourses = []entity.Course{
+var testCourses = []models.Course{
 	{
 		Name:           "Bacharelado em Ciência de Dados",
 		Code:           "55090",
@@ -83,7 +83,7 @@ func Setup(DB db.Env) error {
 	var wg sync.WaitGroup
 	for _, v := range testSubjects {
 		wg.Add(1)
-		go func(v entity.Subject) {
+		go func(v models.Subject) {
 			defer wg.Done()
 			errChannel <- DB.Insert(v, "subjects")
 		}(v)
@@ -91,7 +91,7 @@ func Setup(DB db.Env) error {
 
 	for _, c := range testCourses {
 		wg.Add(1)
-		go func(c entity.Course) {
+		go func(c models.Course) {
 			defer wg.Done()
 			errChannel <- DB.Insert(c, "courses")
 		}(c)
@@ -100,23 +100,21 @@ func Setup(DB db.Env) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		user, userErr := entity.NewUserWithOptions(
+		user, userErr := models.NewUser(
 			"123456789",
-			"r4nd0mpass123!@#",
 			"Usuário teste",
+			"r4nd0mpass123!@#",
 			time.Now(),
-			entity.WithPasswordHash{},
-			entity.WithNameHash{},
 		)
 
 		errChannel <- userErr
 
 		recs := iddigital.Records{
 			Name: user.Name,
-			Nusp: user.Login,
-			Grades: []entity.Grade{
+			Nusp: user.Name,
+			Grades: []models.Grade{
 				{
-					Grade:          9.0,
+					Value:          9.0,
 					Frequency:      100,
 					Status:         "A",
 					Subject:        "SCC0217",
@@ -126,7 +124,7 @@ func Setup(DB db.Env) error {
 					Year:           2018,
 				},
 				{
-					Grade:          9.0,
+					Value:          9.0,
 					Frequency:      60,
 					Status:         "RF",
 					Subject:        "SCC0217",
@@ -136,7 +134,7 @@ func Setup(DB db.Env) error {
 					Year:           2017,
 				},
 				{
-					Grade:          4.0,
+					Value:          4.0,
 					Frequency:      90,
 					Status:         "RN",
 					Subject:        "SCC0217",
@@ -146,7 +144,7 @@ func Setup(DB db.Env) error {
 					Year:           2016,
 				},
 				{
-					Grade:          8.0,
+					Value:          8.0,
 					Frequency:      95,
 					Status:         "A",
 					Subject:        "SCC0222",
@@ -156,7 +154,7 @@ func Setup(DB db.Env) error {
 					Year:           2018,
 				},
 				{
-					Grade:          4.0,
+					Value:          4.0,
 					Frequency:      93,
 					Status:         "A",
 					Subject:        "SCC0222",
@@ -168,7 +166,7 @@ func Setup(DB db.Env) error {
 			},
 		}
 
-		errChannel <- account.Signup(DB, user, recs)
+		account.InsertUser(DB, user, &recs)
 	}()
 
 	wg.Wait()
@@ -186,7 +184,7 @@ func Setup(DB db.Env) error {
 
 func MustGet() db.Env {
 	if emu, err := Get(); err != nil {
-		panic("failed to get emulator while running MustGet")
+		panic("failed to get emulator while running MustGet:" + err.Error())
 	} else {
 		return emu
 	}

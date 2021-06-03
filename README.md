@@ -13,13 +13,13 @@ entity
 iddigital
 main
 server/
-├── controllers/
+├── api/
 │   ├── account
 │   ├── private
 │   ├── public
 │   └── restricted
 ├── middleware
-└── models/
+└── dao/
     ├── account
     ├── private
     ├── public
@@ -53,8 +53,8 @@ Their respective responsibilities are the following:
 
     - Endpoint closures and their implementations
     - Middleware contains useful middleware functions, such as JWT validation and data binding
-    - Endpoint implementation uses a Model-Controller structure
-    - This M-C can be divided into four categories:
+    - API Handlers and Database Access Objects are separated in /api and /dao
+    - Both of them can be divided into four categories:
         - Account: all operations related to the user's account management, such as login, signup, delete, etc
         - Private: all operations related to the user's data management, such as their grades and reviews
         - Public: all operations related to data that is public (including non-registered users), such as subject data
@@ -63,6 +63,7 @@ Their respective responsibilities are the following:
 #### **utils**
 
     - Utility functions such as hashing functions and encoding stuff
+    - Also contains testing utilities like the emulator functions
 
 ## Deployment & Execution
 
