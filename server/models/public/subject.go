@@ -53,7 +53,7 @@ func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject: %s", err))
 		return
 	}
-	err = snap.DataTo(&sub)
+	err = snap.DataTo(&subModel)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject to object: %s", err))
 		return
