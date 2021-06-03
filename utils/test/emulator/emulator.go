@@ -109,12 +109,12 @@ func Setup(DB db.Env) error {
 
 		errChannel <- userErr
 
-		recs := iddigital.Records{
+		recs := iddigital.Transcript{
 			Name: user.Name,
 			Nusp: user.Name,
-			Grades: []models.Grade{
+			Grades: []models.Record{
 				{
-					Value:          9.0,
+					Grade:          9.0,
 					Frequency:      100,
 					Status:         "A",
 					Subject:        "SCC0217",
@@ -124,7 +124,7 @@ func Setup(DB db.Env) error {
 					Year:           2018,
 				},
 				{
-					Value:          9.0,
+					Grade:          9.0,
 					Frequency:      60,
 					Status:         "RF",
 					Subject:        "SCC0217",
@@ -134,7 +134,7 @@ func Setup(DB db.Env) error {
 					Year:           2017,
 				},
 				{
-					Value:          4.0,
+					Grade:          4.0,
 					Frequency:      90,
 					Status:         "RN",
 					Subject:        "SCC0217",
@@ -144,7 +144,7 @@ func Setup(DB db.Env) error {
 					Year:           2016,
 				},
 				{
-					Value:          8.0,
+					Grade:          8.0,
 					Frequency:      95,
 					Status:         "A",
 					Subject:        "SCC0222",
@@ -154,7 +154,7 @@ func Setup(DB db.Env) error {
 					Year:           2018,
 				},
 				{
-					Value:          4.0,
+					Grade:          4.0,
 					Frequency:      93,
 					Status:         "A",
 					Subject:        "SCC0222",
