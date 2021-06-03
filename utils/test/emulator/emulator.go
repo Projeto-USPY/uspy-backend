@@ -2,6 +2,9 @@ package emulator
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"os"
 	"time"
 
 	"sync"
@@ -166,7 +169,7 @@ func Setup(DB db.Env) error {
 			},
 		}
 
-		account.InsertUser(DB, user, &recs)
+		errChannel <- account.InsertUser(DB, user, &recs)
 	}()
 
 	wg.Wait()
@@ -182,7 +185,27 @@ func Setup(DB db.Env) error {
 	return jointErr
 }
 
+func clearDatabase() {
+	domain := os.Getenv("FIRESTORE_EMULATOR_HOST")
+
+	if req, err := http.NewRequest(
+		http.MethodDelete,
+		fmt.Sprintf("http://%s/emulator/v1/projects/test/databases/(default)/documents", domain),
+		nil,
+	); err != nil {
+		panic("could not create wipe database request: " + err.Error())
+	} else {
+		client := &http.Client{}
+		if _, err := client.Do(req); err != nil {
+			panic("could not wipe database with DELETE request: " + err.Error())
+		}
+	}
+}
+
 func MustGet() db.Env {
+	// clear the database if it already exists
+	clearDatabase()
+
 	if emu, err := Get(); err != nil {
 		panic("failed to get emulator while running MustGet:" + err.Error())
 	} else {
