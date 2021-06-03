@@ -28,9 +28,9 @@ func GetGrades(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 		return
 	}
 
-	grades := []models.Grade{}
+	grades := []models.Record{}
 	for _, s := range snaps {
-		g := models.Grade{}
+		g := models.Record{}
 		err := s.DataTo(&g)
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject %v: %s", subModel, err.Error()))

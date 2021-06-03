@@ -10,11 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetGrades(ctx *gin.Context, grades []models.Grade) {
+func GetGrades(ctx *gin.Context, grades []models.Record) {
 	buckets := make(map[string]int)
 
 	for _, g := range grades {
-		buckets[fmt.Sprintf("%.1f", g.Value)]++
+		buckets[fmt.Sprintf("%.1f", g.Grade)]++
 	}
 
 	avg, approval := 0.0, 0.0

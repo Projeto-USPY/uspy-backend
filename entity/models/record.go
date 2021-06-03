@@ -8,12 +8,16 @@ import (
 )
 
 type Record struct {
+	Subject        string `firestore:"-"`
+	Course         string `firestore:"-"`
+	Specialization string `firestore:"-"`
+
 	Year     int `firestore:"-"`
 	Semester int `firestore:"-"`
 
 	Grade     float64 `firestore:"grade"`
-	Status    string  `firestore:"status"`
-	Frequency int     `firestore:"frequency"`
+	Status    string  `firestore:"status,omitempty"`
+	Frequency int     `firestore:"frequency,omitempty"`
 }
 
 func (mf Record) Hash() string {

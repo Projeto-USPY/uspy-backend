@@ -43,15 +43,15 @@ func Profile(ctx *gin.Context, user models.User) {
 }
 
 // Signup sets the records and sets the access token
-func Signup(ctx *gin.Context, user *models.User, records iddigital.Records) {
-	jwtToken, err := middleware.GenerateJWT(user)
+func Signup(ctx *gin.Context, userID string, records iddigital.Transcript) {
+	jwtToken, err := middleware.GenerateJWT(userID)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating jwt for new user: %s", err.Error()))
 		return
 	}
 
 	setAccessToken(ctx, jwtToken)
-	ctx.JSON(http.StatusOK, records)
+	ctx.JSON(http.StatusOK, views.NewTranscript(&records))
 }
 
 // SignupCaptcha sets the captcha and cookie data in the response
