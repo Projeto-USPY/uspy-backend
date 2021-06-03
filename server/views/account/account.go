@@ -1,10 +1,8 @@
 package account
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
@@ -31,14 +29,10 @@ func removeAccessToken(ctx *gin.Context) {
 
 // Profile sets the profile data once it is successful
 func Profile(ctx *gin.Context, user models.User) {
-	if key, ok := os.LookupEnv("AES_KEY"); ok {
-		if name, err := utils.AESDecrypt(user.NameHash, key); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error decrypting nameHash: %s", err.Error()))
-		} else {
-			ctx.JSON(http.StatusOK, views.Profile{User: user.ID, Name: name})
-		}
+	if name, err := utils.AESDecrypt(user.NameHash, config.Env.AESKey); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error decrypting nameHash: %s", err.Error()))
 	} else {
-		ctx.AbortWithError(http.StatusInternalServerError, errors.New("AES_KEY 128/196/256-bit key env variable was not provided"))
+		ctx.JSON(http.StatusOK, views.Profile{User: user.ID, Name: name})
 	}
 }
 
