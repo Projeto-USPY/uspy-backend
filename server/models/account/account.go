@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 	"sync"
@@ -28,7 +29,7 @@ var (
 	ErrUserExists = errors.New("user is already registered")
 )
 
-func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Records) error {
+func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) error {
 	_, err := DB.Restore("users", newUser.Hash())
 	if status.Code(err) == codes.NotFound {
 		// user is new
@@ -41,8 +42,8 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Records) error 
 		}
 
 		for _, g := range data.Grades {
-			mf := models.Record{
-				Grade:     g.Value,
+			rec := models.Record{
+				Grade:     g.Grade,
 				Status:    g.Status,
 				Frequency: g.Frequency,
 				Year:      g.Year,
@@ -54,14 +55,13 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Records) error 
 			// store all user records
 			objs = append(objs, db.Object{
 				Collection: "users/" + newUser.Hash() + "/final_scores/" + subHash + "/records",
-				Doc:        mf.Hash(),
-				Data:       mf,
+				Doc:        rec.Hash(),
+				Data:       rec,
 			})
 
 			// add grade to "global" grades collection
-			gradeObj := models.Grade{
-				User:  newUser.ID,
-				Value: g.Value,
+			gradeObj := models.Record{
+				Grade: g.Grade,
 			}
 
 			objs = append(objs, db.Object{
@@ -157,7 +157,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 			return
 		}
 
-		account.Signup(ctx, newUser, data)
+		account.Signup(ctx, newUser.ID, data)
 	}
 
 }
@@ -179,18 +179,17 @@ func SignupCaptcha(ctx *gin.Context) {
 // Login performs the user login by comparing the passwordHash and the stored hash
 func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 	if snap, err := DB.Restore("users", utils.SHA256(login.ID)); err != nil { // get user from database
+		if status.Code(err) == codes.NotFound { // if user was not found
+			ctx.AbortWithError(http.StatusForbidden, err)
+			return
+		}
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	} else {
 		var storedUser models.User
 		if err := snap.DataTo(&storedUser); err != nil {
-			if status.Code(err) == codes.NotFound { // if user was not found
-				ctx.AbortWithError(http.StatusUnauthorized, err)
-				return
-			} else {
-				ctx.AbortWithError(http.StatusInternalServerError, err) // some error happened
-				return
-			}
+			ctx.AbortWithError(http.StatusInternalServerError, err) // some error happened
+			return
 		}
 
 		// check if password is correct
@@ -220,7 +219,7 @@ func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 				return
 			} else {
 				ctx.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
-				account.Login(ctx, storedUser.ID, name)
+				account.Login(ctx, login.ID, name)
 			}
 		}
 	}
@@ -235,6 +234,10 @@ func Logout(ctx *gin.Context) {
 // This method requires the user to be logged in
 func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *controllers.PasswordChange) {
 	if snap, err := DB.Restore("users", utils.SHA256(userID)); err != nil {
+		if status.Code(err) == codes.NotFound { // if user was not found
+			ctx.AbortWithError(http.StatusForbidden, err)
+			return
+		}
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
 	} else {
@@ -257,8 +260,9 @@ func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *contr
 			return
 		}
 
-		// update password hash
+		// update password hash and set userID to be able to find user document
 		storedUser.PasswordHash = newHash
+		storedUser.ID = userID
 		if err := DB.Update(storedUser, "users"); err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to update password: %s", err.Error()))
 			return
@@ -333,6 +337,7 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 
 		var wg sync.WaitGroup
 		channelErr := make(chan error, len(recordsDocs)*100)
+		mustDelete := make(chan *firestore.DocumentRef)
 
 		for _, subRef := range recordsDocs {
 			wg.Add(1)
@@ -366,29 +371,42 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 						}
 
 						// finds one grade in subject/subject_id/grades where the grade is the same as score.Grade
-						query := gradesCol.Where("value", "==", score.Grade).Limit(1)
+						query := gradesCol.Where("grade", "==", score.Grade).Limit(1)
 						gradeDocsToRemove, err := tx.Documents(query).GetAll()
 
 						if err != nil {
 							channelErr <- err
 						}
 
-						// delete the grade documents (there must be exactly one)
+						// store grade documents that must be deleted
 						for _, gradeSnap := range gradeDocsToRemove {
-							err := tx.Delete(gradeSnap.Ref)
-							if err != nil {
-								channelErr <- err
-							}
+							mustDelete <- gradeSnap.Ref
 						}
 
-						channelErr <- tx.Delete(recordRef)
+						mustDelete <- recordRef
 					}(recordRef)
 				}
 			}(subRef)
 		}
 
+		// receive deletables
+		deletables := make([]*firestore.DocumentRef, 0, 500)
+		doneDelete := make(chan struct{})
+		go func() {
+			for {
+				select {
+				case ref := <-mustDelete:
+					deletables = append(deletables, ref)
+				case <-doneDelete:
+					return
+				}
+			}
+		}()
+
 		wg.Wait()
 		close(channelErr)
+		close(doneDelete)
+
 		for e := range channelErr {
 			if e != nil {
 				return fmt.Errorf("could not delete grades and records: %v", err.Error())
@@ -424,6 +442,14 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 			err = tx.Update(subRef, []firestore.Update{{Path: "stats.total", Value: firestore.Increment(-1)}})
 			if err != nil {
 				return fmt.Errorf("could not decrement number of total reviews: %v", err.Error())
+			}
+		}
+
+		// delete stuff
+		log.Printf("user %s deleted their account, impacted documents: %d\n", userID, len(deletables))
+		for _, d := range deletables {
+			if err := tx.Delete(d); err != nil {
+				return fmt.Errorf("could not delete grades and records: %v", err.Error())
 			}
 		}
 
