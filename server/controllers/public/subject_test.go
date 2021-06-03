@@ -35,20 +35,20 @@ func (s *SubjectSuite) TestGetAll() {
 	expectedResponse := `
 		[
 			{
-				"name": "Bacharelado em Ciência de Dados",
-				"code": "55090",
-				"specialization": "0",
-				"subjects": {
-					"SCC0230": "Inteligência Artificial"
-				}
-			},
-			{
 				"name": "Bacharelado em Ciências de Computação",
 				"code": "55041",
 				"specialization": "0",
 				"subjects": {
 					"SCC0222": "Laboratório de Introdução à Ciência de Computação I",
 					"SCC0217": "Linguages de Programação e Compiladores"
+				}
+			},
+			{
+				"name": "Bacharelado em Ciência de Dados",
+				"code": "55090",
+				"specialization": "0",
+				"subjects": {
+					"SCC0230": "Inteligência Artificial"
 				}
 			}
 		]
