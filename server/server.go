@@ -4,6 +4,7 @@ package server
 import (
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity"
 	"github.com/Projeto-USPY/uspy-backend/entity/validation"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/account"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/private"
@@ -53,7 +54,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	apiGroup := r.Group("/api")
 	{
 		apiGroup.GET("/subject/all", public.GetSubjects(DB))
-		subjectAPI := apiGroup.Group("/subject", middleware.Subject())
+		subjectAPI := apiGroup.Group("/subject", entity.SubjectBinder)
 		{
 			// Available for guests
 			subjectAPI.GET("", public.GetSubjectByCode(DB))
@@ -62,7 +63,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 			// Restricted means all registered users can see.
 			restrictedGroup := apiGroup.Group("/restricted", middleware.JWT())
 			{
-				subRestricted := restrictedGroup.Group("/subject", middleware.Subject())
+				subRestricted := restrictedGroup.Group("/subject", entity.SubjectBinder)
 				{
 					subRestricted.GET("/grades", restricted.GetGrades(DB))
 				}
@@ -73,7 +74,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	// Private means the user can only interact with data related to them.
 	privateGroup := r.Group("/private", middleware.JWT())
 	{
-		subPrivate := privateGroup.Group("/subject", middleware.Subject())
+		subPrivate := privateGroup.Group("/subject", entity.SubjectBinder)
 		{
 			subPrivate.GET("/review", private.GetSubjectReview(DB))
 			subPrivate.POST("/review", private.UpdateSubjectReview(DB))

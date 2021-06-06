@@ -19,9 +19,9 @@ func GetSubjectGrade(DB db.Env) func(ctx *gin.Context) {
 		token := ctx.MustGet("access_token")
 		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
 		userID := claims["user"].(string)
-		sub := ctx.MustGet("Subject").(controllers.Subject)
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
 
-		private.GetSubjectGrade(ctx, DB, userID, &sub)
+		private.GetSubjectGrade(ctx, DB, userID, sub)
 	}
 }
 
@@ -32,19 +32,19 @@ func GetSubjectReview(DB db.Env) func(ctx *gin.Context) {
 		token := ctx.MustGet("access_token")
 		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
 		userID := claims["user"].(string)
-		sub := ctx.MustGet("Subject").(controllers.Subject)
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
 
-		private.GetSubjectReview(ctx, DB, userID, &sub)
+		private.GetSubjectReview(ctx, DB, userID, sub)
 	}
 }
 
 // UpdateSubjectReview is a closure for the POST /private/subject/review endpoint
 func UpdateSubjectReview(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		sub := ctx.MustGet("Subject").(controllers.Subject)
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
 
 		// get subject and review data
-		sr := controllers.SubjectReview{Subject: sub}
+		sr := controllers.SubjectReview{Subject: *sub}
 		if err := ctx.ShouldBindJSON(&sr); err != nil {
 			ctx.AbortWithStatus(http.StatusBadRequest)
 			return
