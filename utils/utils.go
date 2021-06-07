@@ -108,3 +108,11 @@ func Bcrypt(body string) (string, error) {
 func BcryptCompare(input, truth string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(truth), []byte(input)) == nil
 }
+
+func Min(a, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
+}
