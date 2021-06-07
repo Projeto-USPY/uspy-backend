@@ -17,25 +17,27 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.16
-        
+    
       - run: echo "Job status is ${{ job.status }}."
 
       - name: Set up Node
-      - uses: actions/setup-node@v1
+        uses: actions/setup-node@v1
         with:
           node-version: '12'
+          
       - run: echo "Job status is ${{ job.status }}."
         
       - name: Install firestore emulator
-      - run: npm install -g firebase-tools
+        run: npm install -g firebase-tools
+      
       - run: npm ci
       - run: echo "Job status is ${{ job.status }}."
+      
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - name: Run tests
-      - run: sh test.sh
+        run: sh test.sh
+        
       - run: echo "Job status is ${{ job.status }}."
-
-  
