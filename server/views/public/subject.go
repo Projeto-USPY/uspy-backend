@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetAll(ctx *gin.Context, courses []models.Course) {
+func GetAllSubjects(ctx *gin.Context, courses []models.Course) {
 	viewCourses := make([]views.Course, 0, 1000)
 	for i := range courses {
 		viewCourses = append(viewCourses, *views.NewCourseFromModel(&courses[i]))

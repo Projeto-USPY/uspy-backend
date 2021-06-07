@@ -10,7 +10,7 @@ import (
 // GetSubject is a closure for the GET /api/subject/all endpoint
 func GetSubjects(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		public.GetAll(ctx, DB)
+		public.GetAllSubjects(ctx, DB)
 	}
 }
 

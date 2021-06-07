@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GetAll gets all subjects from the database
-func GetAll(ctx *gin.Context, DB db.Env) {
+// GetAllSubjects gets all subjects from the database
+func GetAllSubjects(ctx *gin.Context, DB db.Env) {
 	snaps, err := DB.RestoreCollection("courses")
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -38,7 +38,7 @@ func GetAll(ctx *gin.Context, DB db.Env) {
 		}
 	}
 
-	public.GetAll(ctx, courses)
+	public.GetAllSubjects(ctx, courses)
 }
 
 // Get gets a subject by its identifier: subject code, course code and course specialization code
