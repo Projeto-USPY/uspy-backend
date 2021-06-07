@@ -53,7 +53,8 @@ func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, e
 }
 
 // Env.RestoreCollection is similar to Env.Restore, but restores all documents from a collection
-// collection cannot end in "/"
+//
+// Collection cannot end in "/"
 func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapshot, error) {
 	snap, err := db.Client.Collection(collection).Documents(db.Ctx).GetAll()
 	if err != nil {
