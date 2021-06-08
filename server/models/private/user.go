@@ -52,8 +52,8 @@ func checkReviewPermission(DB db.Env, userHash, subHash string) error {
 
 // GetSubjectGrade is the model implementation for /server/controller/private/user.GetSubjectGrade
 func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
-	user, subModel := models.User{ID: userID}, models.NewSubjectFromController(sub)
-	userHash, subHash := user.Hash(), subModel.Hash()
+	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
+	userHash, subHash := user.Hash(), model.Hash()
 
 	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
 	if err != nil {
@@ -83,14 +83,14 @@ func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controller
 
 // GetSubjectReview is the model implementation for /server/controller/private/user.GetSubjectReview
 func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
-	user, subModel := models.User{ID: userID}, models.NewSubjectFromController(sub)
-	userHash, subHash := user.Hash(), subModel.Hash()
+	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
+	userHash, subHash := user.Hash(), model.Hash()
 	review := models.SubjectReview{}
 
 	err := checkReviewPermission(DB, userHash, subHash)
 	if err != nil {
 		if err == ErrSubjectNotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", subModel, err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
@@ -107,7 +107,7 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 
 	if err != nil { // user has not reviewed subject
 		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject review for %v and user %v: %s", subModel, userID, err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject review for %v and user %v: %s", model, userID, err.Error()))
 			return
 		}
 
@@ -125,11 +125,11 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 
 // UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
 func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *controllers.SubjectReview) {
-	userHash, reviewModel := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)
-	err := checkReviewPermission(DB, userHash, reviewModel.Hash())
+	userHash, model := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)
+	err := checkReviewPermission(DB, userHash, model.Hash())
 	if err != nil {
 		if err == ErrSubjectNotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", reviewModel, err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
@@ -142,8 +142,8 @@ func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *con
 		return
 	}
 
-	revRef := DB.Client.Doc("users/" + userHash + "/subject_reviews/" + reviewModel.Hash())
-	subRef := DB.Client.Doc("subjects/" + reviewModel.Hash())
+	revRef := DB.Client.Doc("users/" + userHash + "/subject_reviews/" + model.Hash())
+	subRef := DB.Client.Doc("subjects/" + model.Hash())
 
 	err = DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		rev, _ := tx.Get(revRef) // get existing review
@@ -177,13 +177,13 @@ func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *con
 		}
 
 		// add new review (overwrites if existing)
-		err := tx.Set(revRef, reviewModel)
+		err := tx.Set(revRef, model)
 		if err != nil {
 			return err
 		}
 
 		// update subject stats with new review
-		for k, v := range reviewModel.Review {
+		for k, v := range model.Review {
 			if reflect.ValueOf(v).Kind() == reflect.Bool && v.(bool) {
 				path := fmt.Sprintf("stats.%s", k)
 				err = tx.Update(subRef, []firestore.Update{{Path: path, Value: firestore.Increment(1)}})

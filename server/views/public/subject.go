@@ -17,12 +17,12 @@ func GetAllSubjects(ctx *gin.Context, courses []models.Course) {
 	ctx.JSON(http.StatusOK, viewCourses)
 }
 
-func Get(ctx *gin.Context, subModel *models.Subject) {
-	ctx.JSON(http.StatusOK, views.NewSubjectFromModel(subModel))
+func Get(ctx *gin.Context, model *models.Subject) {
+	ctx.JSON(http.StatusOK, views.NewSubjectFromModel(model))
 }
 
-func GetRelations(ctx *gin.Context, subModel *models.Subject, weak, strong []models.Subject) {
-	subView := views.NewSubjectFromModel(subModel)
+func GetRelations(ctx *gin.Context, model *models.Subject, weak, strong []models.Subject) {
+	subView := views.NewSubjectFromModel(model)
 	graph := views.SubjectGraph{Predecessors: subView.Requirements}
 
 	for _, w := range weak {

@@ -14,12 +14,12 @@ import (
 )
 
 func GetOfferings(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
-	subModel := models.NewSubjectFromController(sub)
+	model := models.NewSubjectFromController(sub)
 
 	offerings := make([]*models.Offering, 0, 20)
 	IDs := make([]string, 0, 20)
 
-	snaps, err := DB.RestoreCollection("subjects/" + subModel.Hash() + "/offerings")
+	snaps, err := DB.RestoreCollection("subjects/" + model.Hash() + "/offerings")
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {

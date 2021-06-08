@@ -17,14 +17,14 @@ import (
 
 // GetOfferings is a closure for the GET /api/restricted/offerings endpoint
 func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
-	subModel := models.NewSubjectFromController(sub)
+	model := models.NewSubjectFromController(sub)
 
 	offerings := make([]*models.Offering, 0, 20)
 	IDs := make([]string, 0, 20)
 	stats := make([]*models.OfferingStats, 0, 20)
 
 	offeringsMask := "subjects/%s/offerings"
-	offeringsPath := fmt.Sprintf(offeringsMask, subModel.Hash())
+	offeringsPath := fmt.Sprintf(offeringsMask, model.Hash())
 
 	snaps, err := DB.RestoreCollection(offeringsPath)
 
