@@ -75,21 +75,29 @@ func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject
 				return len(res), -1, nil
 			}
 
-			for _, op := range []string{"<", "==", ">"} {
-				qt, status, err := queryComments(op)
-				if err != nil {
-					ctx.AbortWithError(status, err)
-					return
-				}
+			var mut sync.RWMutex
+			wg.Add(3)
 
-				switch op {
-				case ">":
-					posQt[snap.Ref.ID] += qt
-				case "==":
-					neutQt[snap.Ref.ID] += qt
-				case "<":
-					negQt[snap.Ref.ID] += qt
-				}
+			for _, op := range []string{"<", "==", ">"} {
+				go func(op string) {
+					defer wg.Done()
+					qt, status, err := queryComments(op)
+					if err != nil {
+						ctx.AbortWithError(status, err)
+						return
+					}
+
+					mut.RLock()
+					switch op {
+					case ">":
+						posQt[snap.Ref.ID] += qt
+					case "==":
+						neutQt[snap.Ref.ID] += qt
+					case "<":
+						negQt[snap.Ref.ID] += qt
+					}
+					mut.RUnlock()
+				}(op)
 			}
 
 			offsChannel <- &off
