@@ -17,7 +17,8 @@ func GetOfferings(ctx *gin.Context, IDs []string, offerings []*models.Offering) 
 	}
 
 	sort.Slice(results, func(i, j int) bool {
-		return results[i].Year > results[j].Year
+		sizeI, sizeJ := len(results[i].Years), len(results[j].Years)
+		return results[i].Years[sizeI-1] > results[j].Years[sizeJ-1]
 	})
 
 	// output only the first three
