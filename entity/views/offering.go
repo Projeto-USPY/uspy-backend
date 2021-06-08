@@ -12,6 +12,29 @@ type Offering struct {
 	Disapproval float64 `json:"disapproval,omitempty"`
 }
 
+func NewOfferingFromModel(ID string, model *models.Offering, approval, disapproval, neutral int) *Offering {
+	total := (approval + disapproval + neutral)
+
+	approvalRate := 0
+	disapprovalRate := 0
+	neutralRate := 0
+
+	if total != 0 {
+		approvalRate = approval / total
+		disapprovalRate = disapproval / total
+		neutralRate = neutral / total
+	}
+
+	return &Offering{
+		ProfessorName: model.Professor,
+		ProfessorCode: ID,
+		Year:          model.Year,
+		Approval:      float64(approvalRate),
+		Disapproval:   float64(disapprovalRate),
+		Neutral:       float64(neutralRate),
+	}
+}
+
 func NewPartialOfferingFromModel(ID string, model *models.Offering) *Offering {
 	return &Offering{
 		ProfessorName: model.Professor,

@@ -42,6 +42,8 @@ func setupRestricted(DB db.Env, restrictedGroup *gin.RouterGroup) {
 	{
 		subjectAPI.GET("/grades", restricted.GetGrades(DB))
 	}
+
+	restrictedGroup.GET("/offerings", entity.SubjectBinder, restricted.GetOfferingsWithStats(DB))
 }
 
 func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
