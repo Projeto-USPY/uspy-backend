@@ -77,7 +77,6 @@ func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject
 
 			var mut sync.RWMutex
 			wg.Add(3)
-
 			for _, op := range []string{"<", "==", ">"} {
 				go func(op string) {
 					defer wg.Done()
@@ -87,16 +86,20 @@ func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject
 						return
 					}
 
-					mut.RLock()
 					switch op {
 					case ">":
+						mut.RLock()
 						posQt[snap.Ref.ID] += qt
+						mut.RUnlock()
 					case "==":
+						mut.RLock()
 						neutQt[snap.Ref.ID] += qt
+						mut.RUnlock()
 					case "<":
+						mut.RLock()
 						negQt[snap.Ref.ID] += qt
+						mut.RUnlock()
 					}
-					mut.RUnlock()
 				}(op)
 			}
 
