@@ -7,5 +7,6 @@ import (
 )
 
 var (
-	SubjectBinder = middleware.Bind("Subject", &controllers.Subject{}, binding.Query)
+	SubjectBinder  = middleware.Bind("Subject", &controllers.Subject{}, binding.Query)
+	OfferingBinder = middleware.Bind("Offering", &controllers.Offering{}, binding.Query)
 )
