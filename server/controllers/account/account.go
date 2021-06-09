@@ -6,16 +6,13 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/server/models/account"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
 // Profile is a closure for the GET /account/profile endpoint
 func Profile(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		token := ctx.MustGet("access_token")
-		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
-		userID := claims["user"].(string)
+		userID := ctx.MustGet("userID").(string)
 
 		account.Profile(ctx, DB, userID)
 	}
@@ -41,9 +38,7 @@ func ResetPassword(DB db.Env) func(ctx *gin.Context) {
 func ChangePassword(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		// get user info
-		token := ctx.MustGet("access_token")
-		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
-		userID := claims["user"].(string)
+		userID := ctx.MustGet("userID").(string)
 
 		var reset controllers.PasswordChange
 		// bind old and new password
@@ -102,9 +97,7 @@ func SignupCaptcha() func(ctx *gin.Context) {
 // Signup is a closure for the DELETE /account endpoint
 func Delete(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		token := ctx.MustGet("access_token")
-		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
-		userID := claims["user"].(string)
+		userID := ctx.MustGet("userID").(string)
 
 		account.Delete(ctx, DB, userID)
 	}

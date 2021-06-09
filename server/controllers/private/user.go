@@ -8,7 +8,6 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/server/models/private"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,9 +15,7 @@ import (
 func GetSubjectGrade(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		// get user and subject info
-		token := ctx.MustGet("access_token")
-		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
-		userID := claims["user"].(string)
+		userID := ctx.MustGet("userID").(string)
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 
 		private.GetSubjectGrade(ctx, DB, userID, sub)
@@ -29,9 +26,7 @@ func GetSubjectGrade(DB db.Env) func(ctx *gin.Context) {
 func GetSubjectReview(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		// get user and subject info
-		token := ctx.MustGet("access_token")
-		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
-		userID := claims["user"].(string)
+		userID := ctx.MustGet("userID").(string)
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 
 		private.GetSubjectReview(ctx, DB, userID, sub)
@@ -46,14 +41,12 @@ func UpdateSubjectReview(DB db.Env) func(ctx *gin.Context) {
 		// get subject and review data
 		sr := controllers.SubjectReview{Subject: *sub}
 		if err := ctx.ShouldBindJSON(&sr); err != nil {
-			ctx.AbortWithStatus(http.StatusBadRequest)
+			ctx.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 
 		// get user data
-		token := ctx.MustGet("access_token")
-		claims := token.(*jwt.Token).Claims.(jwt.MapClaims)
-		userID := claims["user"].(string)
+		userID := ctx.MustGet("userID").(string)
 
 		private.UpdateSubjectReview(ctx, DB, userID, &sr)
 	}
