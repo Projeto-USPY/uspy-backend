@@ -7,7 +7,7 @@ import (
 )
 
 type UserComment struct {
-	Comment
+	Comment `firestore:"comment"`
 
 	ProfessorCode  string `firestore:"professor"`
 	Subject        string `firestore:"subject"`
