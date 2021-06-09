@@ -31,19 +31,16 @@ func setupPublic(DB db.Env, apiGroup *gin.RouterGroup) {
 	{
 		subjectAPI.GET("", public.GetSubjectByCode(DB))
 		subjectAPI.GET("/relations", public.GetRelations(DB))
-
+		subjectAPI.GET("/offerings", public.GetOfferings(DB))
 	}
-
-	apiGroup.GET("/offerings", entity.SubjectBinder, public.GetOfferings(DB))
 }
 
 func setupRestricted(DB db.Env, restrictedGroup *gin.RouterGroup) {
 	subjectAPI := restrictedGroup.Group("/subject", entity.SubjectBinder)
 	{
 		subjectAPI.GET("/grades", restricted.GetGrades(DB))
+		subjectAPI.GET("/offerings", restricted.GetOfferingsWithStats(DB))
 	}
-
-	restrictedGroup.GET("/offerings", entity.SubjectBinder, restricted.GetOfferingsWithStats(DB))
 }
 
 func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
@@ -52,7 +49,13 @@ func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
 		subjectAPI.GET("/grade", private.GetSubjectGrade(DB))
 		subjectAPI.GET("/review", private.GetSubjectReview(DB))
 		subjectAPI.POST("/review", private.UpdateSubjectReview(DB))
+
+		offeringsAPI := subjectAPI.Group("/offerings", entity.OfferingBinder)
+		{
+			offeringsAPI.PUT("/comments", private.PublishComment(DB))
+		}
 	}
+
 }
 
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
@@ -63,7 +66,7 @@ func SetupRouter(DB db.Env) (*gin.Engine, error) {
 		return nil, err
 	}
 
-	r.Use(gin.Recovery(), middleware.DefineDomain())
+	r.Use(gin.Recovery(), middleware.DefineDomain(), middleware.DumpErrors())
 
 	if config.Env.IsLocal() {
 		r.Use(middleware.AllowAnyOrigin())
