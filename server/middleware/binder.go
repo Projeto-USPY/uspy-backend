@@ -29,7 +29,10 @@ func Bind(name string, data interface{}, bindingType binding.Binding) gin.Handle
 				fmt.Errorf("function Bind only allows the following binding types: %v", allowedTypes),
 			)
 		}
-		_ = ctx.MustBindWith(data, bindingType)
+		if err := ctx.ShouldBindWith(data, bindingType); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
 		ctx.Set(name, data)
 	}
 }
