@@ -3,7 +3,6 @@ package private
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -13,42 +12,11 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/views/private"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-var (
-	ErrSubjectNotFound = errors.New("subject does not exist")
-	ErrNoPermission    = errors.New("user has not done subject")
-)
-
-func checkSubjectExists(DB db.Env, subHash string) error {
-	snap, err := DB.Restore("subjects", subHash)
-	if snap == nil || !snap.Exists() {
-		return ErrSubjectNotFound
-	}
-	return err
-}
-
-func checkSubjectRecords(DB db.Env, userHash, subHash string) error {
-	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
-	if len(col) == 0 {
-		return ErrNoPermission
-	}
-	return err
-}
-
-func checkReviewPermission(DB db.Env, userHash, subHash string) error {
-	errSub, errRec := checkSubjectExists(DB, subHash), checkSubjectRecords(DB, userHash, subHash)
-	if errSub != nil {
-		return errSub
-	} else if errRec != nil {
-		return errRec
-	}
-
-	return nil
-}
 
 // GetSubjectGrade is the model implementation for /server/controller/private/user.GetSubjectGrade
 func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
@@ -87,14 +55,14 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 	userHash, subHash := user.Hash(), model.Hash()
 	review := models.SubjectReview{}
 
-	err := checkReviewPermission(DB, userHash, subHash)
+	err := utils.CheckSubjectPermission(DB, userHash, subHash)
 	if err != nil {
-		if err == ErrSubjectNotFound {
+		if err == utils.ErrSubjectNotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
-		if err == ErrNoPermission {
+		if err == utils.ErrNoPermission {
 			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
 			return
 		}
@@ -126,19 +94,19 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 // UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
 func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *controllers.SubjectReview) {
 	userHash, model := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)
-	err := checkReviewPermission(DB, userHash, model.Hash())
+	err := utils.CheckSubjectPermission(DB, userHash, model.Hash())
 	if err != nil {
-		if err == ErrSubjectNotFound {
+		if err == utils.ErrSubjectNotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
-		if err == ErrNoPermission {
+		if err == utils.ErrNoPermission {
 			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
 			return
 		}
 
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting subject review: %s", err.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error checking subject permission: %s", err.Error()))
 		return
 	}
 

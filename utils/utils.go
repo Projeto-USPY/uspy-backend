@@ -7,14 +7,48 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var (
+	ErrSubjectNotFound = errors.New("subject does not exist")
+	ErrNoPermission    = errors.New("user has not done subject")
+)
+
+func checkSubjectExists(DB db.Env, subHash string) error {
+	snap, err := DB.Restore("subjects", subHash)
+	if snap == nil || !snap.Exists() {
+		return ErrSubjectNotFound
+	}
+	return err
+}
+
+func checkSubjectRecords(DB db.Env, userHash, subHash string) error {
+	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
+	if len(col) == 0 {
+		return ErrNoPermission
+	}
+	return err
+}
+
+func CheckSubjectPermission(DB db.Env, userHash, subHash string) error {
+	errSub, errRec := checkSubjectExists(DB, subHash), checkSubjectRecords(DB, userHash, subHash)
+	if errSub != nil {
+		return errSub
+	} else if errRec != nil {
+		return errRec
+	}
+
+	return nil
+}
 
 // MakeRequest runs a single request. This is used by test functions that run requests on the router
 func MakeRequest(router *gin.Engine, method, endpoint string, body io.Reader, cookies ...*http.Cookie) *httptest.ResponseRecorder {
