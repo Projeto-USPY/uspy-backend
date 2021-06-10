@@ -10,6 +10,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func GetOfferingComments(ctx *gin.Context, comments []*models.Comment) {
+	sort.Slice(comments, func(i, j int) bool {
+		if comments[i].Upvotes == comments[j].Upvotes {
+			return comments[i].Downvotes < comments[j].Downvotes
+		}
+
+		return comments[i].Upvotes > comments[j].Upvotes
+	})
+
+	results := make([]*views.Comment, 0)
+	for _, c := range comments {
+		results = append(results, views.NewCommentFromModel(c))
+	}
+
+	ctx.JSON(http.StatusOK, results)
+}
+
 // GetOfferings is a closure for the GET /api/restricted/offerings endpoint
 func GetOfferingsWithStats(
 	ctx *gin.Context,

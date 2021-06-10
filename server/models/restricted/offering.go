@@ -15,6 +15,46 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func GetOfferingComments(ctx *gin.Context, DB db.Env, off *controllers.Offering) {
+	collectionMask := "subjects/%s/offerings/%s/comments"
+	subHash := models.Subject{
+		Code:           off.Subject.Code,
+		CourseCode:     off.Subject.CourseCode,
+		Specialization: off.Subject.Specialization,
+	}.Hash()
+
+	// check if offering exists
+	if _, err := DB.Restore("subjects/"+subHash+"/offerings", off.Hash); err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find comments: %s", err.Error()))
+			return
+		}
+
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch comments: %s", err.Error()))
+		return
+	}
+
+	// get comments
+	snaps, err := DB.RestoreCollection(fmt.Sprintf(collectionMask, subHash, off.Hash))
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch comments: %s", err.Error()))
+		return
+	}
+
+	comments := make([]*models.Comment, 0)
+	for _, s := range snaps {
+		var comm models.Comment
+		if err := s.DataTo(&comm); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind data to comment: %s", err.Error()))
+			return
+		}
+
+		comments = append(comments, &comm)
+	}
+
+	restricted.GetOfferingComments(ctx, comments)
+}
+
 // GetOfferings is a closure for the GET /api/restricted/offerings endpoint
 func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)

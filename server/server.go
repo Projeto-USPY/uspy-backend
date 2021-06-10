@@ -40,6 +40,11 @@ func setupRestricted(DB db.Env, restrictedGroup *gin.RouterGroup) {
 	{
 		subjectAPI.GET("/grades", restricted.GetGrades(DB))
 		subjectAPI.GET("/offerings", restricted.GetOfferingsWithStats(DB))
+
+		offeringsAPI := subjectAPI.Group("/offerings", entity.OfferingBinder)
+		{
+			offeringsAPI.GET("/comments", restricted.GetOfferingComments(DB))
+		}
 	}
 }
 

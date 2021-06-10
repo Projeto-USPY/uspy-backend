@@ -7,7 +7,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetOfferings is a closure for the GET /api/restricted/offerings endpoint
+func GetOfferingComments(DB db.Env) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
+		off := ctx.MustGet("Offering").(*controllers.Offering)
+		off.Subject = *sub
+
+		restricted.GetOfferingComments(ctx, DB, off)
+	}
+}
+
+// GetOfferings is a closure for the GET /api/subject/restricted/offerings endpoint
 func GetOfferingsWithStats(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
