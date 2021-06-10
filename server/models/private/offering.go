@@ -18,6 +18,37 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func GetComment(ctx *gin.Context, DB db.Env, userID string, off *controllers.Offering) {
+	mask := "subjects/%s/offerings/%s/comments"
+	userHash := models.User{ID: userID}.Hash()
+	subHash := models.Subject{
+		Code:           off.Subject.Code,
+		CourseCode:     off.Subject.CourseCode,
+		Specialization: off.Subject.Specialization,
+	}.Hash()
+
+	var comment models.Comment
+	if snap, err := DB.Restore(fmt.Sprintf(mask, subHash, off.Hash), userHash); err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		ctx.AbortWithError(
+			http.StatusInternalServerError,
+			fmt.Errorf("error getting comment: (sub:%s/%s, user:%s): %s", subHash, off.Hash, userHash, err.Error()),
+		)
+		return
+	} else {
+		if err := snap.DataTo(&comment); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error binding comment: %s", err.Error()))
+			return
+		}
+	}
+
+	private.GetComment(ctx, &comment)
+}
+
 func PublishComment(
 	ctx *gin.Context,
 	DB db.Env,

@@ -9,6 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func GetComment(DB db.Env) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
+		off := ctx.MustGet("Offering").(*controllers.Offering)
+		off.Subject = *sub
+
+		userID := ctx.MustGet("userID").(string)
+		private.GetComment(ctx, DB, userID, off)
+	}
+}
+
 func PublishComment(DB db.Env) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)

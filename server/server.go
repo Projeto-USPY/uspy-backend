@@ -57,6 +57,7 @@ func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
 
 		offeringsAPI := subjectAPI.Group("/offerings", entity.OfferingBinder)
 		{
+			offeringsAPI.GET("/comments", private.GetComment(DB))
 			offeringsAPI.PUT("/comments", private.PublishComment(DB))
 		}
 	}
