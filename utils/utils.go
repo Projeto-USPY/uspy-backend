@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,11 +15,6 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-)
-
-var (
-	ErrSubjectNotFound = errors.New("subject does not exist")
-	ErrNoPermission    = errors.New("user has not done subject")
 )
 
 func checkSubjectExists(DB db.Env, subHash string) error {
