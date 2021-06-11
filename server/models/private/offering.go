@@ -49,6 +49,94 @@ func GetComment(ctx *gin.Context, DB db.Env, userID string, off *controllers.Off
 	private.GetComment(ctx, &comment)
 }
 
+func ReportComment(
+	ctx *gin.Context,
+	DB db.Env,
+	userID string,
+	comment *controllers.CommentRating,
+	body *controllers.CommentReportBody,
+) {
+	subHash := models.Subject{
+		Code:           comment.Offering.Subject.Code,
+		CourseCode:     comment.Offering.Subject.CourseCode,
+		Specialization: comment.Offering.Subject.Specialization,
+	}.Hash()
+	userHash := models.User{
+		ID: userID,
+	}.Hash()
+
+	userCommentHash := models.UserComment{
+		ProfessorCode:  comment.Offering.Hash,
+		Subject:        comment.Offering.Subject.Code,
+		Course:         comment.Offering.Subject.CourseCode,
+		Specialization: comment.Offering.Subject.Specialization,
+	}.Hash()
+
+	err := DB.Client.RunTransaction(ctx, func(txCtx context.Context, tx *firestore.Transaction) error {
+		commentsCol := "subjects/%s/offerings/%s/comments"
+		target := DB.Client.Collection(
+			fmt.Sprintf(commentsCol, subHash, comment.Offering.Hash),
+		).Where("id", "==", uuid.MustParse(comment.Comment)).Limit(1)
+
+		snaps, err := tx.Documents(target).GetAll()
+		if err != nil {
+			return err
+		} else if len(snaps) == 0 {
+			return utils.ErrCommentNotFound
+		}
+
+		var modelComment models.Comment
+		var targetUserID string
+
+		if err := snaps[0].DataTo(&modelComment); err != nil {
+			return err
+		} else {
+			targetUserID = snaps[0].Ref.ID
+		}
+
+		commentReportMask := "users/%s/comment_reports/%s"
+		reportRef := DB.Client.Doc(fmt.Sprintf(commentReportMask, userHash, comment.Comment))
+
+		modelCommentReport := models.CommentReport{
+			ID:     uuid.MustParse(comment.Comment),
+			Report: body.Body,
+		}
+
+		if _, err := tx.Get(reportRef); err != nil {
+			if status.Code(err) == codes.NotFound { // comment has not been reported by this user yet
+				// increment comment report count by 1
+				if updateErr := tx.Update(snaps[0].Ref, []firestore.Update{{Path: "reports", Value: firestore.Increment(1)}}); updateErr != nil {
+					return updateErr
+				}
+
+				// increment replica report count by 1
+				replicaMask := "users/%s/user_comments/%s"
+				replicaRef := DB.Client.Doc(fmt.Sprintf(replicaMask, targetUserID, userCommentHash))
+				if updateErr := tx.Update(replicaRef, []firestore.Update{{Path: "comment.reports", Value: firestore.Increment(1)}}); updateErr != nil {
+					return updateErr
+				}
+			}
+		}
+
+		return tx.Set(reportRef, modelCommentReport)
+	})
+
+	if err != nil {
+		if status.Code(err) == codes.NotFound || err == utils.ErrCommentNotFound {
+			ctx.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		ctx.AbortWithError(
+			http.StatusInternalServerError,
+			fmt.Errorf("error reporting comment: (sub:%s, prof:%s): %s", subHash, comment.Offering.Hash, err.Error()),
+		)
+		return
+	}
+
+	private.ReportComment(ctx)
+}
+
 func PublishComment(
 	ctx *gin.Context,
 	DB db.Env,
@@ -98,7 +186,7 @@ func PublishComment(
 		Reports:   0,
 	}
 
-	err := DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+	err := DB.Client.RunTransaction(ctx, func(txCtx context.Context, tx *firestore.Transaction) error {
 		collectionMask := "subjects/%s/offerings/%s/comments/%s"
 		commentRef := DB.Client.Doc(
 			fmt.Sprintf(

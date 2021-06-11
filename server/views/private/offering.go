@@ -13,6 +13,10 @@ func GetComment(ctx *gin.Context, comment *models.Comment) {
 	ctx.JSON(http.StatusOK, result)
 }
 
+func ReportComment(ctx *gin.Context) {
+	ctx.Status(http.StatusOK)
+}
+
 func PublishComment(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
