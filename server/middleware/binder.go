@@ -30,9 +30,10 @@ func Bind(name string, data interface{}, bindingType binding.Binding) gin.Handle
 			)
 		}
 		if err := ctx.ShouldBindWith(data, bindingType); err != nil {
-			ctx.AbortWithError(http.StatusBadRequest, err)
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("failed to set %#v in binder %s: %s", data, name, err.Error()))
 			return
 		}
+
 		ctx.Set(name, data)
 	}
 }
