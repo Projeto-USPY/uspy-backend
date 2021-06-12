@@ -7,24 +7,55 @@ This is the official repository for the [USPY](https://uspy.me) Backend! Here yo
 This repository is organized in these packages:
 
 ```
-config
-db
-entity
-iddigital
-main
-server/
-├── api/
-│   ├── account
-│   ├── private
-│   ├── public
-│   └── restricted
-├── middleware
-└── dao/
-    ├── account
-    ├── private
-    ├── public
-    └── restricted
-utils
+├─ config
+├─ db
+├─ entity
+│     │ 
+│     ├── controllers/
+│     │   ├── account
+│     │   ├── private
+│     │   ├── public
+│     │   └── restricted
+│     │
+│     ├── models/
+│     │   ├── account
+│     │   ├── private
+│     │   ├── public
+│     │   └── restricted
+│     │
+│     └── views/
+│         ├── account
+│         ├── private
+│         ├── public
+│         └── restricted
+│
+├─ config
+├─ db
+├─ entity
+├─ iddigital
+├─ server/
+│     │ 
+│     ├── controllers/
+│     │   ├── account
+│     │   ├── private
+│     │   ├── public
+│     │   └── restricted
+│     │
+│     ├── models/
+│     │   ├── account
+│     │   ├── private
+│     │   ├── public
+│     │   └── restricted
+│     │
+│     ├── views/
+│     │   ├── account
+│     │   ├── private
+│     │   ├── public
+│     │   └── restricted
+│     │
+│     └── middleware
+│
+└─ utils
 ```
 
 Their respective responsibilities are the following:
@@ -39,26 +70,29 @@ Their respective responsibilities are the following:
 
 #### **entity**
 
-    - All object definitions and their bindings to HTTP requests and their database objects
+    - All object definitions
+    - follows a MVC architecture, see "server" package for more details
 
 #### **iddigital**
 
     - Wrapper functions for interacting with the USP iddigital API and Records' PDF parsing.
 
-#### **main**
-
-    - Entrypoint for the web server and backend endpoints definitions
-
 #### **server**
 
     - Endpoint closures and their implementations
+
     - Middleware contains useful middleware functions, such as JWT validation and data binding
-    - API Handlers and Database Access Objects are separated in /api and /dao
-    - Both of them can be divided into four categories:
-        - Account: all operations related to the user's account management, such as login, signup, delete, etc
-        - Private: all operations related to the user's data management, such as their grades and reviews
-        - Public: all operations related to data that is public (including non-registered users), such as subject data
-        - Restricted: all operations related to data that is only accessible by registered users (aggregated data)
+
+    - API Handlers and Data Access Objects are organized in a MVC manner:
+        - controllers use the entity.controller objects to bind request data
+        - models use the entity.models objects to recover data and perform upserts in the database 
+        - views use the entity.views objects to represent data the front-end will receive
+
+    - All of these can be divided in the following manner:
+        - account: all operations related to the user's account management, such as login, signup, delete, etc
+        - private: all operations related to the user's data management, such as getting/updating their grades and reviews
+        - public: all operations related to data that is public (including non-registered users), such as subject data
+        - restricted: all operations related to data that is only accessible by registered users (aggregated data)
 
 #### **utils**
 
