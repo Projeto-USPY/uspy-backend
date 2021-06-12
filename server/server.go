@@ -60,10 +60,14 @@ func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
 			offeringsAPI.GET("/comments", private.GetComment(DB))
 			offeringsAPI.PUT("/comments", private.PublishComment(DB))
 
-			offeringsAPI.PUT("/comments/report", entity.CommentRatingBinder, private.ReportComment(DB))
+			commentsAPI := offeringsAPI.Group("/comments", entity.CommentRatingBinder)
+			{
+				commentsAPI.GET("/rating", private.GetCommentRating(DB))
+				commentsAPI.PUT("/rating", private.RateComment(DB))
+				commentsAPI.PUT("/report", private.ReportComment(DB))
+			}
 		}
 	}
-
 }
 
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
