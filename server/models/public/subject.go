@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GetAll gets all subjects from the database
-func GetAll(ctx *gin.Context, DB db.Env) {
+// GetAllSubjects gets all subjects from the database
+func GetAllSubjects(ctx *gin.Context, DB db.Env) {
 	snaps, err := DB.RestoreCollection("courses")
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -38,51 +38,51 @@ func GetAll(ctx *gin.Context, DB db.Env) {
 		}
 	}
 
-	public.GetAll(ctx, courses)
+	public.GetAllSubjects(ctx, courses)
 }
 
 // Get gets a subject by its identifier: subject code, course code and course specialization code
 func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
-	subModel := models.Subject{Code: sub.Code, CourseCode: sub.CourseCode, Specialization: sub.Specialization}
-	snap, err := DB.Restore("subjects", subModel.Hash())
+	model := models.Subject{Code: sub.Code, CourseCode: sub.CourseCode, Specialization: sub.Specialization}
+	snap, err := DB.Restore("subjects", model.Hash())
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", subModel, err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject: %s", err))
 		return
 	}
-	err = snap.DataTo(&subModel)
+	err = snap.DataTo(&model)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject to object: %s", err))
 		return
 	}
 
-	public.Get(ctx, &subModel)
+	public.Get(ctx, &model)
 }
 
 // GetRelations gets the subject's graph: their direct predecessors and successors
 func GetRelations(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
-	subModel := models.NewSubjectFromController(sub)
-	snap, err := DB.Restore("subjects", subModel.Hash())
+	model := models.NewSubjectFromController(sub)
+	snap, err := DB.Restore("subjects", model.Hash())
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", subModel, err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject: %s", err.Error()))
 		return
 	}
 
-	if err := snap.DataTo(&subModel); err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind subject %v: %s", subModel, err.Error()))
+	if err := snap.DataTo(&model); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind subject %v: %s", model, err.Error()))
 		return
 	}
 
-	getRelatedSubjects := func(subModel *models.Subject, strength bool) ([]models.Subject, error) {
-		requirement := models.Requirement{Subject: subModel.Code, Name: subModel.Name, Strong: strength}
+	getRelatedSubjects := func(model *models.Subject, strength bool) ([]models.Subject, error) {
+		requirement := models.Requirement{Subject: model.Code, Name: model.Name, Strong: strength}
 		iter := DB.Client.Collection("subjects").
 			Where("true_requirements", "array-contains", requirement).
 			Where("course", "==", sub.CourseCode).
@@ -111,18 +111,18 @@ func GetRelations(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 		return results, nil
 	}
 
-	strong, strongErr := getRelatedSubjects(subModel, true)
-	weak, weakErr := getRelatedSubjects(subModel, false)
+	strong, strongErr := getRelatedSubjects(model, true)
+	weak, weakErr := getRelatedSubjects(model, false)
 
 	if strongErr != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get subject predecessors %v: %s", subModel, strongErr.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get subject predecessors %v: %s", model, strongErr.Error()))
 		return
 	}
 
 	if weakErr != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get subject successors %v: %s", subModel, weakErr.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get subject successors %v: %s", model, weakErr.Error()))
 		return
 	}
 
-	public.GetRelations(ctx, subModel, weak, strong)
+	public.GetRelations(ctx, model, weak, strong)
 }

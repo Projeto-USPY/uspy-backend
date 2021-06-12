@@ -12,8 +12,8 @@ type Offering struct {
 	CodPes string `firestore:"-"`
 	Code   string `firestore:"-"`
 
-	Professor string `firestore:"professor"`
-	Year      string `firestore:"year"`
+	Professor string   `firestore:"professor"`
+	Years     []string `firestore:"years"`
 }
 
 // sha256(CodPes)

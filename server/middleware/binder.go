@@ -1,21 +1,39 @@
-// package middleware contains useful middleware handlers
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
-// Subject is a middleware for binding subject data
-func Subject() gin.HandlerFunc {
+var allowedTypes = []binding.Binding{
+	binding.Query,
+	binding.Form,
+	binding.FormPost,
+	binding.FormMultipart,
+}
+
+func Bind(name string, data interface{}, bindingType binding.Binding) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		subject := controllers.Subject{}
-		if err := ctx.BindQuery(&subject); err != nil {
-			ctx.AbortWithStatus(http.StatusBadRequest)
+		ok := false
+		for _, b := range allowedTypes {
+			if b == bindingType {
+				ok = true
+			}
+		}
+		if !ok {
+			ctx.AbortWithError(
+				http.StatusInternalServerError,
+				fmt.Errorf("function Bind only allows the following binding types: %v", allowedTypes),
+			)
+		}
+		if err := ctx.ShouldBindWith(data, bindingType); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, fmt.Errorf("failed to set %#v in binder %s: %s", data, name, err.Error()))
 			return
 		}
-		ctx.Set("Subject", subject)
+
+		ctx.Set(name, data)
 	}
 }

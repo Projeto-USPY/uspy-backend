@@ -1,7 +1,7 @@
 tmp_dir = "air_tmp"
 
 [build]
-cmd = "go build -o ./air_tmp/main main/main.go"
+cmd = "go build -o ./air_tmp/main main.go"
 
 bin = "air_tmp/main"
 

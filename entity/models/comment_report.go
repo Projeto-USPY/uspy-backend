@@ -1,15 +1,14 @@
-package entity
+package models
 
 import (
 	"github.com/google/uuid"
 )
 
-type CommentRating struct {
+type CommentReport struct {
 	ID     uuid.UUID `firestore:"id"`
-	Upvote bool      `firestore:"upvote"`
 	Report string    `firestore:"report"`
 }
 
-func (cr CommentRating) Hash() string {
+func (cr CommentReport) Hash() string {
 	return cr.ID.String()
 }

@@ -55,6 +55,10 @@ func JWT() gin.HandlerFunc {
 			return
 		}
 
+		claims := token.Claims.(jwt.MapClaims)
+		userID := claims["user"].(string)
+
 		ctx.Set("access_token", token)
+		ctx.Set("userID", userID)
 	}
 }
