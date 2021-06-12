@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -49,6 +50,201 @@ func GetComment(ctx *gin.Context, DB db.Env, userID string, off *controllers.Off
 	private.GetComment(ctx, &comment)
 }
 
+func GetCommentRating(
+	ctx *gin.Context,
+	DB db.Env,
+	userID string,
+	comment *controllers.CommentRating,
+) {
+	userHash := models.User{
+		ID: userID,
+	}.Hash()
+
+	var model models.CommentRating
+	collectionMask := "users/%s/comment_ratings"
+	if snap, err := DB.Restore(fmt.Sprintf(collectionMask, userHash), comment.ID); err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithStatus(http.StatusNotFound)
+			return
+		} else {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error looking up comment rating: %s", err.Error()))
+			return
+		}
+	} else {
+		if snap.DataTo(&model); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error binding comment: %s", err.Error()))
+			return
+		}
+	}
+
+	private.GetCommentRating(ctx, &model)
+}
+
+func RateComment(
+	ctx *gin.Context,
+	DB db.Env,
+	userID string,
+	comment *controllers.CommentRating,
+	body *controllers.CommentRateBody,
+) {
+	subHash := models.Subject{
+		Code:           comment.Offering.Subject.Code,
+		CourseCode:     comment.Offering.Subject.CourseCode,
+		Specialization: comment.Offering.Subject.Specialization,
+	}.Hash()
+	userHash := models.User{
+		ID: userID,
+	}.Hash()
+
+	userCommentHash := models.UserComment{
+		ProfessorCode:  comment.Offering.Hash,
+		Subject:        comment.Offering.Subject.Code,
+		Course:         comment.Offering.Subject.CourseCode,
+		Specialization: comment.Offering.Subject.Specialization,
+	}.Hash()
+
+	err := DB.Client.RunTransaction(ctx, func(txCtx context.Context, tx *firestore.Transaction) error {
+		commentsCol := "subjects/%s/offerings/%s/comments"
+		target := DB.Client.Collection(
+			fmt.Sprintf(commentsCol, subHash, comment.Offering.Hash),
+		).Where("id", "==", uuid.MustParse(comment.ID)).Limit(1)
+
+		snaps, err := tx.Documents(target).GetAll()
+		if err != nil {
+			return err
+		} else if len(snaps) == 0 {
+			return utils.ErrCommentNotFound
+		}
+
+		var modelComment models.Comment
+		var targetRef *firestore.DocumentRef
+
+		if err := snaps[0].DataTo(&modelComment); err != nil {
+			return err
+		} else {
+			targetRef = snaps[0].Ref
+		}
+
+		commentRatingMask := "users/%s/comment_ratings/%s"
+		ratingRef := DB.Client.Doc(fmt.Sprintf(commentRatingMask, userHash, comment.ID))
+
+		commentRating := models.CommentRating{
+			ID:     uuid.MustParse(comment.ID),
+			Upvote: body.Type == "upvote",
+		}
+
+		type update struct {
+			ref     *firestore.DocumentRef
+			changes []firestore.Update
+		}
+
+		updates := make([]update, 0, 10)
+
+		replicaMask := "users/%s/user_comments/%s"
+		replicaRef := DB.Client.Doc(fmt.Sprintf(replicaMask, targetRef.ID, userCommentHash))
+
+		// if rating already exists and it's different, we add the decrement updates for the comment and replica's count
+		if ratingDoc, err := tx.Get(ratingRef); err == nil {
+			if storedUpvote, err := ratingDoc.DataAt("upvote"); err == nil && storedUpvote.(bool) == commentRating.Upvote {
+				// rating did not change
+				return nil
+			} else if err != nil {
+				return err
+			}
+
+			if commentRating.Upvote {
+				updates = append(updates,
+					update{
+						ref:     targetRef,
+						changes: []firestore.Update{{Path: "downvotes", Value: firestore.Increment(-1)}},
+					},
+					update{
+						ref:     replicaRef,
+						changes: []firestore.Update{{Path: "comment.downvotes", Value: firestore.Increment(-1)}},
+					},
+				)
+			} else {
+				updates = append(updates,
+					update{
+						ref:     targetRef,
+						changes: []firestore.Update{{Path: "upvotes", Value: firestore.Increment(-1)}},
+					},
+					update{
+						ref:     replicaRef,
+						changes: []firestore.Update{{Path: "comment.upvotes", Value: firestore.Increment(-1)}},
+					},
+				)
+			}
+		} else if status.Code(err) != codes.NotFound {
+			return err
+		}
+
+		// now we must add the updates to increment the comment and replica's count
+		if commentRating.Upvote {
+			updates = append(updates,
+				update{
+					ref:     targetRef,
+					changes: []firestore.Update{{Path: "upvotes", Value: firestore.Increment(1)}},
+				},
+				update{
+					ref:     replicaRef,
+					changes: []firestore.Update{{Path: "comment.upvotes", Value: firestore.Increment(1)}},
+				},
+			)
+		} else {
+			updates = append(updates,
+				update{
+					ref:     targetRef,
+					changes: []firestore.Update{{Path: "downvotes", Value: firestore.Increment(1)}},
+				},
+				update{
+					ref:     replicaRef,
+					changes: []firestore.Update{{Path: "comment.downvotes", Value: firestore.Increment(1)}},
+				},
+			)
+		}
+
+		var wg sync.WaitGroup
+		updateErrors := make(chan error, len(updates))
+		wg.Add(len(updates))
+
+		// perform updates in parallel
+		for _, u := range updates {
+			go func(upd update, wg *sync.WaitGroup) {
+				defer wg.Done()
+				updateErrors <- tx.Update(upd.ref, upd.changes)
+			}(u, &wg)
+		}
+
+		wg.Wait()
+		close(updateErrors)
+
+		for err := range updateErrors {
+			if err != nil {
+				return err
+			}
+		}
+
+		// upsert comment rating
+		return tx.Set(ratingRef, commentRating)
+	})
+
+	if err != nil {
+		if status.Code(err) == codes.NotFound || err == utils.ErrCommentNotFound {
+			ctx.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		ctx.AbortWithError(
+			http.StatusInternalServerError,
+			fmt.Errorf("error rating comment: (sub:%s, prof:%s): %s", subHash, comment.Offering.Hash, err.Error()),
+		)
+		return
+	}
+
+	private.RateComment(ctx)
+}
+
 func ReportComment(
 	ctx *gin.Context,
 	DB db.Env,
@@ -76,7 +272,7 @@ func ReportComment(
 		commentsCol := "subjects/%s/offerings/%s/comments"
 		target := DB.Client.Collection(
 			fmt.Sprintf(commentsCol, subHash, comment.Offering.Hash),
-		).Where("id", "==", uuid.MustParse(comment.Comment)).Limit(1)
+		).Where("id", "==", uuid.MustParse(comment.ID)).Limit(1)
 
 		snaps, err := tx.Documents(target).GetAll()
 		if err != nil {
@@ -95,10 +291,10 @@ func ReportComment(
 		}
 
 		commentReportMask := "users/%s/comment_reports/%s"
-		reportRef := DB.Client.Doc(fmt.Sprintf(commentReportMask, userHash, comment.Comment))
+		reportRef := DB.Client.Doc(fmt.Sprintf(commentReportMask, userHash, comment.ID))
 
 		modelCommentReport := models.CommentReport{
-			ID:     uuid.MustParse(comment.Comment),
+			ID:     uuid.MustParse(comment.ID),
 			Report: body.Body,
 		}
 
@@ -115,6 +311,8 @@ func ReportComment(
 				if updateErr := tx.Update(replicaRef, []firestore.Update{{Path: "comment.reports", Value: firestore.Increment(1)}}); updateErr != nil {
 					return updateErr
 				}
+			} else {
+				return err
 			}
 		}
 

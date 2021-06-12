@@ -20,6 +20,41 @@ func GetComment(DB db.Env) func(*gin.Context) {
 	}
 }
 
+func GetCommentRating(DB db.Env) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
+		off := ctx.MustGet("Offering").(*controllers.Offering)
+		rating := ctx.MustGet("CommentRating").(*controllers.CommentRating)
+
+		off.Subject = *sub
+		rating.Offering = *off
+
+		userID := ctx.MustGet("userID").(string)
+		private.GetCommentRating(ctx, DB, userID, rating)
+	}
+}
+
+func RateComment(DB db.Env) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
+		off := ctx.MustGet("Offering").(*controllers.Offering)
+		rating := ctx.MustGet("CommentRating").(*controllers.CommentRating)
+
+		off.Subject = *sub
+		rating.Offering = *off
+
+		userID := ctx.MustGet("userID").(string)
+
+		var body controllers.CommentRateBody
+		if err := ctx.ShouldBindJSON(&body); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		private.RateComment(ctx, DB, userID, rating, &body)
+	}
+}
+
 func ReportComment(DB db.Env) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)

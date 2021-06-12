@@ -13,6 +13,14 @@ func GetComment(ctx *gin.Context, comment *models.Comment) {
 	ctx.JSON(http.StatusOK, result)
 }
 
+func GetCommentRating(ctx *gin.Context, model *models.CommentRating) {
+	ctx.JSON(http.StatusOK, views.NewCommentRatingFromModel(model))
+}
+
+func RateComment(ctx *gin.Context) {
+	ctx.Status(http.StatusOK)
+}
+
 func ReportComment(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
