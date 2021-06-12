@@ -2,11 +2,11 @@ package controllers
 
 type CommentRating struct {
 	Offering
-	Comment string `form:"comment" binding:"required,uuid"`
+	ID string `form:"comment" binding:"required,uuid"`
 }
 
-type CommentVoteBody struct {
-	IsUpvote bool `json:"upvote" binding:"required"`
+type CommentRateBody struct {
+	Type string `json:"type" binding:"required,oneof=upvote downvote"`
 }
 
 type CommentReportBody struct {
