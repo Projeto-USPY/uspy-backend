@@ -9,10 +9,10 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
+	db_utils "github.com/Projeto-USPY/uspy-backend/db/utils"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/views/private"
-	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -55,14 +55,14 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 	userHash, subHash := user.Hash(), model.Hash()
 	review := models.SubjectReview{}
 
-	err := utils.CheckSubjectPermission(DB, userHash, subHash)
+	err := db_utils.CheckSubjectPermission(DB, userHash, subHash)
 	if err != nil {
-		if err == utils.ErrSubjectNotFound {
+		if err == db_utils.ErrSubjectNotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
-		if err == utils.ErrNoPermission {
+		if err == db_utils.ErrNoPermission {
 			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
 			return
 		}
@@ -94,14 +94,14 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 // UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
 func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *controllers.SubjectReview) {
 	userHash, model := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)
-	err := utils.CheckSubjectPermission(DB, userHash, model.Hash())
+	err := db_utils.CheckSubjectPermission(DB, userHash, model.Hash())
 	if err != nil {
-		if err == utils.ErrSubjectNotFound {
+		if err == db_utils.ErrSubjectNotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
-		if err == utils.ErrNoPermission {
+		if err == db_utils.ErrNoPermission {
 			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
 			return
 		}

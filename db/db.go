@@ -108,6 +108,7 @@ func InitFireStore() Env {
 		}
 	} else {
 		sa := option.WithCredentialsFile(config.Env.Identify())
+
 		app, err := firebase.NewApp(DB.Ctx, nil, sa)
 		if err != nil {
 			log.Fatalln(err)
@@ -115,7 +116,8 @@ func InitFireStore() Env {
 
 		DB.Client, err = app.Firestore(DB.Ctx)
 		if err != nil {
-			log.Fatalln(err)
+			log.Println(err)
+			log.Fatalln("There might be something wrong with your credentials file!")
 		}
 	}
 

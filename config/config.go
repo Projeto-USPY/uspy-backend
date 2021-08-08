@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -89,6 +90,9 @@ func Setup() {
 
 		log.Printf("local env variables set: %#v\n", lc)
 		Env.Local = lc
+		if !utils.CheckFileExists(lc.FirestoreKeyPath) {
+			log.Fatal("Could not find firestore key path: ", lc.FirestoreKeyPath)
+		}
 	} else if _, ok := os.LookupEnv("USPY_PROJECT_ID"); ok {
 		log.Println("Running backend remotely")
 		var rc RemoteConfig
