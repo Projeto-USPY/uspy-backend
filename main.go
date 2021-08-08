@@ -2,13 +2,15 @@
 package main
 
 import (
+	"log"
+
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/server"
-	"log"
 )
 
 func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	config.Setup()
 }
 
