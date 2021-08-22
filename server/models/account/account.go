@@ -180,7 +180,7 @@ func SignupCaptcha(ctx *gin.Context) {
 func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 	if snap, err := DB.Restore("users", utils.SHA256(login.ID)); err != nil { // get user from database
 		if status.Code(err) == codes.NotFound { // if user was not found
-			ctx.AbortWithError(http.StatusForbidden, err)
+			ctx.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
 		ctx.AbortWithError(http.StatusInternalServerError, err)
