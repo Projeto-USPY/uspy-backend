@@ -180,8 +180,10 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 
 		// send email verification
 		if err := sendEmailVerification(signupForm.Email, newUser); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
-			return
+			if err != config.ErrMailjetInitilization && !config.Env.IsLocal() { // email verification is not needed locally
+				ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
+				return
+			}
 		}
 
 		account.Signup(ctx, newUser.ID, data)

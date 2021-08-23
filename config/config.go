@@ -102,6 +102,9 @@ func Setup() {
 		var rc RemoteConfig
 		envconfig.MustProcess("uspy", &rc)
 
+		// setup email client
+		Env.Mailjet.Setup()
+
 		log.Printf("remote env variables set: %#v\n", rc)
 		Env.Remote = rc
 	} else {
@@ -111,9 +114,6 @@ func Setup() {
 	if err := envconfig.Process("uspy", &Env); err != nil {
 		log.Fatal("could not process default env variables: ", err)
 	}
-
-	// setup email client
-	Env.Mailjet.Setup()
 
 	log.Printf("env variables set: %#v\n", Env.Redact())
 }

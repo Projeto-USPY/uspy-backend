@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+
 	"github.com/mailjet/mailjet-apiv3-go"
 )
 
@@ -10,6 +12,10 @@ type Mailjet struct {
 
 	client *mailjet.Client
 }
+
+var (
+	ErrMailjetInitilization = errors.New("could not initialize mailjet client")
+)
 
 // Email defaults
 const (
@@ -29,10 +35,16 @@ const (
 )
 
 func (m *Mailjet) Setup() {
-	m.client = mailjet.NewMailjetClient(m.APIKey, m.Secret)
+	if m.APIKey != "" && m.Secret != "" {
+		m.client = mailjet.NewMailjetClient(m.APIKey, m.Secret)
+	}
 }
 
 func (m *Mailjet) Send(target, subject, content string) error {
+	if m.client == nil {
+		return ErrMailjetInitilization
+	}
+
 	messagesInfo := []mailjet.InfoMessagesV31{
 		{
 			From: &mailjet.RecipientV31{
