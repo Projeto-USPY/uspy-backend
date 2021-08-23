@@ -3,12 +3,17 @@ package account
 
 import (
 	"testing"
+	"time"
 
-	"github.com/Projeto-USPY/uspy-backend/server/middleware"
+	"github.com/Projeto-USPY/uspy-backend/config"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
 func TestGenerateToken(t *testing.T) {
-	jwt, err := middleware.GenerateJWT("login")
+	jwt, err := utils.GenerateJWT(map[string]interface{}{
+		"user":      "login",
+		"timestamp": time.Now().Unix(),
+	}, config.Env.JWTSecret)
 
 	if err != nil {
 		t.Fatal(err)
@@ -18,13 +23,16 @@ func TestGenerateToken(t *testing.T) {
 }
 
 func TestValidateToken(t *testing.T) {
-	jwt, err := middleware.GenerateJWT("login")
+	jwt, err := utils.GenerateJWT(map[string]interface{}{
+		"user":      "login",
+		"timestamp": time.Now().Unix(),
+	}, config.Env.JWTSecret)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = middleware.ValidateJWT(jwt)
+	_, err = utils.ValidateJWT(jwt, config.Env.JWTSecret)
 
 	if err != nil {
 		t.Fatal(err)
