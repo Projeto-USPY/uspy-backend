@@ -17,9 +17,9 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
-	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 	"github.com/Projeto-USPY/uspy-backend/server/views/account"
 	"github.com/Projeto-USPY/uspy-backend/utils"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -83,6 +83,23 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 	return nil
 }
 
+func sendEmailVerification(email string, u *models.User) error {
+	token, err := utils.GenerateJWT(map[string]interface{}{
+		"type":      "email_verification",
+		"user":      u.Hash(),
+		"email":     u.EmailHash,
+		"timestamp": time.Now(),
+	}, config.Env.JWTSecret)
+
+	if err != nil {
+		return err
+	}
+
+	url := `https://uspy.me/account/verify?token=` + token
+	content := fmt.Sprintf(config.VerificationContent, url)
+	return config.Env.Send(email, config.VerificationSubject, content)
+}
+
 // Profile retrieves the user profile from the database
 func Profile(ctx *gin.Context, DB db.Env, userID string) {
 	var storedUser models.User
@@ -114,6 +131,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 		return
 	}
 
+	// parse transcript
 	if pdf := iddigital.NewPDF(resp); pdf.Error != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error converting pdf to text: %s", pdf.Error.Error()))
 		return
@@ -135,9 +153,11 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 			return
 		}
 
+		// create user object
 		newUser, userErr := models.NewUser(
 			data.Nusp,
 			data.Name,
+			signupForm.Email,
 			signupForm.Password,
 			pdf.CreationDate,
 		)
@@ -147,6 +167,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 			return
 		}
 
+		// insert user object into database
 		if err := InsertUser(DB, newUser, &data); err != nil {
 			if err == ErrUserExists {
 				ctx.AbortWithStatus(http.StatusForbidden)
@@ -154,6 +175,12 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 			}
 
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error inserting user %s: %s", data.Nusp, err.Error()))
+			return
+		}
+
+		// send email verification
+		if err := sendEmailVerification(signupForm.Email, newUser); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
 			return
 		}
 
@@ -198,8 +225,23 @@ func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 			return
 		}
 
+		// check if user has verified their email
+		if !storedUser.Verified {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		// check if user is banned
+		if storedUser.Banned {
+			ctx.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
 		// generate access_token
-		if jwtToken, err := middleware.GenerateJWT(login.ID); err != nil {
+		if jwtToken, err := utils.GenerateJWT(map[string]interface{}{
+			"user":      login.ID,
+			"timestamp": time.Now().Unix(),
+		}, config.Env.JWTSecret); err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating jwt for user %s: %s", storedUser.ID, err.Error()))
 			return
 		} else {
@@ -314,6 +356,24 @@ func ResetPassword(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupFo
 	account.ResetPassword(ctx)
 }
 
+// Verify sets the user's email as verified
+func Verify(ctx *gin.Context, DB db.Env, verification *controllers.AccountVerification) {
+	token, _ := utils.ValidateJWT(verification.Token, config.Env.JWTSecret) // ignoring error because it was already validated in controller
+	claims := token.Claims.(jwt.MapClaims)
+
+	userHash := claims["user"].(string)
+
+	// verify user
+	user := models.User{IDHash: userHash, Verified: true}
+
+	if err := DB.Update(user, "users"); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	account.Verify(ctx)
+}
+
 // Delete deletes the given user (removing all of its traces (grades, reviews, etc)
 func Delete(ctx *gin.Context, DB db.Env, userID string) {
 	userHash := utils.SHA256(userID)
@@ -413,19 +473,26 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 			}
 		}
 
-		// For all review documents
+		// get review snapshots
+		reviewSnapshots := make([]*firestore.DocumentSnapshot, 0, len(subjectReviewsDocs))
+
 		for _, reviewRef := range subjectReviewsDocs {
 			rev, err := tx.Get(reviewRef) // get review snapshot
 			if err != nil {
 				return fmt.Errorf("could not get review snapshot: %v", err.Error())
 			}
 
+			reviewSnapshots = append(reviewSnapshots, rev)
+		}
+
+		// For all review documents
+		for _, rev := range reviewSnapshots {
 			categories, err := rev.DataAt("categories") // get existing review categories
 			if err != nil {
 				return fmt.Errorf("could not get review categories: %v", err.Error())
 			}
 
-			subRef := DB.Client.Doc("subjects/" + reviewRef.ID)
+			subRef := DB.Client.Doc("subjects/" + rev.Ref.ID)
 
 			// For all of the categories
 			for k, v := range categories.(map[string]interface{}) {

@@ -87,6 +87,20 @@ func Signup(DB db.Env) func(g *gin.Context) {
 	}
 }
 
+// Verify is a closure for the GET /account/verify endpoint
+func Verify(DB db.Env) func(g *gin.Context) {
+	return func(ctx *gin.Context) {
+		// validate verification token
+		var verification controllers.AccountVerification
+		if err := ctx.ShouldBindQuery(&verification); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		account.Verify(ctx, DB, &verification)
+	}
+}
+
 // SignupCaptcha is a closure for the GET /account/captcha endpoint
 func SignupCaptcha() func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {

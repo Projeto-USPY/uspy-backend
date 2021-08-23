@@ -8,7 +8,6 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
-	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -36,16 +35,13 @@ func Profile(ctx *gin.Context, user models.User) {
 	}
 }
 
-// Signup sets the records and sets the access token
+// Signup sets the records
 func Signup(ctx *gin.Context, userID string, records iddigital.Transcript) {
-	jwtToken, err := middleware.GenerateJWT(userID)
-	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating jwt for new user: %s", err.Error()))
-		return
-	}
-
-	setAccessToken(ctx, jwtToken)
 	ctx.JSON(http.StatusOK, views.NewTranscript(&records))
+}
+
+func Verify(ctx *gin.Context) {
+	ctx.Status(http.StatusOK)
 }
 
 // SignupCaptcha sets the captcha and cookie data in the response
