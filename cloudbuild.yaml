@@ -20,9 +20,9 @@ steps:
       USPY_PROJECT_ID=$_PROJECT_ID,\
       USPY_JWT_SECRET=$_JWT_SECRET,\
       USPY_RATE_LIMIT=$_RATE_LIMIT,\
-      USPY_AES_KEY=$_AES_KEY",\
+      USPY_AES_KEY=$_AES_KEY,\
       USPY_MAILJET_KEY=$_MAILJET_KEY,\
-      USPY_MAILJET_SECRET=$_MAILJET_SECRET]
+      USPY_MAILJET_SECRET=$_MAILJET_SECRET"]
 
 # Assign 100% of the traffic to the latest version
 - name: 'gcr.io/cloud-builders/gcloud'
