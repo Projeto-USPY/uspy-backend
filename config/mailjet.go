@@ -7,8 +7,8 @@ import (
 )
 
 type Mailjet struct {
-	APIKey string `envconfig:"USPY_MAILJET_KEY" required:"true"`
-	Secret string `envconfig:"USPY_MAILJET_SECRET" required:"true"`
+	APIKey string `envconfig:"USPY_MAILJET_KEY"`
+	Secret string `envconfig:"USPY_MAILJET_SECRET"`
 
 	client *mailjet.Client
 }
