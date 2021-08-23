@@ -8,9 +8,11 @@ import (
 )
 
 var validators = map[string]func(validator.FieldLevel) bool{
-	"validatePassword":      validatePassword,
-	"validateAccessKey":     validateAccessKey,
-	"validateSubjectReview": validateSubjectReview,
+	"validatePassword":          validatePassword,
+	"validateAccessKey":         validateAccessKey,
+	"validateSubjectReview":     validateSubjectReview,
+	"validateEmail":             validateEmail,
+	"validateVerificationToken": validateVerificationToken,
 }
 
 // SetupValidators registers the default validation functions designed for each entity
