@@ -106,6 +106,7 @@ func Setup(DB db.Env) error {
 		user, userErr := models.NewUser(
 			"123456789",
 			"Usuário teste",
+			"email_teste@usp.br",
 			"r4nd0mpass123!@#",
 			time.Now(),
 		)
