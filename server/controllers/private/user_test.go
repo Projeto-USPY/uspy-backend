@@ -26,6 +26,7 @@ func TestUserSuite(t *testing.T) {
 	suite.Run(t, new(UserSuite))
 }
 
-func (s *UserSuite) TestGetGrade()            {}
-func (s *UserSuite) TestGetSubjectReview()    {}
-func (s *UserSuite) TestUpdateSubjectReview() {}
+
+/** This has not been implemented yet because the Firestore emulator does not support transactional gets **/
+//func (s *UserSuite) TestGetSubjectReview() {}
+//func (s *UserSuite) TestUpdateSubjectReview() {}

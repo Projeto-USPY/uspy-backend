@@ -117,6 +117,7 @@ func (s *AccountSuite) TestLogout() {
 	}
 }
 
+/** This has not been implemented yet because the Firestore emulator does not support transactional gets **/
 // func (s *AccountSuite) TestDelete() {
 // 	w := utils.MakeRequest(s.router, http.MethodDelete, "/account", nil)
 // 	s.Equal(http.StatusUnauthorized, w.Result().StatusCode, "managed to delete account without authorization")
