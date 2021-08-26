@@ -132,4 +132,3 @@ func (s *SubjectSuite) TestGetByCode() {
 	s.NoError(err)
 	s.JSONEq(expectedResponse, string(bytes))
 }
-func (s *SubjectSuite) TestGetGraph() {}
