@@ -41,7 +41,9 @@ func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controller
 			return
 		}
 
-		if fs.Grade >= best.Grade {
+		if fs.Grade > best.Grade {
+			best = fs
+		} else if fs.Grade == best.Grade && fs.Year > best.Year {
 			best = fs
 		}
 	}
