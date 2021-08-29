@@ -97,7 +97,12 @@ func sendEmailVerification(email string, u *models.User) error {
 
 	url := `https://uspy.me/account/verify?token=` + token
 	content := fmt.Sprintf(config.VerificationContent, url)
-	return config.Env.Send(email, config.VerificationSubject, content)
+
+	if config.Env.IsLocal() {
+		return nil
+	}
+
+	return config.Env.Remote.Send(email, config.VerificationSubject, content)
 }
 
 // Profile retrieves the user profile from the database
@@ -180,10 +185,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 
 		// send email verification
 		if err := sendEmailVerification(signupForm.Email, newUser); err != nil {
-			if err != config.ErrMailjetInitilization && !config.Env.IsLocal() { // email verification is not needed locally
-				ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
-				return
-			}
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
 		}
 
 		account.Signup(ctx, newUser.ID, data)
