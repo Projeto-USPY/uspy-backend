@@ -55,7 +55,7 @@ func NewUser(ID, name, email, password string, lastUpdate time.Time) (*User, err
 				EmailHash:    eHash,
 				PasswordHash: pHash,
 				LastUpdate:   lastUpdate,
-				Verified:     !config.Env.IsLocal(),
+				Verified:     config.Env.IsLocal(),
 				Banned:       false,
 			}, nil
 		}
