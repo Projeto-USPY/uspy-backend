@@ -111,6 +111,8 @@ func Setup(DB db.Env) error {
 			time.Now(),
 		)
 
+		user.Verified = true
+
 		errChannel <- userErr
 
 		recs := iddigital.Transcript{
