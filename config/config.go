@@ -39,8 +39,6 @@ type Config struct {
 	AESKey    string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
 	RateLimit string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
 
-	Mailjet
-
 	Local  LocalConfig
 	Remote RemoteConfig
 }
@@ -66,8 +64,8 @@ func (c Config) Redact() Config {
 	c.Domain = "[REDACTED]"
 	c.Local.FirestoreKeyPath = "[REDACTED]"
 	c.Remote.ProjectID = "[REDACTED]"
-	c.Mailjet.APIKey = "[REDACTED]"
-	c.Mailjet.Secret = "[REDACTED]"
+	c.Remote.Mailjet.APIKey = "[REDACTED]"
+	c.Remote.Mailjet.Secret = "[REDACTED]"
 	return c
 }
 
@@ -103,7 +101,7 @@ func Setup() {
 		envconfig.MustProcess("uspy", &rc)
 
 		// setup email client
-		Env.Mailjet.Setup()
+		Env.Remote.Mailjet.Setup()
 
 		log.Printf("remote env variables set: %#v\n", rc)
 		Env.Remote = rc
