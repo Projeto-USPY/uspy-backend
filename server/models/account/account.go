@@ -84,6 +84,10 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 }
 
 func sendEmailVerification(email string, u *models.User) error {
+	if config.Env.IsLocal() {
+		return nil
+	}
+
 	token, err := utils.GenerateJWT(map[string]interface{}{
 		"type":      "email_verification",
 		"user":      u.Hash(),
@@ -95,13 +99,15 @@ func sendEmailVerification(email string, u *models.User) error {
 		return err
 	}
 
-	url := `https://uspy.me/account/verify?token=` + token
-	content := fmt.Sprintf(config.VerificationContent, url)
-
-	if config.Env.IsLocal() {
-		return nil
+	var host string
+	if config.Env.Mode == "dev" {
+		host = "frontdev.uspy.me"
+	} else {
+		host = "uspy.me"
 	}
 
+	url := fmt.Sprintf(`https://%s/account/verify?token=%s`, host, token)
+	content := fmt.Sprintf(config.VerificationContent, url)
 	return config.Env.Remote.Send(email, config.VerificationSubject, content)
 }
 
