@@ -100,11 +100,11 @@ func Setup() {
 		var rc RemoteConfig
 		envconfig.MustProcess("uspy", &rc)
 
-		// setup email client
-		Env.Remote.Mailjet.Setup()
-
 		log.Printf("remote env variables set: %#v\n", rc)
 		Env.Remote = rc
+
+		// setup email client
+		Env.Remote.Mailjet.Setup()
 	} else {
 		log.Fatal("Could not initialize backend because neither the Firestore Key nor the Project ID were specified")
 	}
