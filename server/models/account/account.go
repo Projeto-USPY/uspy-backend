@@ -170,7 +170,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 		// insert user object into database
 		if err := InsertUser(DB, newUser, &data); err != nil {
 			if err == ErrUserExists {
-				ctx.AbortWithStatus(http.StatusForbidden)
+				ctx.AbortWithStatusJSON(http.StatusForbidden, "usuário já existe")
 				return
 			}
 
@@ -223,19 +223,19 @@ func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 
 		// check if password is correct
 		if !utils.BcryptCompare(login.Password, storedUser.PasswordHash) {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, "login ou senha incorretos")
 			return
 		}
 
 		// check if user has verified their email
 		if !storedUser.Verified {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
+			ctx.AbortWithStatusJSON(http.StatusForbidden, "e-mail ainda não foi verificado")
 			return
 		}
 
 		// check if user is banned
 		if storedUser.Banned {
-			ctx.AbortWithStatus(http.StatusForbidden)
+			ctx.AbortWithStatusJSON(http.StatusForbidden, "sua conta foi banida")
 			return
 		}
 
@@ -293,7 +293,7 @@ func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *contr
 
 		// check if old password is correct
 		if !utils.BcryptCompare(resetForm.OldPassword, storedUser.PasswordHash) {
-			ctx.AbortWithStatus(http.StatusForbidden)
+			ctx.AbortWithStatusJSON(http.StatusForbidden, "senha incorreta")
 			return
 		}
 
