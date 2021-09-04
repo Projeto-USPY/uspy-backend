@@ -83,15 +83,16 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 	return nil
 }
 
-func sendEmailVerification(email string, u *models.User) error {
+func sendEmailVerification(email, userHash string) error {
 	if config.Env.IsLocal() {
 		return nil
 	}
 
+	emailHash := utils.SHA256(email)
 	token, err := utils.GenerateJWT(map[string]interface{}{
 		"type":      "email_verification",
-		"user":      u.Hash(),
-		"email":     u.EmailHash,
+		"user":      userHash,
+		"email":     emailHash,
 		"timestamp": time.Now(),
 	}, config.Env.JWTSecret)
 
@@ -200,8 +201,9 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 		}
 
 		// send email verification
-		if err := sendEmailVerification(signupForm.Email, newUser); err != nil {
+		if err := sendEmailVerification(signupForm.Email, newUser.Hash()); err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
+			return
 		}
 
 		account.Signup(ctx, newUser.ID, data)
