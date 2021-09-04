@@ -24,6 +24,11 @@ func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
 	accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
 	accountGroup.PUT("/password_reset", account.ResetPassword(DB))
 	accountGroup.GET("/verify", account.VerifyAccount(DB))
+
+	emailGroup := accountGroup.Group("/email")
+	{
+		emailGroup.POST("/verification", account.VerifyEmail(DB))
+	}
 }
 
 func setupPublic(DB db.Env, apiGroup *gin.RouterGroup) {
