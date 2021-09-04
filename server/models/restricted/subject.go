@@ -10,8 +10,6 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/views/restricted"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // GetGrades returns all grades from a given subject
@@ -19,12 +17,11 @@ func GetGrades(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 	snaps, err := DB.RestoreCollection(fmt.Sprintf("subjects/%s/grades", model.Hash()))
 
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
-			return
-		}
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject: %s", err.Error()))
+	if len(snaps) == 0 {
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject grades %v", model))
+		return
+	} else if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject grades: %s", err.Error()))
 		return
 	}
 
