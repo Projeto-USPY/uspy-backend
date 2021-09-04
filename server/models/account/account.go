@@ -376,8 +376,8 @@ func ResetPassword(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupFo
 	account.ResetPassword(ctx)
 }
 
-// Verify sets the user's email as verified
-func Verify(ctx *gin.Context, DB db.Env, verification *controllers.AccountVerification) {
+// VerifyAccount sets the user's email as verified
+func VerifyAccount(ctx *gin.Context, DB db.Env, verification *controllers.AccountVerification) {
 	token, _ := utils.ValidateJWT(verification.Token, config.Env.JWTSecret) // ignoring error because it was already validated in controller
 	claims := token.Claims.(jwt.MapClaims)
 
@@ -391,7 +391,7 @@ func Verify(ctx *gin.Context, DB db.Env, verification *controllers.AccountVerifi
 		return
 	}
 
-	account.Verify(ctx)
+	account.VerifyAccount(ctx)
 }
 
 // Delete deletes the given user (removing all of its traces (grades, reviews, etc)

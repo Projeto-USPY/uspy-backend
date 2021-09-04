@@ -87,8 +87,8 @@ func Signup(DB db.Env) func(g *gin.Context) {
 	}
 }
 
-// Verify is a closure for the GET /account/verify endpoint
-func Verify(DB db.Env) func(g *gin.Context) {
+// VerifyAccount is a closure for the GET /account/verify endpoint
+func VerifyAccount(DB db.Env) func(g *gin.Context) {
 	return func(ctx *gin.Context) {
 		// validate verification token
 		var verification controllers.AccountVerification
@@ -97,7 +97,7 @@ func Verify(DB db.Env) func(g *gin.Context) {
 			return
 		}
 
-		account.Verify(ctx, DB, &verification)
+		account.VerifyAccount(ctx, DB, &verification)
 	}
 }
 

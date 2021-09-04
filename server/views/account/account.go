@@ -40,7 +40,7 @@ func Signup(ctx *gin.Context, userID string, records iddigital.Transcript) {
 	ctx.JSON(http.StatusOK, views.NewTranscript(&records))
 }
 
-func Verify(ctx *gin.Context) {
+func VerifyAccount(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
