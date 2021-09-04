@@ -131,6 +131,16 @@ func Profile(ctx *gin.Context, DB db.Env, userID string) {
 
 // Signup inserts a new user into the DB
 func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
+	// check if email already exists in the database
+	hashedEmail := utils.SHA256(signupForm.Email)
+	query := DB.Client.Collection("users").Where("email", "==", hashedEmail).Limit(1)
+	snaps, err := query.Documents(ctx).GetAll()
+
+	if err != nil || len(snaps) != 0 {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, "email já existe")
+		return
+	}
+
 	// get user records
 	cookies := ctx.Request.Cookies()
 	resp, err := iddigital.PostAuthCode(signupForm.AccessKey, signupForm.Captcha, cookies)
