@@ -15,8 +15,10 @@ type User struct {
 
 	Name string `firestore:"-"`
 
-	// NameHash and EmailHash are AES encrypted since it has to be decrypted
-	NameHash  string `firestore:"name"`
+	// NameHash is AES encrypted since it has to be decrypted
+	NameHash string `firestore:"name"`
+
+	// EmailHash is SHA256 encrypted because it must be queried in signup
 	EmailHash string `firestore:"email"`
 
 	Verified bool `firestore:"verified"` // Email verification
@@ -40,25 +42,23 @@ func NewUser(ID, name, email, password string, lastUpdate time.Time) (*User, err
 	if nHash, err := utils.AESEncrypt(name, config.Env.AESKey); err != nil {
 		return nil, err
 	} else {
-		if eHash, err := utils.AESEncrypt(email, config.Env.AESKey); err != nil {
+		eHash := utils.SHA256(email)
+		pHash, err := utils.Bcrypt(password)
+		if err != nil {
 			return nil, err
-		} else {
-			pHash, err := utils.Bcrypt(password)
-			if err != nil {
-				return nil, err
-			}
-
-			return &User{
-				ID:           ID,
-				Name:         name,
-				NameHash:     nHash,
-				EmailHash:    eHash,
-				PasswordHash: pHash,
-				LastUpdate:   lastUpdate,
-				Verified:     config.Env.IsLocal(),
-				Banned:       false,
-			}, nil
 		}
+
+		return &User{
+			ID:           ID,
+			Name:         name,
+			NameHash:     nHash,
+			EmailHash:    eHash,
+			PasswordHash: pHash,
+			LastUpdate:   lastUpdate,
+			Verified:     config.Env.IsLocal(),
+			Banned:       false,
+		}, nil
+
 	}
 }
 
