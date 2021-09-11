@@ -124,3 +124,17 @@ func CheckFileExists(path string) bool {
 	}
 	return true
 }
+
+func IsHex(s string) bool {
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			continue
+		} else if c >= 'a' && c <= 'f' {
+			continue
+		}
+
+		return false
+	}
+
+	return true
+}
