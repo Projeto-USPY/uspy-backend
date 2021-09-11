@@ -23,13 +23,13 @@ func Profile(DB db.Env) func(ctx *gin.Context) {
 func ResetPassword(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		// validate user data
-		var signupForm controllers.SignupForm
-		if err := ctx.ShouldBindJSON(&signupForm); err != nil {
+		var recovery controllers.PasswordRecovery
+		if err := ctx.ShouldBindJSON(&recovery); err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 
-		account.ResetPassword(ctx, DB, &signupForm)
+		account.ResetPassword(ctx, DB, &recovery)
 	}
 }
 

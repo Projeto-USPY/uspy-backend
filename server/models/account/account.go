@@ -83,6 +83,33 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 	return nil
 }
 
+func sendPasswordRecoveryEmail(email, userHash string) error {
+	if config.Env.IsLocal() {
+		return nil
+	}
+
+	token, err := utils.GenerateJWT(map[string]interface{}{
+		"type":      "password_reset",
+		"user":      userHash,
+		"timestamp": time.Now(),
+	}, config.Env.JWTSecret)
+
+	if err != nil {
+		return err
+	}
+
+	var host string
+	if config.Env.Mode == "dev" {
+		host = "frontdev.uspy.me"
+	} else {
+		host = "uspy.me"
+	}
+
+	url := fmt.Sprintf(`https://%s/account/password_reset?token=%s`, host, token)
+	content := fmt.Sprintf(config.PasswordRecoveryContent, url)
+	return config.Env.Remote.Send(email, config.PasswordRecoverySubject, content)
+}
+
 func sendEmailVerification(email, userHash string) error {
 	if config.Env.IsLocal() {
 		return nil
@@ -338,43 +365,44 @@ func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *contr
 
 // ResetPassword resets the user's password in the database
 // It differs from ChangePassword because it does not requires an access token
-func ResetPassword(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
-	// get user records
-	cookies := ctx.Request.Cookies()
-	resp, err := iddigital.PostAuthCode(signupForm.AccessKey, signupForm.Captcha, cookies)
+func ResetPassword(ctx *gin.Context, DB db.Env, recovery *controllers.PasswordRecovery) {
+	// parse token
+	token, _ := utils.ValidateJWT(recovery.Token, config.Env.JWTSecret) // ignoring error because it was already validated in controller
+	claims := token.Claims.(jwt.MapClaims)
+	userHash := claims["user"].(string)
+
+	var storedUser models.User
+
+	// assert user exists
+	if snap, err := DB.Restore("users", userHash); err != nil {
+		if status.Code(err) == codes.NotFound { // if user was not found
+			ctx.AbortWithError(http.StatusNotFound, err)
+			return
+		}
+
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	} else if err := snap.DataTo(&storedUser); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	// generate new hash
+	newHash, err := utils.Bcrypt(recovery.Password)
 	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting pdf from iddigital: %s", err.Error()))
-		return
-	} else if resp.Header.Get("Content-Type") != "application/pdf" {
-		// wrong captcha or auth
-		ctx.AbortWithStatus(http.StatusBadRequest)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error hashing password: %s", err.Error()))
 		return
 	}
 
-	if pdf := iddigital.NewPDF(resp); pdf.Error != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error converting pdf to text: %s", pdf.Error.Error()))
+	// update password hash and set userID to be able to find user document
+	storedUser.PasswordHash = newHash
+	storedUser.IDHash = userHash
+	if err := DB.Update(storedUser, "users"); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to update password: %s", err.Error()))
 		return
-	} else {
-		data, err := pdf.Parse(DB)
-		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error parsing pdf: %s", err.Error()))
-			return
-		}
-
-		user := models.User{ID: data.Nusp}
-		newHash, err := utils.Bcrypt(signupForm.Password)
-		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error hashing password: %s", err.Error()))
-			return
-		}
-
-		user.PasswordHash = newHash
-		if err := DB.Update(user, "users"); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to update password: %s", err.Error()))
-			return
-		}
 	}
 
+	// update user password
 	account.ResetPassword(ctx)
 }
 
