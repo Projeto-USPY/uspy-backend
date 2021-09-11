@@ -21,12 +21,21 @@ const (
 
 // Verification
 const (
-	VerificationSubject = `Verifique sua conta para usar o USPY =)`
+	VerificationSubject     = `Verifique sua conta para usar o USPY =)`
+	PasswordRecoverySubject = `Aqui está seu link de recuperação de senha do USPY =)`
+
 	VerificationContent = `Olá! Bem vindo ao USPY!
 
 	Por questões de segurança, precisamos que você verifique a sua conta através do seguinte link:
 	
 	<a href="%s">Clique aqui para verificar sua conta.</a>
+	`
+
+	PasswordRecoveryContent = `Opa =), aqui está seu link de recuperação de senha!
+
+	Caso esse pedido não tenha sido feito por você, desconsidere esse e-mail.
+	
+	<a href="%s">Clique aqui para redefinir sua senha.</a>
 	`
 )
 
