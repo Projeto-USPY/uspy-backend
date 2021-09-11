@@ -9,3 +9,7 @@ import (
 func VerifyEmail(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
+
+func RequestPasswordReset(ctx *gin.Context) {
+	ctx.Status(http.StatusOK)
+}

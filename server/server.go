@@ -28,6 +28,7 @@ func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
 	emailGroup := accountGroup.Group("/email")
 	{
 		emailGroup.POST("/verification", account.VerifyEmail(DB))
+		emailGroup.POST("/password_reset", account.RequestPasswordReset(DB))
 	}
 }
 
