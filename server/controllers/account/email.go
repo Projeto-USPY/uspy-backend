@@ -21,3 +21,16 @@ func VerifyEmail(DB db.Env) func(g *gin.Context) {
 		account.VerifyEmail(ctx, DB, &form)
 	}
 }
+
+// RequestPasswordReset is a closure for the POST /account/email/password_reset endpoint
+func RequestPasswordReset(DB db.Env) func(g *gin.Context) {
+	return func(ctx *gin.Context) {
+		var form controllers.EmailVerificationSubmission
+		if err := ctx.ShouldBindJSON(&form); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		account.RequestPasswordReset(ctx, DB, &form)
+	}
+}

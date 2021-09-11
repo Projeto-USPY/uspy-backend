@@ -45,3 +45,32 @@ func VerifyEmail(ctx *gin.Context, DB db.Env, emailForm *controllers.EmailVerifi
 
 	account.VerifyEmail(ctx)
 }
+
+// RequestPasswordReset send a password reset link to the requested email
+func RequestPasswordReset(ctx *gin.Context, DB db.Env, form *controllers.EmailVerificationSubmission) {
+	// check if email exists
+	emailHash := utils.SHA256(form.Email)
+	docs := DB.Client.Collection("users").Where("email", "==", emailHash).Limit(1).Documents(ctx)
+	var user models.User
+
+	snaps, err := docs.GetAll()
+
+	if err != nil { // an error happened
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not find email to resend verification:  %s", err.Error()))
+		return
+	} else if len(snaps) == 0 { // user not found
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("email %s not found in database", form.Email))
+		return
+	} else if err := snaps[0].DataTo(&user); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error binding user to user object: %s", err.Error()))
+		return
+	}
+
+	// send email
+	if err := sendPasswordRecoveryEmail(form.Email, snaps[0].Ref.ID); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send password recovery email to user %s; %s", form.Email, err.Error()))
+		return
+	}
+
+	account.RequestPasswordReset(ctx)
+}
