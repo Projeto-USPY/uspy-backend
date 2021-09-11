@@ -13,6 +13,7 @@ var validators = map[string]func(validator.FieldLevel) bool{
 	"validateSubjectReview":     validateSubjectReview,
 	"validateEmail":             validateEmail,
 	"validateVerificationToken": validateVerificationToken,
+	"validateRecoveryToken":     validateRecoveryToken,
 }
 
 // SetupValidators registers the default validation functions designed for each entity
