@@ -22,16 +22,9 @@ func validateVerificationToken(f1 validator.FieldLevel) bool {
 		} else if operation != "email_verification" {
 			return false
 		}
-
-		// assert timestamp is less than an hour old
-		if creationDate, ok := claims["timestamp"].(string); !ok {
-			return false
-		} else if t, err := time.Parse(time.RFC3339Nano, creationDate); err != nil {
-			return false
-		} else {
-			return time.Since(t) < time.Hour
-		}
 	}
+
+	return true
 }
 
 func validateRecoveryToken(f1 validator.FieldLevel) bool {
