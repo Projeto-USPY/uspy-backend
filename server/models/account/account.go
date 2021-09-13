@@ -16,6 +16,7 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
+	"github.com/Projeto-USPY/uspy-backend/entity/views"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
 	"github.com/Projeto-USPY/uspy-backend/server/views/account"
 	"github.com/Projeto-USPY/uspy-backend/utils"
@@ -165,7 +166,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 	snaps, err := query.Documents(ctx).GetAll()
 
 	if err != nil || len(snaps) != 0 {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, "email já existe")
+		ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidEmail)
 		return
 	}
 
@@ -219,7 +220,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 		// insert user object into database
 		if err := InsertUser(DB, newUser, &data); err != nil {
 			if err == ErrUserExists {
-				ctx.AbortWithStatusJSON(http.StatusForbidden, "usuário já existe")
+				ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidUser)
 				return
 			}
 
@@ -270,19 +271,19 @@ func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 
 		// check if password is correct
 		if !utils.BcryptCompare(login.Password, storedUser.PasswordHash) {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, "login ou senha incorretos")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, views.ErrInvalidCredentials)
 			return
 		}
 
 		// check if user has verified their email
 		if !storedUser.Verified {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, "e-mail ainda não foi verificado")
+			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidEmail)
 			return
 		}
 
 		// check if user is banned
 		if storedUser.Banned {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, "sua conta foi banida")
+			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrBannedUser)
 			return
 		}
 
@@ -340,7 +341,7 @@ func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *contr
 
 		// check if old password is correct
 		if !utils.BcryptCompare(resetForm.OldPassword, storedUser.PasswordHash) {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, "senha incorreta")
+			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrWrongPassword)
 			return
 		}
 
