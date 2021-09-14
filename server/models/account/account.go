@@ -155,6 +155,7 @@ func Profile(ctx *gin.Context, DB db.Env, userID string) {
 		return
 	}
 
+	storedUser.ID = userID
 	account.Profile(ctx, storedUser)
 }
 
