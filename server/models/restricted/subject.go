@@ -17,10 +17,7 @@ func GetGrades(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 	snaps, err := DB.RestoreCollection(fmt.Sprintf("subjects/%s/grades", model.Hash()))
 
-	if len(snaps) == 0 {
-		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject grades %v", model))
-		return
-	} else if err != nil {
+	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject grades: %s", err.Error()))
 		return
 	}
