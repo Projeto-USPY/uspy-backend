@@ -2,6 +2,7 @@
 package models
 
 import (
+	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 )
@@ -26,4 +27,7 @@ func (off Offering) Insert(DB db.Env, collection string) error {
 	return err
 }
 
-func (off Offering) Update(DB db.Env, collection string) error { return nil }
+func (off Offering) Update(DB db.Env, collection string) error {
+	_, err := DB.Client.Collection(collection).Doc(off.Hash()).Set(DB.Ctx, off, firestore.MergeAll)
+	return err
+}
