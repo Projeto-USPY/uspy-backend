@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"reflect"
 
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
@@ -31,17 +30,6 @@ func (c Course) Insert(DB db.Env, collection string) error {
 }
 
 func (c Course) Update(DB db.Env, collection string) error {
-	updates := make([]firestore.Update, 0)
-	fields := reflect.TypeOf(c)
-	values := reflect.ValueOf(c)
-
-	for i := 0; i < fields.NumField(); i++ {
-		fieldValue := values.Field(i).Interface()
-		if tag := fields.Field(i).Tag.Get("firestore"); tag != "-" {
-			updates = append(updates, firestore.Update{Path: tag, Value: fieldValue})
-		}
-	}
-
-	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Update(DB.Ctx, updates)
+	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Set(DB.Ctx, c, firestore.MergeAll)
 	return err
 }

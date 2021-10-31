@@ -23,7 +23,6 @@ require (
 	github.com/ugorji/go v1.2.6 // indirect
 	github.com/ulule/limiter/v3 v3.8.0
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	golang.org/x/sys v0.0.0-20210820121016-41cdb8703e55 // indirect
