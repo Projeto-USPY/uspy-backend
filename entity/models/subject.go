@@ -46,10 +46,10 @@ func (s Subject) Update(DB db.Env, collection string) error {
 		"stats",
 	))
 	if err != nil {
-		log.Printf("object: %#v, merge: %#v\n", s, firestoreUtils.MergeWithout(
+		log.Printf("collection: %#v, object: %#v, merge: %#v\n, error: %s", collection, s, firestoreUtils.MergeWithout(
 			s,
 			"stats",
-		))
+		), err.Error())
 	}
 	return err
 }
