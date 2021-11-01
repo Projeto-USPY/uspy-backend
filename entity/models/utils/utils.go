@@ -18,7 +18,7 @@ func MergeWithout(value interface{}, fields ...string) firestore.SetOption {
 		set[v] = struct{}{}
 	}
 
-	results := make([]string, 0)
+	results := make([]firestore.FieldPath, 0)
 	for i := 0; i < f.NumField(); i++ {
 		tag := f.Field(i).Tag.Get("firestore")
 
@@ -30,8 +30,8 @@ func MergeWithout(value interface{}, fields ...string) firestore.SetOption {
 			continue
 		}
 
-		results = append(results, tag)
+		results = append(results, []string{tag})
 	}
 
-	return firestore.Merge(results)
+	return firestore.Merge(results...)
 }
