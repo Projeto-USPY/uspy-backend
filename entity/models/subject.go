@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
@@ -44,5 +45,11 @@ func (s Subject) Update(DB db.Env, collection string) error {
 		s,
 		"stats",
 	))
+	if err != nil {
+		log.Printf("object: %#v, merge: %#v\n", s, firestoreUtils.MergeWithout(
+			s,
+			"stats",
+		))
+	}
 	return err
 }
