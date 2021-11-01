@@ -2,7 +2,6 @@
 package models
 
 import (
-	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 )
