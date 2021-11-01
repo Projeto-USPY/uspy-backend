@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 
-	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 )
@@ -30,6 +29,6 @@ func (c Course) Insert(DB db.Env, collection string) error {
 }
 
 func (c Course) Update(DB db.Env, collection string) error {
-	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Set(DB.Ctx, c, firestore.MergeAll)
+	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Set(DB.Ctx, c)
 	return err
 }
