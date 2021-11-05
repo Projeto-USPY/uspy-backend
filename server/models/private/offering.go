@@ -442,5 +442,5 @@ func PublishComment(
 		return
 	}
 
-	private.PublishComment(ctx)
+	private.PublishComment(ctx, &newComment)
 }

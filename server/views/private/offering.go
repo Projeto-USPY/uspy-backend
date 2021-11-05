@@ -25,6 +25,7 @@ func ReportComment(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-func PublishComment(ctx *gin.Context) {
-	ctx.Status(http.StatusOK)
+func PublishComment(ctx *gin.Context, model *models.Comment) {
+	comment := views.NewCommentFromModel(model)
+	ctx.JSON(http.StatusOK, comment)
 }
