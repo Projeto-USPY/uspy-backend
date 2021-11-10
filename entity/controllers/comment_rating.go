@@ -6,7 +6,7 @@ type CommentRating struct {
 }
 
 type CommentRateBody struct {
-	Type string `json:"type" binding:"required,oneof=upvote downvote"`
+	Type string `json:"type" binding:"required,oneof=upvote downvote none"`
 }
 
 type CommentReportBody struct {

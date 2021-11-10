@@ -145,63 +145,95 @@ func RateComment(
 
 		// if rating already exists and it's different, we add the decrement updates for the comment and replica's count
 		if ratingDoc, err := tx.Get(ratingRef); err == nil {
-			if storedUpvote, err := ratingDoc.DataAt("upvote"); err == nil && storedUpvote.(bool) == commentRating.Upvote {
+			storedUpvote, err := ratingDoc.DataAt("upvote")
+
+			if err == nil && body.Type != "none" && storedUpvote.(bool) == commentRating.Upvote {
 				// rating did not change
 				return nil
 			} else if err != nil {
 				return err
 			}
 
+			// if rating changed and it's none (user removed their rating)
+			if body.Type == "none" {
+				if storedUpvote.(bool) {
+					updates = append(updates,
+						update{
+							ref:     targetRef,
+							changes: []firestore.Update{{Path: "upvotes", Value: firestore.Increment(-1)}},
+						},
+						update{
+							ref:     replicaRef,
+							changes: []firestore.Update{{Path: "comment.upvotes", Value: firestore.Increment(-1)}},
+						},
+					)
+				} else {
+					updates = append(updates,
+						update{
+							ref:     targetRef,
+							changes: []firestore.Update{{Path: "downvotes", Value: firestore.Increment(-1)}},
+						},
+						update{
+							ref:     replicaRef,
+							changes: []firestore.Update{{Path: "comment.downvotes", Value: firestore.Increment(-1)}},
+						},
+					)
+				}
+			} else { // rating changed to the opposite type
+				if commentRating.Upvote {
+					updates = append(updates,
+						update{
+							ref:     targetRef,
+							changes: []firestore.Update{{Path: "downvotes", Value: firestore.Increment(-1)}},
+						},
+						update{
+							ref:     replicaRef,
+							changes: []firestore.Update{{Path: "comment.downvotes", Value: firestore.Increment(-1)}},
+						},
+					)
+				} else {
+					updates = append(updates,
+						update{
+							ref:     targetRef,
+							changes: []firestore.Update{{Path: "upvotes", Value: firestore.Increment(-1)}},
+						},
+						update{
+							ref:     replicaRef,
+							changes: []firestore.Update{{Path: "comment.upvotes", Value: firestore.Increment(-1)}},
+						},
+					)
+				}
+			}
+
+		} else if status.Code(err) != codes.NotFound {
+			return err
+		}
+
+		// now we must add the updates to increment the comment and replica's count (only if the type isnt none)
+		if body.Type != "none" {
 			if commentRating.Upvote {
 				updates = append(updates,
 					update{
 						ref:     targetRef,
-						changes: []firestore.Update{{Path: "downvotes", Value: firestore.Increment(-1)}},
+						changes: []firestore.Update{{Path: "upvotes", Value: firestore.Increment(1)}},
 					},
 					update{
 						ref:     replicaRef,
-						changes: []firestore.Update{{Path: "comment.downvotes", Value: firestore.Increment(-1)}},
+						changes: []firestore.Update{{Path: "comment.upvotes", Value: firestore.Increment(1)}},
 					},
 				)
 			} else {
 				updates = append(updates,
 					update{
 						ref:     targetRef,
-						changes: []firestore.Update{{Path: "upvotes", Value: firestore.Increment(-1)}},
+						changes: []firestore.Update{{Path: "downvotes", Value: firestore.Increment(1)}},
 					},
 					update{
 						ref:     replicaRef,
-						changes: []firestore.Update{{Path: "comment.upvotes", Value: firestore.Increment(-1)}},
+						changes: []firestore.Update{{Path: "comment.downvotes", Value: firestore.Increment(1)}},
 					},
 				)
 			}
-		} else if status.Code(err) != codes.NotFound {
-			return err
-		}
-
-		// now we must add the updates to increment the comment and replica's count
-		if commentRating.Upvote {
-			updates = append(updates,
-				update{
-					ref:     targetRef,
-					changes: []firestore.Update{{Path: "upvotes", Value: firestore.Increment(1)}},
-				},
-				update{
-					ref:     replicaRef,
-					changes: []firestore.Update{{Path: "comment.upvotes", Value: firestore.Increment(1)}},
-				},
-			)
-		} else {
-			updates = append(updates,
-				update{
-					ref:     targetRef,
-					changes: []firestore.Update{{Path: "downvotes", Value: firestore.Increment(1)}},
-				},
-				update{
-					ref:     replicaRef,
-					changes: []firestore.Update{{Path: "comment.downvotes", Value: firestore.Increment(1)}},
-				},
-			)
 		}
 
 		var wg sync.WaitGroup
@@ -225,8 +257,12 @@ func RateComment(
 			}
 		}
 
-		// upsert comment rating
-		return tx.Set(ratingRef, commentRating)
+		// upsert comment rating if type isnt none
+		if body.Type != "none" {
+			return tx.Set(ratingRef, commentRating)
+		} else { // delete comment rating
+			return tx.Delete(ratingRef)
+		}
 	})
 
 	if err != nil {
