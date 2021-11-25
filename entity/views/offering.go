@@ -7,9 +7,9 @@ type Offering struct {
 	ProfessorCode string   `json:"code"`
 	Years         []string `json:"years"`
 
-	Approval    float64 `json:"approval,omitempty"`
-	Neutral     float64 `json:"neutral,omitempty"`
-	Disapproval float64 `json:"disapproval,omitempty"`
+	Approval    float64 `json:"approval"`
+	Neutral     float64 `json:"neutral"`
+	Disapproval float64 `json:"disapproval"`
 }
 
 func NewOfferingFromModel(ID string, model *models.Offering, approval, disapproval, neutral int) *Offering {
