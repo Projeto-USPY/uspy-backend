@@ -6,6 +6,7 @@ import (
 
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,5 +27,5 @@ func GetOfferings(ctx *gin.Context, IDs []string, offerings []*models.Offering) 
 	})
 
 	// output only the first three
-	ctx.JSON(http.StatusOK, results[:3])
+	ctx.JSON(http.StatusOK, results[:utils.Min(len(results), 3)])
 }

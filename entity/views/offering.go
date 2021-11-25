@@ -7,31 +7,31 @@ type Offering struct {
 	ProfessorCode string   `json:"code"`
 	Years         []string `json:"years"`
 
-	Approval    float64 `json:"approval,omitempty"`
-	Neutral     float64 `json:"neutral,omitempty"`
-	Disapproval float64 `json:"disapproval,omitempty"`
+	Approval    float64 `json:"approval"`
+	Neutral     float64 `json:"neutral"`
+	Disapproval float64 `json:"disapproval"`
 }
 
 func NewOfferingFromModel(ID string, model *models.Offering, approval, disapproval, neutral int) *Offering {
 	total := (approval + disapproval + neutral)
 
-	approvalRate := 0
-	disapprovalRate := 0
-	neutralRate := 0
+	approvalRate := 0.0
+	disapprovalRate := 0.0
+	neutralRate := 0.0
 
 	if total != 0 {
-		approvalRate = approval / total
-		disapprovalRate = disapproval / total
-		neutralRate = neutral / total
+		approvalRate = float64(approval) / float64(total)
+		disapprovalRate = float64(disapproval) / float64(total)
+		neutralRate = float64(neutral) / float64(total)
 	}
 
 	return &Offering{
 		ProfessorName: model.Professor,
 		ProfessorCode: ID,
 		Years:         model.Years,
-		Approval:      float64(approvalRate),
-		Disapproval:   float64(disapprovalRate),
-		Neutral:       float64(neutralRate),
+		Approval:      approvalRate,
+		Disapproval:   disapprovalRate,
+		Neutral:       neutralRate,
 	}
 }
 

@@ -89,10 +89,6 @@ func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject
 		wg.Add(1)
 		go func(snap *firestore.DocumentSnapshot, wg *sync.WaitGroup) {
 			defer wg.Done()
-			posQt := make(map[string]int)
-			negQt := make(map[string]int)
-			neutQt := make(map[string]int)
-
 			var off models.Offering
 			if err := snap.DataTo(&off); err != nil {
 				ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind offering: %s", err.Error()))
@@ -102,53 +98,40 @@ func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject
 			commentsPath := fmt.Sprintf("%s/%s/comments", offeringsPath, snap.Ref.ID)
 			commentsCol := DB.Client.Collection(commentsPath)
 
-			queryComments := func(op string) (int, int, error) {
-				query := commentsCol.Where("rating", op, "3")
-				res, err := query.Documents(DB.Ctx).GetAll()
-				if err != nil {
-					if status.Code(err) == codes.NotFound {
-						return -1, http.StatusNotFound, fmt.Errorf("could not find collection comments: %s", err.Error())
-					}
-					return -1, http.StatusInternalServerError, fmt.Errorf("failed to fetch comments: %s", err.Error())
+			commentSnaps, err := commentsCol.Documents(DB.Ctx).GetAll()
+			if err != nil {
+				if status.Code(err) == codes.NotFound {
+					ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find collection comments: %s", err.Error()))
+					return
 				}
-
-				return len(res), -1, nil
+				ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get offering comments: %s", err.Error()))
+				return
 			}
 
-			var mut sync.RWMutex
-			wg.Add(3)
-			for _, op := range []string{"<", "==", ">"} {
-				go func(op string) {
-					defer wg.Done()
-					qt, status, err := queryComments(op)
-					if err != nil {
-						ctx.AbortWithError(status, err)
-						return
-					}
+			var posQt, negQt, neutQt int
+			for _, snap := range commentSnaps {
+				if rating, err := snap.DataAt("rating"); err != nil {
+					ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get comment rating: %s", err.Error()))
+					return
+				} else {
+					value := rating.(int64)
 
-					switch op {
-					case ">":
-						mut.RLock()
-						posQt[snap.Ref.ID] += qt
-						mut.RUnlock()
-					case "==":
-						mut.RLock()
-						neutQt[snap.Ref.ID] += qt
-						mut.RUnlock()
-					case "<":
-						mut.RLock()
-						negQt[snap.Ref.ID] += qt
-						mut.RUnlock()
+					if value < 3 {
+						negQt++
+					} else if value > 3 {
+						posQt++
+					} else {
+						neutQt++
 					}
-				}(op)
+				}
 			}
 
 			offsChannel <- &off
 			IDchan <- snap.Ref.ID
 			statsChan <- &models.OfferingStats{
-				Approval:    posQt[snap.Ref.ID],
-				Disapproval: negQt[snap.Ref.ID],
-				Neutral:     neutQt[snap.Ref.ID],
+				Approval:    posQt,
+				Disapproval: negQt,
+				Neutral:     neutQt,
 			}
 		}(s, &wg)
 	}
