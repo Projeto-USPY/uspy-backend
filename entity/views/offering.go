@@ -1,6 +1,10 @@
 package views
 
-import "github.com/Projeto-USPY/uspy-backend/entity/models"
+import (
+	"sort"
+
+	"github.com/Projeto-USPY/uspy-backend/entity/models"
+)
 
 type Offering struct {
 	ProfessorName string   `json:"professor"`
@@ -10,6 +14,31 @@ type Offering struct {
 	Approval    float64 `json:"approval"`
 	Neutral     float64 `json:"neutral"`
 	Disapproval float64 `json:"disapproval"`
+}
+
+func SortOfferings(results []*Offering) {
+	sort.SliceStable(results,
+		func(i, j int) bool {
+			// sort by ratings
+			ithApproval, jthApproval := (results[i].Approval + results[i].Neutral), (results[j].Approval + results[j].Neutral)
+
+			if ithApproval == jthApproval {
+				if results[i].Disapproval == results[j].Disapproval {
+					// if ratings are the same, show latest or most offerings
+					sizeI, sizeJ := len(results[i].Years), len(results[j].Years)
+					if results[i].Years[sizeI-1] == results[j].Years[sizeJ-1] {
+						return len(results[i].Years) > len(results[j].Years)
+					}
+
+					return results[i].Years[sizeI-1] > results[j].Years[sizeJ-1]
+				}
+
+				return results[i].Disapproval < results[j].Disapproval
+			}
+
+			return ithApproval > jthApproval
+		},
+	)
 }
 
 func NewOfferingFromModel(ID string, model *models.Offering, approval, disapproval, neutral int) *Offering {
