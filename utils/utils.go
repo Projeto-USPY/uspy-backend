@@ -5,10 +5,30 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
+
+// MakeRequest runs a single request. This is used by test functions that run requests on the router
+func MakeRequest(router *gin.Engine, method, endpoint string, body io.Reader, cookies ...*http.Cookie) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(method, endpoint, body)
+
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+
+	router.ServeHTTP(w, req)
+	return w
+}
 
 // Encrypts using AES. keyString must be 128, 196 or 256 bits.
 func AESEncrypt(stringToEncrypt string, keyString string) (encryptedString string, err error) {
@@ -72,4 +92,49 @@ func AESDecrypt(encryptedString string, keyString string) (decryptedString strin
 	}
 
 	return fmt.Sprintf("%s", plaintext), nil
+}
+
+func SHA256(body string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(body)))
+}
+
+func Bcrypt(body string) (string, error) {
+	pass, err := bcrypt.GenerateFromPassword([]byte(body), bcrypt.MinCost)
+	if err != nil {
+		return "", err
+	}
+	return string(pass), nil
+}
+
+func BcryptCompare(input, truth string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(truth), []byte(input)) == nil
+}
+
+func Min(a, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
+}
+
+func CheckFileExists(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func IsHex(s string) bool {
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			continue
+		} else if c >= 'a' && c <= 'f' {
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }

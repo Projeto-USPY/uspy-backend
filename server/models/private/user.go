@@ -1,99 +1,119 @@
-// package private contains functions that implement backend-db communication for every /private endpoint
+// package models
 package private
 
 import (
-	"cloud.google.com/go/firestore"
-	"errors"
+	"context"
 	"fmt"
-	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/Projeto-USPY/uspy-backend/entity"
-	"golang.org/x/net/context"
+	"net/http"
 	"reflect"
+
+	"cloud.google.com/go/firestore"
+	"github.com/Projeto-USPY/uspy-backend/db"
+	db_utils "github.com/Projeto-USPY/uspy-backend/db/utils"
+	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
+	"github.com/Projeto-USPY/uspy-backend/entity/models"
+	"github.com/Projeto-USPY/uspy-backend/server/views/private"
+	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func checkSubjectExists(DB db.Env, subHash string) error {
-	snap, err := DB.Restore("subjects", subHash)
-	if snap == nil || !snap.Exists() {
-		return errors.New("subject does not exist")
-	}
-	return err
-}
-
-func checkSubjectRecords(DB db.Env, userHash, subHash string) error {
-	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
-	if len(col) == 0 {
-		return errors.New("user has not done subject")
-	}
-	return err
-}
-
-func checkReviewPermission(DB db.Env, userHash, subHash string) error {
-	errSub, errRec := checkSubjectExists(DB, subHash), checkSubjectRecords(DB, userHash, subHash)
-	if errSub != nil {
-		return errSub
-	} else if errRec != nil {
-		return errRec
-	}
-
-	return nil
-}
-
 // GetSubjectGrade is the model implementation for /server/controller/private/user.GetSubjectGrade
-func GetSubjectGrade(DB db.Env, user entity.User, sub entity.Subject) (entity.FinalScore, error) {
-	userHash, subHash := user.Hash(), sub.Hash()
+func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
+	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
+	userHash, subHash := user.Hash(), model.Hash()
+
 	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
 	if err != nil {
-		return entity.FinalScore{}, err
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find records: %s", err.Error()))
+		return
 	} else if len(col) == 0 {
-		return entity.FinalScore{}, errors.New("user has not done subject")
+		ctx.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
-	best := entity.FinalScore{}
+	best := models.Record{}
 	for _, s := range col {
-		var fs entity.FinalScore
+		var fs models.Record
 		err := s.DataTo(&fs)
 		if err != nil {
-			return entity.FinalScore{}, err
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind final score: %s", err.Error()))
+			return
 		}
 
-		if fs.Grade >= best.Grade {
+		if fs.Grade > best.Grade {
+			best = fs
+		} else if fs.Grade == best.Grade && fs.Year > best.Year {
 			best = fs
 		}
 	}
 
-	return best, nil
+	private.GetSubjectGrade(ctx, &best)
 }
 
 // GetSubjectReview is the model implementation for /server/controller/private/user.GetSubjectReview
-func GetSubjectReview(DB db.Env, user entity.User, sub entity.Subject) (entity.SubjectReview, error) {
-	userHash, subHash := user.Hash(), sub.Hash()
-	review := entity.SubjectReview{}
+func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
+	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
+	userHash, subHash := user.Hash(), model.Hash()
+	review := models.SubjectReview{}
 
-	err := checkReviewPermission(DB, userHash, subHash)
+	err := db_utils.CheckSubjectPermission(DB, userHash, subHash)
 	if err != nil {
-		return review, err
+		if err == db_utils.ErrSubjectNotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
+			return
+		}
+
+		if err == db_utils.ErrNoPermission {
+			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
+			return
+		}
+
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting subject review: %s", err.Error()))
+		return
 	}
 
 	snap, err := DB.Restore("users/"+userHash+"/subject_reviews", subHash)
 
 	if err != nil { // user has not reviewed subject
-		return review, err
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject review for %v and user %v: %s", model, userID, err.Error()))
+			return
+		}
+
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get subject review: %s", err.Error()))
+		return
 	}
 
-	err = snap.DataTo(&review)
-	return review, err
+	if err := snap.DataTo(&review); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind subject review: %s", err.Error()))
+		return
+	}
+
+	private.GetSubjectReview(ctx, &review)
 }
 
 // UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
-func UpdateSubjectReview(DB db.Env, user entity.User, review entity.SubjectReview) error {
-	userHash, rvHash := user.Hash(), review.Hash()
-	err := checkReviewPermission(DB, userHash, rvHash)
+func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *controllers.SubjectReview) {
+	userHash, model := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)
+	err := db_utils.CheckSubjectPermission(DB, userHash, model.Hash())
 	if err != nil {
-		return err
+		if err == db_utils.ErrSubjectNotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
+			return
+		}
+
+		if err == db_utils.ErrNoPermission {
+			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
+			return
+		}
+
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error checking subject permission: %s", err.Error()))
+		return
 	}
 
-	revRef := DB.Client.Doc("users/" + userHash + "/subject_reviews/" + rvHash)
-	subRef := DB.Client.Doc("subjects/" + rvHash)
+	revRef := DB.Client.Doc("users/" + userHash + "/subject_reviews/" + model.Hash())
+	subRef := DB.Client.Doc("subjects/" + model.Hash())
 
 	err = DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		rev, _ := tx.Get(revRef) // get existing review
@@ -127,13 +147,13 @@ func UpdateSubjectReview(DB db.Env, user entity.User, review entity.SubjectRevie
 		}
 
 		// add new review (overwrites if existing)
-		err := tx.Set(revRef, review)
+		err := tx.Set(revRef, model)
 		if err != nil {
 			return err
 		}
 
 		// update subject stats with new review
-		for k, v := range review.Review {
+		for k, v := range model.Review {
 			if reflect.ValueOf(v).Kind() == reflect.Bool && v.(bool) {
 				path := fmt.Sprintf("stats.%s", k)
 				err = tx.Update(subRef, []firestore.Update{{Path: path, Value: firestore.Increment(1)}})
@@ -147,5 +167,10 @@ func UpdateSubjectReview(DB db.Env, user entity.User, review entity.SubjectRevie
 		return tx.Update(subRef, []firestore.Update{{Path: "stats.total", Value: firestore.Increment(1)}})
 	})
 
-	return err
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error updating subject review: %s", err.Error()))
+		return
+	}
+
+	private.UpdateSubjectReview(ctx)
 }

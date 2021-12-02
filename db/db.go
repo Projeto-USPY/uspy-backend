@@ -2,13 +2,13 @@
 package db
 
 import (
+	"log"
+
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
-	"github.com/joho/godotenv"
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
-	"log"
-	"os"
 )
 
 // Inserter will be implemented by almost all entities
@@ -35,7 +35,7 @@ type Object struct {
 	Data       Writer
 }
 
-// Env is passed to /server/models functions that require DB operations
+// Env is passed to /server/dao functions that require DB operations
 type Env struct {
 	Client *firestore.Client
 	Ctx    context.Context
@@ -53,7 +53,8 @@ func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, e
 }
 
 // Env.RestoreCollection is similar to Env.Restore, but restores all documents from a collection
-// collection cannot end in "/"
+//
+// Collection cannot end in "/"
 func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapshot, error) {
 	snap, err := db.Client.Collection(collection).Documents(db.Ctx).GetAll()
 	if err != nil {
@@ -88,48 +89,41 @@ func (db Env) BatchWrite(objs []Object) error {
 	return err
 }
 
-// InitFirestore receives a mode dev/prod and initiates the DB Environment
-func InitFireStore(LOCAL string) Env {
+// InitFirestore initiates the DB Environment (requires some environment variables to work)
+func InitFireStore() Env {
 	var DB = Env{
 		Ctx: context.Background(),
 	}
 
-	if LOCAL == "FALSE" {
-		if id, ok := os.LookupEnv("PROJECT_ID"); ok {
-			conf := &firebase.Config{ProjectID: id}
-			app, err := firebase.NewApp(DB.Ctx, conf)
-			if err != nil {
-				log.Fatalln(err)
-			}
+	if !config.Env.IsLocal() {
+		conf := &firebase.Config{ProjectID: config.Env.Identify()}
+		app, err := firebase.NewApp(DB.Ctx, conf)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-			DB.Client, err = app.Firestore(DB.Ctx)
-			if err != nil {
-				log.Fatalln(err)
-			}
-		} else {
-			log.Fatal("missing env variable PROJECT_ID")
+		DB.Client, err = app.Firestore(DB.Ctx)
+		if err != nil {
+			log.Fatalln(err)
 		}
 	} else {
-		if key, ok := os.LookupEnv("FIRESTORE_KEY"); ok {
-			sa := option.WithCredentialsFile(key)
-			app, err := firebase.NewApp(DB.Ctx, nil, sa)
-			if err != nil {
-				log.Fatalln(err)
-			}
+		sa := option.WithCredentialsFile(config.Env.Identify())
 
-			DB.Client, err = app.Firestore(DB.Ctx)
-			if err != nil {
-				log.Fatalln(err)
-			}
-		} else {
-			log.Fatal("FIRESTORE_KEY path not specified in .env file")
+		app, err := firebase.NewApp(DB.Ctx, nil, sa)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		DB.Client, err = app.Firestore(DB.Ctx)
+		if err != nil {
+			log.Println(err)
+			log.Fatalln("There might be something wrong with your credentials file!")
 		}
 	}
 
 	return DB
 }
 
-func SetupDB(envPath string) Env {
-	_ = godotenv.Load(envPath)
-	return InitFireStore(os.Getenv("LOCAL"))
+func SetupDB() Env {
+	return InitFireStore()
 }

@@ -1,29 +1,47 @@
-// package restricted contains functions that implement backend-db communication for every restricted (logged in users) /api/restricted endpoint
+// package models
 package restricted
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
+	"github.com/Projeto-USPY/uspy-backend/entity/models"
+	"github.com/Projeto-USPY/uspy-backend/server/views/restricted"
+	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // GetGrades returns all grades from a given subject
-func GetGrades(DB db.Env, sub entity.Subject) (map[string]int, error) {
-	buckets := make(map[string]int)
-	snaps, err := DB.RestoreCollection(fmt.Sprintf("subjects/%s/grades", sub.Hash()))
+func GetGrades(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+	model := models.NewSubjectFromController(sub)
+
+	// check subject existence
+	if _, err := DB.Restore("subjects", model.Hash()); err != nil && status.Code(err) == codes.NotFound {
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
+		return
+	}
+
+	snaps, err := DB.RestoreCollection(fmt.Sprintf("subjects/%s/grades", model.Hash()))
 
 	if err != nil {
-		return map[string]int{}, err
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject grades: %s", err.Error()))
+		return
 	}
 
+	grades := []models.Record{}
 	for _, s := range snaps {
-		g := entity.Grade{}
+		g := models.Record{}
 		err := s.DataTo(&g)
 		if err != nil {
-			return map[string]int{}, err
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject %v: %s", model, err.Error()))
+			return
 		}
-		buckets[fmt.Sprintf("%.1f", g.Grade)]++
+
+		grades = append(grades, g)
 	}
 
-	return buckets, nil
+	restricted.GetGrades(ctx, grades)
 }

@@ -2,11 +2,10 @@
 package server
 
 import (
-	"log"
-	"os"
-
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/entity/validation"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/account"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/private"
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/public"
@@ -15,75 +14,99 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
+	accountGroup.DELETE("", middleware.JWT(), account.Delete(DB))
+	accountGroup.GET("/captcha", account.SignupCaptcha())
+	accountGroup.GET("/logout", middleware.JWT(), account.Logout())
+	accountGroup.GET("/profile", middleware.JWT(), account.Profile(DB))
+	accountGroup.POST("/login", account.Login(DB))
+	accountGroup.POST("/create", account.Signup(DB))
+	accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
+	accountGroup.PUT("/password_reset", account.ResetPassword(DB))
+	accountGroup.GET("/verify", account.VerifyAccount(DB))
+
+	emailGroup := accountGroup.Group("/email")
+	{
+		emailGroup.POST("/verification", account.VerifyEmail(DB))
+		emailGroup.POST("/password_reset", account.RequestPasswordReset(DB))
+	}
+}
+
+func setupPublic(DB db.Env, apiGroup *gin.RouterGroup) {
+	apiGroup.GET("/subject/all", public.GetSubjects(DB))
+	subjectAPI := apiGroup.Group("/subject", entity.SubjectBinder)
+	{
+		subjectAPI.GET("", public.GetSubjectByCode(DB))
+		subjectAPI.GET("/relations", public.GetRelations(DB))
+		subjectAPI.GET("/offerings", public.GetOfferings(DB))
+	}
+}
+
+func setupRestricted(DB db.Env, restrictedGroup *gin.RouterGroup) {
+	subjectAPI := restrictedGroup.Group("/subject", entity.SubjectBinder)
+	{
+		subjectAPI.GET("/grades", restricted.GetGrades(DB))
+		subjectAPI.GET("/offerings", restricted.GetOfferingsWithStats(DB))
+
+		offeringsAPI := subjectAPI.Group("/offerings", entity.OfferingBinder)
+		{
+			offeringsAPI.GET("/comments", restricted.GetOfferingComments(DB))
+		}
+	}
+}
+
+func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
+	subjectAPI := privateGroup.Group("/subject", entity.SubjectBinder)
+	{
+		subjectAPI.GET("/grade", private.GetSubjectGrade(DB))
+		subjectAPI.GET("/review", private.GetSubjectReview(DB))
+		subjectAPI.POST("/review", private.UpdateSubjectReview(DB))
+
+		offeringsAPI := subjectAPI.Group("/offerings", entity.OfferingBinder)
+		{
+			offeringsAPI.GET("/comments", private.GetComment(DB))
+			offeringsAPI.PUT("/comments", private.PublishComment(DB))
+
+			commentsAPI := offeringsAPI.Group("/comments", entity.CommentRatingBinder)
+			{
+				commentsAPI.GET("/rating", private.GetCommentRating(DB))
+				commentsAPI.PUT("/rating", private.RateComment(DB))
+				commentsAPI.PUT("/report", private.ReportComment(DB))
+			}
+		}
+	}
+}
+
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
-	r.Use(gin.Recovery(), middleware.DefineDomain())
 
-	if rateLimit, ok := os.LookupEnv("RATE_LIMIT"); ok {
-		r.Use(middleware.RateLimiter(rateLimit))
-	} else {
-		r.Use(middleware.RateLimiter("5-S"))
-		log.Println("env variable RATE_LIMIT not set, using 5-S (5 requests per second)")
-	}
-
-	err := entity.SetupValidators()
+	err := validation.SetupValidators()
 	if err != nil {
 		return nil, err
 	}
 
-	if os.Getenv("LOCAL") == "TRUE" {
+	r.Use(gin.Recovery(), middleware.DefineDomain(), middleware.DumpErrors())
+
+	if config.Env.IsLocal() {
 		r.Use(middleware.AllowAnyOrigin())
 	} else {
+		if limiter := middleware.RateLimiter(config.Env.RateLimit); limiter != nil {
+			r.Use(limiter)
+		}
 		r.Use(middleware.AllowUSPYOrigin())
 	}
 
 	// Login, Logout, Sign-in and other account related operations
-	accountGroup := r.Group("/account")
-	{
-		accountGroup.POST("/login", account.Login(DB))
+	setupAccount(DB, r.Group("/account"))
 
-		accountGroup.GET("/captcha", account.SignupCaptcha())
-		accountGroup.POST("/create", account.Signup(DB))
+	// Public endpoints: available for all users, including guests
+	setupPublic(DB, r.Group("/api"))
 
-		accountGroup.GET("/logout", middleware.JWT(), account.Logout())
+	// Restricted endpoints: available only for registered users
+	setupRestricted(DB, r.Group("/api/restricted", middleware.JWT()))
 
-		accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
-		accountGroup.PUT("/password_reset", account.ResetPassword(DB))
-
-		accountGroup.GET("/profile", middleware.JWT(), account.Profile(DB))
-	}
-
-	apiGroup := r.Group("/api")
-	{
-		apiGroup.GET("/subject/all", public.GetSubjects(DB))
-		subjectAPI := apiGroup.Group("/subject", middleware.Subject())
-		{
-			// Available for guests
-			subjectAPI.GET("", public.GetSubjectByCode(DB))
-			subjectAPI.GET("/relations", public.GetSubjectGraph(DB))
-
-			// Restricted means all registered users can see.
-			restrictedGroup := apiGroup.Group("/restricted", middleware.JWT())
-			{
-				subRestricted := restrictedGroup.Group("/subject", middleware.Subject())
-				{
-					subRestricted.GET("/grades", restricted.GetSubjectGrades(DB))
-				}
-			}
-		}
-	}
-
-	// Private means the user can only interact with data related to them.
-	privateGroup := r.Group("/private", middleware.JWT())
-	{
-		subPrivate := privateGroup.Group("/subject", middleware.Subject())
-		{
-			subPrivate.GET("/review", private.GetSubjectReview(DB))
-			subPrivate.POST("/review", private.UpdateSubjectReview(DB))
-
-			subPrivate.GET("/grade", private.GetSubjectGrade(DB))
-		}
-	}
+	// Private endpoints: every endpoint related to operations that the user utilizes their own data
+	setupPrivate(DB, r.Group("/private", middleware.JWT()))
 
 	return r, nil
 }

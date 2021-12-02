@@ -1,79 +1,128 @@
-// package public contains functions that implement backend-db communication for every public (not only logged users) /api endpoint
+// package models
 package public
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/Projeto-USPY/uspy-backend/db"
-	"github.com/Projeto-USPY/uspy-backend/entity"
+	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
+	"github.com/Projeto-USPY/uspy-backend/entity/models"
+	"github.com/Projeto-USPY/uspy-backend/server/views/public"
+	"github.com/gin-gonic/gin"
 	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// GetByCode returns entity.Subject with code 'code'
-// It is the model implementation for /server/models/public.GetSubjectByCode
-func Get(DB db.Env, sub entity.Subject) (entity.Subject, error) {
-	snap, err := DB.Restore("subjects", sub.Hash())
+// GetAllSubjects gets all subjects from the database
+func GetAllSubjects(ctx *gin.Context, DB db.Env) {
+	snaps, err := DB.RestoreCollection("courses")
 	if err != nil {
-		return entity.Subject{}, err
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find collection courses: %s", err.Error()))
+			return
+		}
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
+		return
 	}
-	err = snap.DataTo(&sub)
-	if err != nil {
-		return entity.Subject{}, err
+
+	courses := make([]models.Course, 0, 1000)
+	for _, s := range snaps {
+		var c models.Course
+		err = s.DataTo(&c)
+		courses = append(courses, c)
+		if err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
+			return
+		}
 	}
-	return sub, nil
+
+	public.GetAllSubjects(ctx, courses)
 }
 
-// GetSuccessors returns all subjects that sub is a pre-requisite of.
-func GetSuccessors(DB db.Env, sub entity.Subject) (weak, strong []entity.Subject, err error) {
-	requirement := entity.Requirement{Subject: sub.Code, Name: sub.Name, Strong: false}
-	iter := DB.Client.Collection("subjects").
-		Where("true_requirements", "array-contains", requirement).
-		Where("course", "==", sub.CourseCode).
-		Where("specialization", "==", sub.Specialization).
-		Documents(DB.Ctx)
-
-	weak = make([]entity.Subject, 0, 15)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
+// Get gets a subject by its identifier: subject code, course code and course specialization code
+func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+	model := models.Subject{Code: sub.Code, CourseCode: sub.CourseCode, Specialization: sub.Specialization}
+	snap, err := DB.Restore("subjects", model.Hash())
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
+			return
 		}
-		if err != nil {
-			return []entity.Subject{}, []entity.Subject{}, err
-		}
-		var result entity.Subject
-		err = doc.DataTo(&result)
-		if err != nil {
-			return []entity.Subject{}, []entity.Subject{}, err
-		}
-
-		weak = append(weak, result)
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject: %s", err))
+		return
 	}
-	iter.Stop()
-
-	requirement = entity.Requirement{Subject: sub.Code, Name: sub.Name, Strong: true}
-	iter = DB.Client.Collection("subjects").
-		Where("true_requirements", "array-contains", requirement).
-		Where("course", "==", sub.CourseCode).
-		Where("specialization", "==", sub.Specialization).
-		Documents(DB.Ctx)
-
-	strong = make([]entity.Subject, 0, 15)
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return []entity.Subject{}, []entity.Subject{}, err
-		}
-		var result entity.Subject
-		err = doc.DataTo(&result)
-		if err != nil {
-			return []entity.Subject{}, []entity.Subject{}, err
-		}
-
-		weak = append(strong, result)
+	err = snap.DataTo(&model)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject to object: %s", err))
+		return
 	}
-	iter.Stop()
 
-	return weak, strong, nil
+	public.Get(ctx, &model)
+}
+
+// GetRelations gets the subject's graph: their direct predecessors and successors
+func GetRelations(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+	model := models.NewSubjectFromController(sub)
+	snap, err := DB.Restore("subjects", model.Hash())
+
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
+			return
+		}
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject: %s", err.Error()))
+		return
+	}
+
+	if err := snap.DataTo(&model); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind subject %v: %s", model, err.Error()))
+		return
+	}
+
+	getRelatedSubjects := func(model *models.Subject, strength bool) ([]models.Subject, error) {
+		requirement := models.Requirement{Subject: model.Code, Name: model.Name, Strong: strength}
+		iter := DB.Client.Collection("subjects").
+			Where("true_requirements", "array-contains", requirement).
+			Where("course", "==", sub.CourseCode).
+			Where("specialization", "==", sub.Specialization).
+			Documents(DB.Ctx)
+
+		results := make([]models.Subject, 0, 15)
+		for {
+			doc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return []models.Subject{}, err
+			}
+			var result models.Subject
+			err = doc.DataTo(&result)
+			if err != nil {
+				return []models.Subject{}, err
+			}
+
+			results = append(results, result)
+		}
+		iter.Stop()
+
+		return results, nil
+	}
+
+	strong, strongErr := getRelatedSubjects(model, true)
+	weak, weakErr := getRelatedSubjects(model, false)
+
+	if strongErr != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get subject predecessors %v: %s", model, strongErr.Error()))
+		return
+	}
+
+	if weakErr != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get subject successors %v: %s", model, weakErr.Error()))
+		return
+	}
+
+	public.GetRelations(ctx, model, weak, strong)
 }

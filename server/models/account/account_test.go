@@ -1,22 +1,19 @@
-// package account contains functions that implement backend-db communication for every /account endpoint
+// package models
 package account
 
 import (
-	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 	"testing"
+	"time"
 
-	"github.com/Projeto-USPY/uspy-backend/entity"
-	"github.com/joho/godotenv"
+	"github.com/Projeto-USPY/uspy-backend/config"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
 func TestGenerateToken(t *testing.T) {
-	godotenv.Load(".env")
-
-	user := entity.User{}
-	user.Login = "login"
-	user.Password = "pass"
-
-	jwt, err := middleware.GenerateJWT(user)
+	jwt, err := utils.GenerateJWT(map[string]interface{}{
+		"user":      "login",
+		"timestamp": time.Now().Unix(),
+	}, config.Env.JWTSecret)
 
 	if err != nil {
 		t.Fatal(err)
@@ -26,19 +23,16 @@ func TestGenerateToken(t *testing.T) {
 }
 
 func TestValidateToken(t *testing.T) {
-	godotenv.Load(".env")
-
-	user := entity.User{}
-	user.Login = "login"
-	user.Password = "pass"
-
-	jwt, err := middleware.GenerateJWT(user)
+	jwt, err := utils.GenerateJWT(map[string]interface{}{
+		"user":      "login",
+		"timestamp": time.Now().Unix(),
+	}, config.Env.JWTSecret)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = middleware.ValidateJWT(jwt)
+	_, err = utils.ValidateJWT(jwt, config.Env.JWTSecret)
 
 	if err != nil {
 		t.Fatal(err)
