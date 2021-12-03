@@ -20,8 +20,8 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
 	"github.com/Projeto-USPY/uspy-backend/server/views/account"
 	"github.com/Projeto-USPY/uspy-backend/utils"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
