@@ -452,7 +452,7 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 			case "delete":
 				operationErr = tx.Delete(obj.ref)
 			case "update":
-				operationErr = tx.Update(obj.ref, obj.payload.([]firestore.Update), firestore.Exists)
+				operationErr = tx.Update(obj.ref, obj.payload.([]firestore.Update))
 			}
 
 			if operationErr != nil {
