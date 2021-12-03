@@ -30,6 +30,14 @@ var (
 	ErrUserExists = errors.New("user is already registered")
 )
 
+type operation struct {
+	ref     *firestore.DocumentRef
+	method  string
+	payload interface{}
+
+	err error
+}
+
 func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) error {
 	_, err := DB.Restore("users", newUser.Hash())
 	if status.Code(err) == codes.NotFound {
@@ -428,175 +436,429 @@ func VerifyAccount(ctx *gin.Context, DB db.Env, verification *controllers.Accoun
 
 // Delete deletes the given user (removing all of its traces (grades, reviews, etc)
 func Delete(ctx *gin.Context, DB db.Env, userID string) {
-	userHash := utils.SHA256(userID)
-	userRef := DB.Client.Doc("users/" + userHash)
-	records := userRef.Collection("final_scores")
-	subjectReviews := userRef.Collection("subject_reviews")
+	if deleteErr := DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		objects := getUserObjects(DB, ctx, tx, userID)
 
-	deleteErr := DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
-		// Do all the reading first
-		recordRefs, subjectReviewsRefs := tx.DocumentRefs(records), tx.DocumentRefs(subjectReviews)
-
-		recordsDocs, err := recordRefs.GetAll()
-		if err != nil {
-			return fmt.Errorf("could not get final scores: %v", err.Error())
-		}
-
-		subjectReviewsDocs, err := subjectReviewsRefs.GetAll()
-		if err != nil {
-			return fmt.Errorf("could not get subject reviews: %v", err.Error())
-		}
-
+		log.Printf("user %s is removing their account, total objects affected: %v\n", userID, len(objects))
 		var wg sync.WaitGroup
-		channelErr := make(chan error, len(recordsDocs)*100)
-		mustDelete := make(chan *firestore.DocumentRef)
-
-		for _, subRef := range recordsDocs {
-			wg.Add(1)
-			go func(subRef *firestore.DocumentRef) {
-				defer wg.Done()
-
-				recordsRef := subRef.Collection("records")
-				recordsDocs, err := tx.DocumentRefs(recordsRef).GetAll()
-				if err != nil {
-					channelErr <- err
-				}
-
-				gradesCol := DB.Client.Collection("subjects/" + subRef.ID + "/grades")
-
-				// get grades to remove
-				for _, recordRef := range recordsDocs {
-					wg.Add(1)
-					go func(recordRef *firestore.DocumentRef) {
-						defer wg.Done()
-
-						// get value of record
-						snap, err := tx.Get(recordRef)
-						if err != nil {
-							channelErr <- err
-						}
-
-						// read final score
-						var score models.Record
-						if err = snap.DataTo(&score); err != nil {
-							channelErr <- err
-						}
-
-						// finds one grade in subject/subject_id/grades where the grade is the same as score.Grade
-						query := gradesCol.Where("grade", "==", score.Grade).Limit(1)
-						gradeDocsToRemove, err := tx.Documents(query).GetAll()
-
-						if err != nil {
-							channelErr <- err
-						}
-
-						// store grade documents that must be deleted
-						for _, gradeSnap := range gradeDocsToRemove {
-							mustDelete <- gradeSnap.Ref
-						}
-
-						mustDelete <- recordRef
-					}(recordRef)
-				}
-			}(subRef)
-		}
-
-		// receive deletables
-		deletables := make([]*firestore.DocumentRef, 0, 500)
-		doneDelete := make(chan struct{})
-		go func() {
-			for {
-				select {
-				case ref := <-mustDelete:
-					deletables = append(deletables, ref)
-				case <-doneDelete:
-					return
-				}
+		wg.Add(len(objects))
+		for _, obj := range objects {
+			if obj.err != nil {
+				return obj.err
 			}
-		}()
 
-		wg.Wait()
-		close(channelErr)
-		close(doneDelete)
+			var operationErr error
+			switch obj.method {
+			case "delete":
+				operationErr = tx.Delete(obj.ref)
+			case "update":
+				operationErr = tx.Update(obj.ref, obj.payload.([]firestore.Update), firestore.Exists)
+			}
 
-		for e := range channelErr {
-			if e != nil {
-				return fmt.Errorf("could not delete grades and records: %v", err.Error())
+			if operationErr != nil {
+				return fmt.Errorf("could not apply operation on %#v: %s", obj, operationErr.Error())
 			}
 		}
 
-		// get review snapshots
-		reviewSnapshots := make([]*firestore.DocumentSnapshot, 0, len(subjectReviewsDocs))
-
-		for _, reviewRef := range subjectReviewsDocs {
-			rev, err := tx.Get(reviewRef) // get review snapshot
-			if err != nil {
-				return fmt.Errorf("could not get review snapshot: %v", err.Error())
-			}
-
-			reviewSnapshots = append(reviewSnapshots, rev)
-		}
-
-		// For all review documents
-		for _, rev := range reviewSnapshots {
-			categories, err := rev.DataAt("categories") // get existing review categories
-			if err != nil {
-				return fmt.Errorf("could not get review categories: %v", err.Error())
-			}
-
-			subRef := DB.Client.Doc("subjects/" + rev.Ref.ID)
-
-			// For all of the categories
-			for k, v := range categories.(map[string]interface{}) {
-				// decrement every category review which was true
-				if reflect.ValueOf(v).Kind() == reflect.Bool && v.(bool) {
-					path := fmt.Sprintf("stats.%s", k)
-					err = tx.Update(subRef, []firestore.Update{{Path: path, Value: firestore.Increment(-1)}})
-					if err != nil {
-						return fmt.Errorf("could not update subject categories: %v", err.Error())
-					}
-				}
-			}
-			// decrement number of total reviews
-			err = tx.Update(subRef, []firestore.Update{{Path: "stats.total", Value: firestore.Increment(-1)}})
-			if err != nil {
-				return fmt.Errorf("could not decrement number of total reviews: %v", err.Error())
-			}
-		}
-
-		// add subject review refs to deletables
-		deletables = append(deletables, subjectReviewsDocs...)
-
-		log.Printf("user %s is deleting their account, impacted documents: %d\n", userID, len(deletables))
-
-		// delete all data in parallel
-		deleteErrors := make(chan error, len(deletables))
-		wg.Add(len(deletables))
-
-		for _, d := range deletables {
-			go func(deletable *firestore.DocumentRef, group *sync.WaitGroup) {
-				defer group.Done()
-				deleteErrors <- tx.Delete(deletable)
-			}(d, &wg)
-		}
-
-		wg.Wait()
-		close(deleteErrors)
-
-		for err := range deleteErrors {
-			if err != nil {
-				log.Println("error deleting document", err)
-				return err
-			}
-		}
-
-		return tx.Delete(userRef) // deletes the user
-	})
-
-	if deleteErr != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to delete user %s: %s", userID, deleteErr.Error()))
+		return nil
+	}); deleteErr != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, deleteErr)
 		return
 	}
 
 	account.Delete(ctx)
+}
+
+func getUserObjects(DB db.Env, ctx context.Context, tx *firestore.Transaction, userID string) []operation {
+	objects := make(chan operation)
+	defer close(objects)
+
+	userHash := utils.SHA256(userID)
+	userRef := DB.Client.Doc("users/" + userHash)
+
+	var wg sync.WaitGroup
+	wg.Add(5)
+
+	go getScoreObjects(DB, ctx, tx, &wg, objects, userRef)
+	go getReviewObjects(DB, ctx, tx, &wg, objects, userRef)
+	go getCommentObjects(DB, ctx, tx, &wg, objects, userRef)
+	go getCommentRatingObjects(DB, ctx, tx, &wg, objects, userRef)
+	go getCommentReportObjects(DB, ctx, tx, &wg, objects, userRef)
+
+	// get collected objects and append to array
+	results := make([]operation, 0)
+	go func() {
+		for obj := range objects {
+			results = append(results, obj)
+		}
+	}()
+
+	// add userRef to objects
+	objects <- operation{
+		ref:    userRef,
+		method: "delete",
+	}
+
+	wg.Wait()
+	return results
+}
+
+func getScoreObjects(
+	DB db.Env, ctx context.Context,
+	tx *firestore.Transaction,
+	wg *sync.WaitGroup,
+	objects chan<- operation,
+	userRef *firestore.DocumentRef,
+) {
+	defer wg.Done()
+
+	// get deletable user final scores and records
+	finalScores := userRef.Collection("final_scores")
+	scores, err := tx.DocumentRefs(finalScores).GetAll()
+	if err != nil {
+		objects <- operation{err: errors.New("failed to get final scores from user: " + err.Error())}
+		return
+	}
+
+	wg.Add(len(scores))
+	for _, scoreRef := range scores {
+		go func(scoreRef *firestore.DocumentRef) {
+			defer wg.Done()
+
+			// insert final scores in channel
+			objects <- operation{
+				ref:    scoreRef,
+				method: "delete",
+			}
+
+			// get records
+			records := scoreRef.Collection("records")
+			recordsDocs, err := tx.DocumentRefs(records).GetAll()
+			if err != nil {
+				objects <- operation{err: errors.New("failed to get records from user: " + err.Error())}
+				return
+			}
+
+			wg.Add(len(recordsDocs))
+			for _, recordRef := range recordsDocs {
+				go func(recordRef *firestore.DocumentRef) {
+					defer wg.Done()
+
+					// insert record in channel
+					objects <- operation{
+						ref:    recordRef,
+						method: "delete",
+					}
+
+					// get record value
+					recordSnap, err := tx.Get(recordRef)
+					if err != nil {
+						objects <- operation{err: errors.New("failed to convert record to snap: " + err.Error())}
+						return
+					}
+
+					gradeValue, err := recordSnap.DataAt("grade")
+					if err != nil {
+						objects <- operation{err: errors.New("failed to get grade value from snap at field grade: " + err.Error())}
+						return
+					}
+
+					// query object with same value in subject grades
+					grades := DB.Client.Collection(fmt.Sprintf(
+						"subjects/%s/grades",
+						scoreRef.ID,
+					))
+
+					query := grades.Where("grade", "==", gradeValue).Limit(1)
+					subjectRecordSnaps, err := tx.Documents(query).GetAll()
+					if err != nil {
+						objects <- operation{err: errors.New("failed to get queried grades from subject: " + err.Error())}
+						return
+					}
+
+					// insert subject grades in channel
+					for _, ref := range subjectRecordSnaps {
+						objects <- operation{
+							ref:    ref.Ref,
+							method: "delete",
+						}
+					}
+				}(recordRef)
+			}
+		}(scoreRef)
+	}
+}
+
+func getReviewObjects(
+	DB db.Env, ctx context.Context,
+	tx *firestore.Transaction,
+	wg *sync.WaitGroup,
+	objects chan<- operation,
+	userRef *firestore.DocumentRef,
+) {
+	defer wg.Done()
+
+	// get deletable subject reviews and updates
+	subjectReviews := userRef.Collection("subject_reviews")
+	userReviews, err := tx.DocumentRefs(subjectReviews).GetAll()
+
+	if err != nil {
+		objects <- operation{err: errors.New("failed to get subject reviews from user: " + err.Error())}
+		return
+	}
+
+	wg.Add(len(userReviews))
+	for _, reviewRef := range userReviews {
+		go func(reviewRef *firestore.DocumentRef) {
+			defer wg.Done()
+
+			// insert user review in channel
+			objects <- operation{
+				ref:    reviewRef,
+				method: "delete",
+			}
+
+			reviewSnap, err := tx.Get(reviewRef)
+			if err != nil {
+				objects <- operation{err: errors.New("failed to get review snap: " + err.Error())}
+				return
+			}
+
+			// lookup subjects that need to be updated
+			categories, err := reviewSnap.DataAt("categories") // get existing review categories
+			if err != nil {
+				objects <- operation{err: errors.New("failed to get review snap at field categories: " + err.Error())}
+				return
+			}
+
+			subRef := DB.Client.Doc("subjects/" + reviewSnap.Ref.ID)
+
+			// iterate through categories and look which need to have stats decreased
+			for k, v := range categories.(map[string]interface{}) {
+				// decrement every category review which was true
+				if reflect.ValueOf(v).Kind() == reflect.Bool && v.(bool) {
+					path := fmt.Sprintf("stats.%s", k)
+					objects <- operation{
+						ref:     subRef,
+						method:  "update",
+						payload: []firestore.Update{{Path: path, Value: firestore.Increment(-1)}},
+					}
+				}
+			}
+
+			// number of total reviews must also be decreased
+			objects <- operation{
+				ref:     subRef,
+				method:  "update",
+				payload: []firestore.Update{{Path: "stats.total", Value: firestore.Increment(-1)}},
+			}
+		}(reviewRef)
+	}
+}
+
+func getCommentObjects(
+	DB db.Env,
+	ctx context.Context,
+	tx *firestore.Transaction,
+	wg *sync.WaitGroup,
+	objects chan<- operation,
+	userRef *firestore.DocumentRef,
+) {
+	defer wg.Done()
+
+	// get deletable comments
+	comments := userRef.Collection("user_comments")
+	commentsRefs, err := tx.DocumentRefs(comments).GetAll()
+	if err != nil {
+		objects <- operation{err: errors.New("failed to get comments from user: " + err.Error())}
+		return
+	}
+
+	wg.Add(len(commentsRefs))
+	for _, userCommentRef := range commentsRefs {
+		go func(userCommentRef *firestore.DocumentRef) {
+			defer wg.Done()
+
+			// add user comment to objects channel
+			objects <- operation{
+				ref:    userCommentRef,
+				method: "delete",
+			}
+
+			// get user comment
+			snap, err := tx.Get(userCommentRef)
+			if err != nil {
+				objects <- operation{err: errors.New("failed to get user comment: " + err.Error())}
+				return
+			}
+
+			// bind user comment
+			var userComment models.UserComment
+			if err := snap.DataTo(&userComment); err != nil {
+				objects <- operation{err: errors.New("failed to bind user comment: " + err.Error())}
+				return
+			}
+
+			// get comment from offerings subcollection
+			subject := models.Subject{Code: userComment.Subject, CourseCode: userComment.Course, Specialization: userComment.Specialization}
+			commentRef := DB.Client.Doc(fmt.Sprintf(
+				"subjects/%s/offerings/%s/comments/%s",
+				subject.Hash(),
+				userComment.ProfessorHash,
+				userRef.ID,
+			))
+
+			// add comment to objects channel
+			objects <- operation{
+				ref:    commentRef,
+				method: "delete",
+			}
+		}(userCommentRef)
+	}
+}
+
+func getCommentRatingObjects(
+	DB db.Env,
+	ctx context.Context,
+	tx *firestore.Transaction,
+	wg *sync.WaitGroup,
+	objects chan<- operation,
+	userRef *firestore.DocumentRef,
+) {
+	defer wg.Done()
+
+	// get deletable comment ratings
+	commentRatings := userRef.Collection("comment_ratings")
+	commentRatingsRefs, err := tx.DocumentRefs(commentRatings).GetAll()
+	if err != nil {
+		objects <- operation{err: errors.New("failed to get comment ratings from user: " + err.Error())}
+		return
+	}
+
+	wg.Add(len(commentRatingsRefs))
+	for _, commentRatingRef := range commentRatingsRefs {
+		go func(commentRatingRef *firestore.DocumentRef) {
+			defer wg.Done()
+
+			// add comment rating to objects channel
+			objects <- operation{
+				ref:    commentRatingRef,
+				method: "delete",
+			}
+
+			// bind comment rating
+			var commentRating models.CommentRating
+			snap, err := tx.Get(commentRatingRef)
+			if err != nil {
+				objects <- operation{err: errors.New("failed to get comment rating: " + err.Error())}
+				return
+			}
+
+			if err := snap.DataTo(&commentRating); err != nil {
+				objects <- operation{err: errors.New("failed to bind comment rating: " + err.Error())}
+				return
+			}
+
+			// lookup rated comment to update upvotes/downvotes count
+			subject := models.Subject{Code: commentRating.Subject, CourseCode: commentRating.Course, Specialization: commentRating.Specialization}
+			commentsCol := DB.Client.Collection(fmt.Sprintf(
+				"subjects/%s/offerings/%s/comments",
+				subject.Hash(),
+				commentRating.ProfessorHash,
+			))
+
+			query := commentsCol.Where("id", "==", commentRating.ID)
+			if commentSnaps, err := tx.Documents(query).GetAll(); err != nil {
+				objects <- operation{err: errors.New("failed to get comment from comment rating: " + err.Error())}
+				return
+			} else if len(commentSnaps) != 1 {
+				objects <- operation{err: errors.New("got more than 1 comment from querying uuid of comment rating, this is unexpected")}
+				return
+			} else {
+				var path string
+
+				if commentRating.Upvote { // decrease original comment upvote count
+					path = "upvotes"
+				} else { // decrease original comment downvote count
+					path = "downvotes"
+				}
+
+				objects <- operation{
+					ref:     commentSnaps[0].Ref,
+					method:  "update",
+					payload: []firestore.Update{{Path: path, Value: firestore.Increment(-1)}},
+				}
+			}
+
+		}(commentRatingRef)
+	}
+}
+
+func getCommentReportObjects(
+	DB db.Env,
+	ctx context.Context,
+	tx *firestore.Transaction,
+	wg *sync.WaitGroup,
+	objects chan<- operation,
+	userRef *firestore.DocumentRef,
+) {
+	defer wg.Done()
+
+	// get deletable comment reports
+	commentReports := userRef.Collection("comment_reports")
+	commentReportsRefs, err := tx.DocumentRefs(commentReports).GetAll()
+	if err != nil {
+		objects <- operation{err: errors.New("failed to get comment reports from user: " + err.Error())}
+		return
+	}
+
+	wg.Add(len(commentReportsRefs))
+	for _, commentReportRef := range commentReportsRefs {
+		go func(commentReportRef *firestore.DocumentRef) {
+			defer wg.Done()
+
+			// add comment report to objects channel
+			objects <- operation{
+				ref:    commentReportRef,
+				method: "delete",
+			}
+
+			// bind comment report
+			var commentReport models.CommentReport
+			snap, err := tx.Get(commentReportRef)
+			if err != nil {
+				objects <- operation{err: errors.New("failed to get comment report: " + err.Error())}
+				return
+			}
+
+			if err := snap.DataTo(&commentReport); err != nil {
+				objects <- operation{err: errors.New("failed to bind comment report: " + err.Error())}
+				return
+			}
+
+			// lookup reported comment to update reports count
+			subject := models.Subject{Code: commentReport.Subject, CourseCode: commentReport.Course, Specialization: commentReport.Specialization}
+			commentsCol := DB.Client.Collection(fmt.Sprintf(
+				"subjects/%s/offerings/%s/comments",
+				subject.Hash(),
+				commentReport.ProfessorHash,
+			))
+
+			query := commentsCol.Where("id", "==", commentReport.ID)
+			if commentSnaps, err := tx.Documents(query).GetAll(); err != nil {
+				objects <- operation{err: errors.New("failed to get comment from comment report: " + err.Error())}
+				return
+			} else if len(commentSnaps) != 1 {
+				objects <- operation{err: errors.New("got more than 1 comment from querying uuid of comment report, this is unexpected")}
+				return
+			} else {
+				objects <- operation{
+					ref:     commentSnaps[0].Ref,
+					method:  "update",
+					payload: []firestore.Update{{Path: "reports", Value: firestore.Increment(-1)}},
+				}
+			}
+
+		}(commentReportRef)
+	}
 }
