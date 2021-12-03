@@ -787,6 +787,26 @@ func getCommentRatingObjects(
 					method:  "update",
 					payload: []firestore.Update{{Path: path, Value: firestore.Increment(-1)}},
 				}
+
+				targetUserComment := models.UserComment{
+					ProfessorHash:  commentRating.ProfessorHash,
+					Subject:        commentRating.Subject,
+					Course:         commentRating.Course,
+					Specialization: commentRating.Specialization,
+				}
+
+				// user comment should receive same update
+				targetUserCommentRef := DB.Client.Doc(fmt.Sprintf(
+					"users/%s/user_comments/%s",
+					commentSnaps[0].Ref.ID,
+					targetUserComment.Hash(),
+				))
+
+				objects <- operation{
+					ref:     targetUserCommentRef,
+					method:  "update",
+					payload: []firestore.Update{{Path: "comment." + path, Value: firestore.Increment(-1)}},
+				}
 			}
 
 		}(commentRatingRef)
@@ -854,6 +874,26 @@ func getCommentReportObjects(
 					ref:     commentSnaps[0].Ref,
 					method:  "update",
 					payload: []firestore.Update{{Path: "reports", Value: firestore.Increment(-1)}},
+				}
+
+				targetUserComment := models.UserComment{
+					ProfessorHash:  commentReport.ProfessorHash,
+					Subject:        commentReport.Subject,
+					Course:         commentReport.Course,
+					Specialization: commentReport.Specialization,
+				}
+
+				// user comment should receive same update
+				targetUserCommentRef := DB.Client.Doc(fmt.Sprintf(
+					"users/%s/user_comments/%s",
+					commentSnaps[0].Ref.ID,
+					targetUserComment.Hash(),
+				))
+
+				objects <- operation{
+					ref:     targetUserCommentRef,
+					method:  "update",
+					payload: []firestore.Update{{Path: "comment.reports", Value: firestore.Increment(-1)}},
 				}
 			}
 
