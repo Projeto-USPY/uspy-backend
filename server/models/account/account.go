@@ -771,8 +771,7 @@ func getCommentRatingObjects(
 			if commentSnaps, err := tx.Documents(query).GetAll(); err != nil {
 				objects <- operation{err: errors.New("failed to get comment from comment rating: " + err.Error())}
 				return
-			} else if len(commentSnaps) != 1 {
-				objects <- operation{err: errors.New("got more than 1 comment from querying uuid of comment rating, this is unexpected")}
+			} else if len(commentSnaps) == 0 { // this comment does not exist anymore
 				return
 			} else {
 				var path string
@@ -848,8 +847,7 @@ func getCommentReportObjects(
 			if commentSnaps, err := tx.Documents(query).GetAll(); err != nil {
 				objects <- operation{err: errors.New("failed to get comment from comment report: " + err.Error())}
 				return
-			} else if len(commentSnaps) != 1 {
-				objects <- operation{err: errors.New("got more than 1 comment from querying uuid of comment report, this is unexpected")}
+			} else if len(commentSnaps) == 0 {
 				return
 			} else {
 				objects <- operation{
