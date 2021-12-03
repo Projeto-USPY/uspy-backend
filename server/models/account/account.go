@@ -278,7 +278,7 @@ func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 
 		// check if user has verified their email
 		if !storedUser.Verified {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidEmail)
+			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrUnverifiedUser)
 			return
 		}
 
