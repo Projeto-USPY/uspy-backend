@@ -564,11 +564,29 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 			}
 		}
 
-		// delete stuff
-		log.Printf("user %s deleted their account, impacted documents: %d\n", userID, len(deletables))
+		// add subject review refs to deletables
+		deletables = append(deletables, subjectReviewsDocs...)
+
+		log.Printf("user %s is deleting their account, impacted documents: %d\n", userID, len(deletables))
+
+		// delete all data in parallel
+		deleteErrors := make(chan error, len(deletables))
+		wg.Add(len(deletables))
+
 		for _, d := range deletables {
-			if err := tx.Delete(d); err != nil {
-				return fmt.Errorf("could not delete grades and records: %v", err.Error())
+			go func(deletable *firestore.DocumentRef, group *sync.WaitGroup) {
+				defer group.Done()
+				deleteErrors <- tx.Delete(deletable)
+			}(d, &wg)
+		}
+
+		wg.Wait()
+		close(deleteErrors)
+
+		for err := range deleteErrors {
+			if err != nil {
+				log.Println("error deleting document", err)
+				return err
 			}
 		}
 
