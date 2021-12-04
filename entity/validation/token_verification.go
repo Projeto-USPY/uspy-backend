@@ -5,8 +5,8 @@ import (
 
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/utils"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt"
 )
 
 func validateVerificationToken(f1 validator.FieldLevel) bool {

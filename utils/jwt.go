@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 // GenerateJWT generates a JWT from map

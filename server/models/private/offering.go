@@ -97,7 +97,7 @@ func RateComment(
 	}.Hash()
 
 	userCommentHash := models.UserComment{
-		ProfessorCode:  comment.Offering.Hash,
+		ProfessorHash:  comment.Offering.Hash,
 		Subject:        comment.Offering.Subject.Code,
 		Course:         comment.Offering.Subject.CourseCode,
 		Specialization: comment.Offering.Subject.Specialization,
@@ -131,6 +131,11 @@ func RateComment(
 		commentRating := models.CommentRating{
 			ID:     uuid.MustParse(comment.ID),
 			Upvote: body.Type == "upvote",
+
+			ProfessorHash:  comment.Offering.Hash,
+			Subject:        comment.Offering.Subject.Code,
+			Course:         comment.Offering.Subject.CourseCode,
+			Specialization: comment.Offering.Subject.Specialization,
 		}
 
 		type update struct {
@@ -298,7 +303,7 @@ func ReportComment(
 	}.Hash()
 
 	userCommentHash := models.UserComment{
-		ProfessorCode:  comment.Offering.Hash,
+		ProfessorHash:  comment.Offering.Hash,
 		Subject:        comment.Offering.Subject.Code,
 		Course:         comment.Offering.Subject.CourseCode,
 		Specialization: comment.Offering.Subject.Specialization,
@@ -332,6 +337,11 @@ func ReportComment(
 		modelCommentReport := models.CommentReport{
 			ID:     uuid.MustParse(comment.ID),
 			Report: body.Body,
+
+			ProfessorHash:  comment.Offering.Hash,
+			Subject:        comment.Offering.Subject.Code,
+			Course:         comment.Offering.Subject.CourseCode,
+			Specialization: comment.Offering.Subject.Specialization,
 		}
 
 		if _, err := tx.Get(reportRef); err != nil {
@@ -455,7 +465,7 @@ func PublishComment(
 		// upsert replica in user comments (will be used in the future)
 		replica := models.UserComment{
 			Comment:        newComment,
-			ProfessorCode:  off.Hash,
+			ProfessorHash:  off.Hash,
 			Subject:        off.Subject.Code,
 			Course:         off.Subject.CourseCode,
 			Specialization: off.Subject.Specialization,
