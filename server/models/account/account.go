@@ -440,8 +440,7 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 		objects := getUserObjects(DB, ctx, tx, userID)
 
 		log.Printf("user %s is removing their account, total objects affected: %v\n", userID, len(objects))
-		var wg sync.WaitGroup
-		wg.Add(len(objects))
+
 		for _, obj := range objects {
 			if obj.err != nil {
 				return obj.err
