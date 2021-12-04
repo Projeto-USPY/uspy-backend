@@ -23,11 +23,13 @@ This repository is organized in these packages:
 │     │   ├── public
 │     │   └── restricted
 │     │
-│     └── views/
-│         ├── account
-│         ├── private
-│         ├── public
-│         └── restricted
+│     ├── views/
+│     │   ├── account
+│     │   ├── private
+│     │   ├── public
+│     │   └── restricted
+│     │
+│     └── validation
 │
 ├─ config
 ├─ db
@@ -72,6 +74,7 @@ Their respective responsibilities are the following:
 
     - All object definitions
     - follows a MVC architecture, see "server" package for more details
+    - Contains subpackage validation, with input sanitization utilities.
 
 #### **iddigital**
 
@@ -81,18 +84,18 @@ Their respective responsibilities are the following:
 
     - Endpoint closures and their implementations
 
-    - Middleware contains useful middleware functions, such as JWT validation and data binding
+    - Middleware contains useful middleware functions, such as JWT validation, rate limiting, data binding, etc
 
     - API Handlers and Data Access Objects are organized in a MVC manner:
         - controllers use the entity.controller objects to bind request data
-        - models use the entity.models objects to recover data and perform upserts in the database 
+        - models use the entity.models objects to recover data and perform database operations 
         - views use the entity.views objects to represent data the front-end will receive
 
     - All of these can be divided in the following manner:
-        - account: all operations related to the user's account management, such as login, signup, delete, etc
+        - account: all operations related to the user's account management, such as login, signup, delete, password recovery, etc
         - private: all operations related to the user's data management, such as getting/updating their grades and reviews
         - public: all operations related to data that is public (including non-registered users), such as subject data
-        - restricted: all operations related to data that is only accessible by registered users (aggregated data)
+        - restricted: all operations related to data that is anonymous yet visible to all registered-users
 
 #### **utils**
 
@@ -115,6 +118,8 @@ To deploy and/or run this application, there are a few requisites:
 | **USPY_RATE_LIMIT**    | `Frequency:Time` string for the rate-limiter    |      **No**      |  `F:P` string   |                 |
 | **USPY_FIRESTORE_KEY** | Path to firestore access key                    | **Only locally** |                 |                 |
 | **USPY_PROJECT_ID**    | GCP Project ID                                  | **In the Cloud** |                 |                 |
+| **USPY_MAILJET_KEY**   | Mailjet key used for e-mail operations          | **In the Cloud** |                 |                 |
+| **USPY_MAILJET_SECRET**| Mailjet secret used for e-mail operations       | **In the Cloud** |                 |                 |
 
 ### Testing
 
