@@ -116,7 +116,7 @@ func sendPasswordRecoveryEmail(email, userHash string) error {
 
 	url := fmt.Sprintf(`https://%s/account/password_reset?token=%s`, host, token)
 	content := fmt.Sprintf(config.PasswordRecoveryContent, url)
-	return config.Env.Remote.Send(email, config.PasswordRecoverySubject, content)
+	return config.Env.Send(email, config.PasswordRecoverySubject, content)
 }
 
 func sendEmailVerification(email, userHash string) error {
@@ -145,7 +145,7 @@ func sendEmailVerification(email, userHash string) error {
 
 	url := fmt.Sprintf(`https://%s/account/verify?token=%s`, host, token)
 	content := fmt.Sprintf(config.VerificationContent, url)
-	return config.Env.Remote.Send(email, config.VerificationSubject, content)
+	return config.Env.Send(email, config.VerificationSubject, content)
 }
 
 // Profile retrieves the user profile from the database

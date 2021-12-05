@@ -2,8 +2,6 @@ package config
 
 import (
 	"log"
-	"os"
-	"reflect"
 
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/joho/godotenv"
@@ -14,47 +12,43 @@ var Env Config
 
 type GeneralConfig interface {
 	Identify() string
-	IsLocal() bool
-}
-
-type SpecificConfig interface {
-	Identifier
-	Typer
-}
-
-type Identifier interface {
-	_identify() string
-}
-
-type Typer interface {
-	_isLocal() bool
 }
 
 // Configuration object, for more info see README.md
 type Config struct {
-	Domain    string `envconfig:"USPY_DOMAIN" required:"true" default:"localhost"`
-	Port      string `envconfig:"USPY_PORT" required:"true" default:"8080"` // careful with this because cloud run must run on port 8080
-	JWTSecret string `envconfig:"USPY_JWT_SECRET" required:"true" default:"my_secret"`
-	Mode      string `envconfig:"USPY_MODE" required:"true" default:"dev"`
-	AESKey    string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
-	RateLimit string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
+	Domain       string `envconfig:"USPY_DOMAIN" required:"true" default:"localhost"`
+	Port         string `envconfig:"USPY_PORT" required:"true" default:"8080"` // careful with this because cloud run must run on port 8080
+	JWTSecret    string `envconfig:"USPY_JWT_SECRET" required:"true" default:"my_secret"`
+	Mode         string `envconfig:"USPY_MODE" required:"true" default:"dev"`
+	AESKey       string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
+	RateLimit    string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
+	EnforceLocal bool   `envconfig:"USPY_ENFORCE_LOCAL" required:"true" default:"false"`
 
-	Local  LocalConfig
-	Remote RemoteConfig
+	FirestoreKeyPath string `envconfig:"USPY_FIRESTORE_KEY"`
+
+	ProjectID string `envconfig:"USPY_PROJECT_ID"`
+
+	Mailjet // email verification is needed in production
 }
 
-// IsLocal returns if the current context is local
-func (c Config) IsLocal() bool {
-	return !reflect.DeepEqual(c.Local, LocalConfig{})
+func (c Config) IsUsingKey() bool {
+	return c.FirestoreKeyPath != ""
 }
 
-// Identify tells whether the current context is local or remote
+func (c Config) IsUsingProjectID() bool {
+	return c.ProjectID != ""
+}
+
 func (c Config) Identify() string {
-	if c.IsLocal() {
-		return c.Local._identify()
+	if c.IsUsingKey() {
+		return c.FirestoreKeyPath
 	} else {
-		return c.Remote._identify()
+		return c.ProjectID
 	}
+}
+
+func (c Config) IsLocal() bool {
+	return c.EnforceLocal
 }
 
 // Redact can be used to print the environment config without exposing secret
@@ -62,10 +56,10 @@ func (c Config) Redact() Config {
 	c.AESKey = "[REDACTED]"
 	c.JWTSecret = "[REDACTED]"
 	c.Domain = "[REDACTED]"
-	c.Local.FirestoreKeyPath = "[REDACTED]"
-	c.Remote.ProjectID = "[REDACTED]"
-	c.Remote.Mailjet.APIKey = "[REDACTED]"
-	c.Remote.Mailjet.Secret = "[REDACTED]"
+	c.FirestoreKeyPath = "[REDACTED]"
+	c.ProjectID = "[REDACTED]"
+	c.Mailjet.APIKey = "[REDACTED]"
+	c.Mailjet.Secret = "[REDACTED]"
 	return c
 }
 
@@ -85,33 +79,25 @@ func Setup() {
 		log.Println("did not parse .env file, falling to default env variables")
 	}
 
-	if _, ok := os.LookupEnv("USPY_FIRESTORE_KEY"); ok {
-		log.Println("Running backend locally")
-		var lc LocalConfig
-		envconfig.MustProcess("uspy", &lc)
-
-		log.Printf("local env variables set: %#v\n", lc)
-		Env.Local = lc
-		if !utils.CheckFileExists(lc.FirestoreKeyPath) {
-			log.Fatal("Could not find firestore key path: ", lc.FirestoreKeyPath)
-		}
-	} else if _, ok := os.LookupEnv("USPY_PROJECT_ID"); ok {
-		log.Println("Running backend remotely")
-		var rc RemoteConfig
-		envconfig.MustProcess("uspy", &rc)
-
-		log.Printf("remote env variables set: %#v\n", rc)
-		Env.Remote = rc
-
-		// setup email client
-		Env.Remote.Mailjet.Setup()
-	} else {
-		log.Fatal("Could not initialize backend because neither the Firestore Key nor the Project ID were specified")
-	}
-
 	if err := envconfig.Process("uspy", &Env); err != nil {
 		log.Fatal("could not process default env variables: ", err)
 	}
 
 	log.Printf("env variables set: %#v\n", Env.Redact())
+
+	if Env.IsUsingKey() {
+		log.Println("Running backend with firestore key")
+
+		if !utils.CheckFileExists(Env.FirestoreKeyPath) {
+			log.Fatal("Could not find firestore key path: ", Env.FirestoreKeyPath)
+		}
+	} else if Env.IsUsingProjectID() {
+		log.Println("Running backend with project ID")
+
+		// setup email client
+		Env.Mailjet.Setup()
+	} else {
+		log.Fatal("Could not initialize backend because neither the Firestore Key nor the Project ID were specified")
+	}
+
 }
