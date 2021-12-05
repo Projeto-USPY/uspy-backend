@@ -16,13 +16,12 @@ type GeneralConfig interface {
 
 // Configuration object, for more info see README.md
 type Config struct {
-	Domain       string `envconfig:"USPY_DOMAIN" required:"true" default:"localhost"`
-	Port         string `envconfig:"USPY_PORT" required:"true" default:"8080"` // careful with this because cloud run must run on port 8080
-	JWTSecret    string `envconfig:"USPY_JWT_SECRET" required:"true" default:"my_secret"`
-	Mode         string `envconfig:"USPY_MODE" required:"true" default:"dev"`
-	AESKey       string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
-	RateLimit    string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
-	EnforceLocal bool   `envconfig:"USPY_ENFORCE_LOCAL" required:"true" default:"false"`
+	Domain    string `envconfig:"USPY_DOMAIN" required:"true" default:"localhost"`
+	Port      string `envconfig:"USPY_PORT" required:"true" default:"8080"` // careful with this because cloud run must run on port 8080
+	JWTSecret string `envconfig:"USPY_JWT_SECRET" required:"true" default:"my_secret"`
+	Mode      string `envconfig:"USPY_MODE" required:"true" default:"local"`
+	AESKey    string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
+	RateLimit string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
 
 	FirestoreKeyPath string `envconfig:"USPY_FIRESTORE_KEY"`
 
@@ -47,8 +46,12 @@ func (c Config) Identify() string {
 	}
 }
 
+func (c Config) IsDev() bool {
+	return c.Mode == "dev"
+}
+
 func (c Config) IsLocal() bool {
-	return c.EnforceLocal
+	return c.Mode == "local"
 }
 
 // Redact can be used to print the environment config without exposing secret

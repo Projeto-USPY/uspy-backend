@@ -16,6 +16,7 @@ services:
       - USPY_PROJECT_ID=dummy-project-id
       - USPY_DOMAIN=0.0.0.0
       - USPY_ENFORCE_LOCAL=true
+      - USPY_MODE=local
     depends_on:
       - firestore_emulator
   uspy-scraper:
