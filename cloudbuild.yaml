@@ -1,7 +1,7 @@
 steps:
 # Build the container image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA', '.']
+  args: ['build', '--tag', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA', '-f', 'docker/app/Dockerfile', '.']
   dir: .
 
 # Push the container image to Container Registry

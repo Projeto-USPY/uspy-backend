@@ -1,0 +1,33 @@
+version: "3.2"
+services:
+  firestore_emulator:
+    image: mtlynch/firestore-emulator
+    environment:
+      - FIRESTORE_PROJECT_ID=dummy-project-id
+      - PORT=8200
+  uspy-backend:
+    build: 
+      context: .
+      dockerfile: ./docker/app/Dockerfile
+    ports: 
+      - "8080:8080"
+    environment:
+      - FIRESTORE_EMULATOR_HOST=firestore_emulator:8200
+      - USPY_PROJECT_ID=dummy-project-id
+      - USPY_DOMAIN=0.0.0.0
+      - USPY_ENFORCE_LOCAL=true
+      - USPY_MODE=local
+    depends_on:
+      - firestore_emulator
+  uspy-scraper:
+    image: tprei/uspy-scraper
+    environment:
+      - FIRESTORE_EMULATOR_HOST=firestore_emulator:8200
+      - USPY_PROJECT_ID=dummy-project-id
+      - USPY_DOMAIN=0.0.0.0
+      - USPY_PORT=8300
+    ports:
+      - "8300:8300"
+    depends_on:
+      - firestore_emulator
+
