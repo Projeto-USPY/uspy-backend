@@ -26,8 +26,12 @@ type PDF struct {
 // iddigital.Transcript represents the parsed data retrieved from the user's PDF file
 type Transcript struct {
 	Grades []models.Record `json:"grades"`
-	Name   string          `json:"name"`
-	Nusp   string          `json:"nusp"`
+
+	Name string `json:"name"`
+	Nusp string `json:"nusp"`
+
+	Course         string `json:"course"`
+	Specialization string `json:"specialization"`
 }
 
 // NewPDF takes the Grades PDF response object and creates a new PDF object
@@ -99,7 +103,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			rec = Transcript{nil, "", ""}
+			rec = Transcript{nil, "", "", "", ""}
 			err = r.(error)
 		}
 	}()
@@ -125,6 +129,8 @@ func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 	if err != nil {
 		panic(errors.New("could not fetch courses from firestore"))
 	}
+
+	rec.Course, rec.Specialization = course, specialization
 
 	// Divide records data into each semester/year
 	pairs := regexp.MustCompile(`\s+\d{4} [1-2]º\. Semestre\s+`).FindAllStringIndex(pdf.Body, -1)
