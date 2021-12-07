@@ -95,7 +95,7 @@ func InitFireStore() Env {
 		Ctx: context.Background(),
 	}
 
-	if !config.Env.IsLocal() {
+	if config.Env.IsUsingProjectID() {
 		conf := &firebase.Config{ProjectID: config.Env.Identify()}
 		app, err := firebase.NewApp(DB.Ctx, conf)
 		if err != nil {

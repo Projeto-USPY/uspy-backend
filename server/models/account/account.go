@@ -50,6 +50,14 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 			},
 		}
 
+		// register user major
+		major := models.Major{Course: data.Course, Specialization: data.Specialization}
+		objs = append(objs, db.Object{
+			Collection: "users/" + newUser.Hash() + "/majors",
+			Doc:        major.Hash(),
+			Data:       major,
+		})
+
 		for _, g := range data.Grades {
 			rec := models.Record{
 				Grade:     g.Grade,
@@ -93,7 +101,7 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 }
 
 func sendPasswordRecoveryEmail(email, userHash string) error {
-	if config.Env.IsLocal() {
+	if config.Env.IsLocal() || config.Env.IsDev() {
 		return nil
 	}
 
@@ -116,7 +124,7 @@ func sendPasswordRecoveryEmail(email, userHash string) error {
 
 	url := fmt.Sprintf(`https://%s/account/password_reset?token=%s`, host, token)
 	content := fmt.Sprintf(config.PasswordRecoveryContent, url)
-	return config.Env.Remote.Send(email, config.PasswordRecoverySubject, content)
+	return config.Env.Send(email, config.PasswordRecoverySubject, content)
 }
 
 func sendEmailVerification(email, userHash string) error {
@@ -145,7 +153,7 @@ func sendEmailVerification(email, userHash string) error {
 
 	url := fmt.Sprintf(`https://%s/account/verify?token=%s`, host, token)
 	content := fmt.Sprintf(config.VerificationContent, url)
-	return config.Env.Remote.Send(email, config.VerificationSubject, content)
+	return config.Env.Send(email, config.VerificationSubject, content)
 }
 
 // Profile retrieves the user profile from the database
@@ -476,13 +484,14 @@ func getUserObjects(DB db.Env, ctx context.Context, tx *firestore.Transaction, u
 	userRef := DB.Client.Doc("users/" + userHash)
 
 	var wg sync.WaitGroup
-	wg.Add(5)
+	wg.Add(6)
 
 	go getScoreObjects(DB, ctx, tx, &wg, objects, userRef)
 	go getReviewObjects(DB, ctx, tx, &wg, objects, userRef)
 	go getCommentObjects(DB, ctx, tx, &wg, objects, userRef)
 	go getCommentRatingObjects(DB, ctx, tx, &wg, objects, userRef)
 	go getCommentReportObjects(DB, ctx, tx, &wg, objects, userRef)
+	go getMajorObjects(DB, ctx, tx, &wg, objects, userRef)
 
 	// get collected objects and append to array
 	results := make([]operation, 0)
@@ -897,5 +906,31 @@ func getCommentReportObjects(
 			}
 
 		}(commentReportRef)
+	}
+}
+
+func getMajorObjects(
+	DB db.Env, ctx context.Context,
+	tx *firestore.Transaction,
+	wg *sync.WaitGroup,
+	objects chan<- operation,
+	userRef *firestore.DocumentRef,
+) {
+	defer wg.Done()
+
+	// get user majors
+	majorCol := userRef.Collection("majors")
+	majorRefs, err := tx.DocumentRefs(majorCol).GetAll()
+
+	if err != nil {
+		objects <- operation{err: errors.New("failed to get majors from user: " + err.Error())}
+		return
+	}
+
+	for _, major := range majorRefs {
+		objects <- operation{
+			ref:    major,
+			method: "delete",
+		}
 	}
 }
