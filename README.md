@@ -146,12 +146,19 @@ curl -X POST "localhost:8300/build?targets=subjects"
 
 This operation may take a minute to complete and it may fail due to errors on JupiterWeb. You can also **omit the query parameter** if you'd like to also scrape offerings data.
 
-
 To clean up:
 
 ```sh
 docker-compose down
 ```
+
+In order to save all of the data in firestore, run:
+
+``sh
+docker/emulator/save_db_data.sh
+``
+
+This will save the data inside `docker/emulator/mount/db_data`. Note that `docker/emulator/mount` is mounted into the firestore docker container. When running again the emulator, the saved data will be automatically reused as long as `docker/emulator/mount/db_data` exists. The `IMPORT_DATA` environment variable can be changed to customize the `mount/db_data` path.
 
 ### Testing
 
