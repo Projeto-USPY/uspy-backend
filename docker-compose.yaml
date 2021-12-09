@@ -1,10 +1,19 @@
 version: "3.2"
 services:
   firestore_emulator:
-    image: mtlynch/firestore-emulator
+    build:
+      context: ./docker/emulator
+      dockerfile: ./Dockerfile
+    volumes:
+      - type: bind
+        source: docker/emulator/mount
+        target: /home/node/mount
     environment:
       - FIRESTORE_PROJECT_ID=dummy-project-id
       - PORT=8200
+    ports:
+      - "4000:4000"
+      - "8200:8200"
   uspy-backend:
     build: 
       context: .
@@ -30,4 +39,3 @@ services:
       - "8300:8300"
     depends_on:
       - firestore_emulator
-
