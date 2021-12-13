@@ -1,5 +1,6 @@
 package views
 
+// Errors returned in response objects
 var (
 	ErrInvalidCredentials = Error{Code: "invalid_credentials", Message: "Login ou senha incorretos."}
 	ErrInvalidEmail       = Error{Code: "invalid_email", Message: "Esse e-mail já está cadastrado."}
@@ -9,6 +10,7 @@ var (
 	ErrWrongPassword      = Error{Code: "invalid_password", Message: "Senha incorreta"}
 )
 
+// Error is the default error struct used. It contains the error code and message
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`

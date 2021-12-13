@@ -32,8 +32,10 @@ func setupAccessToken(router *gin.Engine) (*http.Cookie, error) {
 	return w.Result().Cookies()[0], nil
 }
 
-// GetEnvironment will reinitialize the testing environment.
+// MustGetEnvironment will reinitialize the testing environment.
 // It requires a suite because it is meant to be run with suites, so it can fail their test context in case of errors
+//
+// This function may panic if the environment is ont properly initialized
 func MustGetEnvironment(s suite.Suite) (DB db.Env, router *gin.Engine, cookie *http.Cookie) {
 	DB = emulator.MustGet()
 

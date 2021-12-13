@@ -6,6 +6,9 @@ import (
 	"github.com/gin-gonic/gin/binding"
 )
 
+// Binders used in controllers for data binding
+//
+// These are used not only for sanitization purposes, but also for simplifying internal logic
 var (
 	SubjectBinder       = middleware.Bind("Subject", &controllers.Subject{}, binding.Query)
 	OfferingBinder      = middleware.Bind("Offering", &controllers.Offering{}, binding.Query)

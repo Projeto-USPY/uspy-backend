@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetComment is a closure for the GET /private/subjects/offerings/comments endpoint
 func GetComment(DB db.Env) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
@@ -20,6 +21,7 @@ func GetComment(DB db.Env) func(*gin.Context) {
 	}
 }
 
+// GetCommentRating is a closure for the GET /private/subjects/offerings/comments/rating endpoint
 func GetCommentRating(DB db.Env) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
@@ -34,6 +36,7 @@ func GetCommentRating(DB db.Env) func(*gin.Context) {
 	}
 }
 
+// RateComment is a closure for the PUT /private/subjects/offerings/comments/rating endpoint
 func RateComment(DB db.Env) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
@@ -55,6 +58,7 @@ func RateComment(DB db.Env) func(*gin.Context) {
 	}
 }
 
+// ReportComment is a closure for the PUT /private/subjects/offerings/comments/report endpoint
 func ReportComment(DB db.Env) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
@@ -76,6 +80,7 @@ func ReportComment(DB db.Env) func(*gin.Context) {
 	}
 }
 
+// PublishComment is a closure for the PUT /private/subjects/offerings/comments endpoint
 func PublishComment(DB db.Env) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)

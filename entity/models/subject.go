@@ -9,6 +9,9 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
+// Subject is the DTO for a subject.
+//
+// It is probably one of the most used objects.
 type Subject struct {
 	Code             string                   `firestore:"code"`
 	CourseCode       string                   `firestore:"course"`
@@ -25,20 +28,26 @@ type Subject struct {
 	Stats            map[string]int           `firestore:"stats"`
 }
 
+// Hash returns SHA256(concat(code, course, specialization))
 func (s Subject) Hash() string {
 	str := fmt.Sprintf("%s%s%s", s.Code, s.CourseCode, s.Specialization)
 	return utils.SHA256(str)
 }
 
+// NewSubjectFromController is a constructor. It takes a subject controller and returns a model.
 func NewSubjectFromController(sub *controllers.Subject) *Subject {
 	return &Subject{Code: sub.Code, CourseCode: sub.CourseCode, Specialization: sub.Specialization}
 }
 
+// Insert sets a subject to a given collection. This is usually /subjects
 func (s Subject) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Set(DB.Ctx, s)
 	return err
 }
 
+// Update sets a subject to a given collection. This is usually /subjects
+//
+// This method prohibits from changing the stats map
 func (s Subject) Update(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Set(DB.Ctx, s, firestoreUtils.MergeWithout(
 		s,

@@ -1,4 +1,4 @@
-// package utils contain useful helper functions
+//Package utils contain useful helper functions
 package utils
 
 import (
@@ -30,7 +30,7 @@ func MakeRequest(router *gin.Engine, method, endpoint string, body io.Reader, co
 	return w
 }
 
-// Encrypts using AES. keyString must be 128, 196 or 256 bits.
+// AESEncrypt encrypts using AES. keyString must be 128, 196 or 256 bits.
 func AESEncrypt(stringToEncrypt string, keyString string) (encryptedString string, err error) {
 
 	//Since the key is in string, we need to convert decode it to bytes
@@ -62,7 +62,7 @@ func AESEncrypt(stringToEncrypt string, keyString string) (encryptedString strin
 	return fmt.Sprintf("%x", ciphertext), nil
 }
 
-// Encrypts using AES. keyString must be 128, 196 or 256 bits.
+// AESDecrypt decrypts using AES. keyString must be 128, 196 or 256 bits.
 func AESDecrypt(encryptedString string, keyString string) (decryptedString string, err error) {
 	key, _ := hex.DecodeString(keyString)
 	enc, _ := hex.DecodeString(encryptedString)
@@ -94,10 +94,14 @@ func AESDecrypt(encryptedString string, keyString string) (decryptedString strin
 	return fmt.Sprintf("%s", plaintext), nil
 }
 
+// SHA256 returns the sha256 digest of a string
 func SHA256(body string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(body)))
 }
 
+// Bcrypt returns the b-crypt digest of a string
+//
+// It uses 4 as the cost of computing
 func Bcrypt(body string) (string, error) {
 	pass, err := bcrypt.GenerateFromPassword([]byte(body), bcrypt.MinCost)
 	if err != nil {
@@ -106,10 +110,14 @@ func Bcrypt(body string) (string, error) {
 	return string(pass), nil
 }
 
+// BcryptCompare takes an input and a truth digest and compares them
+//
+// Use this instead of direct comparisons because this function is safe.
 func BcryptCompare(input, truth string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(truth), []byte(input)) == nil
 }
 
+// Min returns the minimum of two integers
 func Min(a, b int) int {
 	if a < b {
 		return a
@@ -118,6 +126,7 @@ func Min(a, b int) int {
 	return b
 }
 
+// CheckFileExists takes a path string and returns true if it exists
 func CheckFileExists(path string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
@@ -125,6 +134,7 @@ func CheckFileExists(path string) bool {
 	return true
 }
 
+// IsHex takes a string and returns true if it is a hex string
 func IsHex(s string) bool {
 	for _, c := range s {
 		if c >= '0' && c <= '9' {

@@ -1,4 +1,3 @@
-/* package entity contains structs that will be used for backend input validation and DB operations */
 package models
 
 import (
@@ -6,8 +5,10 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
-// entity.Offering describes an offering of a subject
+// Offering is the DTO for an offering of a subject
 // Since it is inside a subcollection of a subject, it does not have subject data
+//
+// It contains some properties that are not mapped to firestore for internal logic and data collection purposes.
 type Offering struct {
 	CodPes string `firestore:"-"`
 	Code   string `firestore:"-"`
@@ -16,16 +17,18 @@ type Offering struct {
 	Years     []string `firestore:"years"`
 }
 
-// sha256(CodPes)
+// Hash returns SHA256(professor_code)
 func (off Offering) Hash() string {
 	return utils.SHA256(off.CodPes)
 }
 
+// Insert sets an offering to a given collection. This is usually /subjects/#subject/offerings
 func (off Offering) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(off.Hash()).Set(DB.Ctx, off)
 	return err
 }
 
+// Update sets an offering to a given collection
 func (off Offering) Update(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(off.Hash()).Set(DB.Ctx, off)
 	return err

@@ -1,4 +1,4 @@
-/* package main runs the backend router*/
+/*package main runs the backend router*/
 package main
 
 import (

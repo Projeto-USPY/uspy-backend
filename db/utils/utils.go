@@ -1,4 +1,4 @@
-package db_utils
+package utils
 
 import (
 	"github.com/Projeto-USPY/uspy-backend/db"
@@ -20,6 +20,7 @@ func checkSubjectRecords(DB db.Env, userHash, subHash string) error {
 	return err
 }
 
+// CheckSubjectPermission takes a user hash and a subject hash and checks whether the user has done this subject
 func CheckSubjectPermission(DB db.Env, userHash, subHash string) error {
 	errSub, errRec := checkSubjectExists(DB, subHash), checkSubjectRecords(DB, userHash, subHash)
 	if errSub != nil {

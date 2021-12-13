@@ -11,17 +11,19 @@ import (
 
 func validateVerificationToken(f1 validator.FieldLevel) bool {
 	str := f1.Field().String()
-	if token, err := utils.ValidateJWT(str, config.Env.JWTSecret); err != nil {
-		return false
-	} else {
-		claims := token.Claims.(jwt.MapClaims)
+	token, err := utils.ValidateJWT(str, config.Env.JWTSecret)
 
-		// assert correct operation
-		if operation, ok := claims["type"].(string); !ok {
-			return false
-		} else if operation != "email_verification" {
-			return false
-		}
+	if err != nil {
+		return false
+	}
+
+	claims := token.Claims.(jwt.MapClaims)
+
+	// assert correct operation
+	if operation, ok := claims["type"].(string); !ok {
+		return false
+	} else if operation != "email_verification" {
+		return false
 	}
 
 	return true
@@ -29,32 +31,35 @@ func validateVerificationToken(f1 validator.FieldLevel) bool {
 
 func validateRecoveryToken(f1 validator.FieldLevel) bool {
 	str := f1.Field().String()
-	if token, err := utils.ValidateJWT(str, config.Env.JWTSecret); err != nil {
+	token, err := utils.ValidateJWT(str, config.Env.JWTSecret)
+
+	if err != nil {
+		return false
+	}
+
+	claims := token.Claims.(jwt.MapClaims)
+
+	// assert correct operation
+	if operation, ok := claims["type"].(string); !ok {
+		return false
+	} else if operation != "password_reset" {
+		return false
+	}
+
+	// assert user hash is sent and is sha256
+	if hash, ok := claims["user"].(string); !ok {
+		return false
+	} else if len(hash) != 64 || !utils.IsHex(hash) {
+		return false
+	}
+
+	// assert timestamp is less than an hour old
+	if creationDate, ok := claims["timestamp"].(string); !ok {
+		return false
+	} else if t, err := time.Parse(time.RFC3339Nano, creationDate); err != nil {
 		return false
 	} else {
-		claims := token.Claims.(jwt.MapClaims)
-
-		// assert correct operation
-		if operation, ok := claims["type"].(string); !ok {
-			return false
-		} else if operation != "password_reset" {
-			return false
-		}
-
-		// assert user hash is sent and is sha256
-		if hash, ok := claims["user"].(string); !ok {
-			return false
-		} else if len(hash) != 64 || !utils.IsHex(hash) {
-			return false
-		}
-
-		// assert timestamp is less than an hour old
-		if creationDate, ok := claims["timestamp"].(string); !ok {
-			return false
-		} else if t, err := time.Parse(time.RFC3339Nano, creationDate); err != nil {
-			return false
-		} else {
-			return time.Since(t) < time.Hour
-		}
+		return time.Since(t) < time.Hour
 	}
+
 }

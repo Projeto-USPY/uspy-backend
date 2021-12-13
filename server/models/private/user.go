@@ -1,4 +1,3 @@
-// package models
 package private
 
 import (
@@ -18,6 +17,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// GetSubjectGrade retrieves the grade a user has in the given subject
+//
 // GetSubjectGrade is the model implementation for /server/controller/private/user.GetSubjectGrade
 func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
 	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
@@ -51,6 +52,8 @@ func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controller
 	private.GetSubjectGrade(ctx, &best)
 }
 
+// GetSubjectReview retrieves the review made for a subject by an user
+//
 // GetSubjectReview is the model implementation for /server/controller/private/user.GetSubjectReview
 func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
 	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
@@ -93,6 +96,8 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 	private.GetSubjectReview(ctx, &review)
 }
 
+// UpdateSubjectReview updates the review made for a subject given by an user
+//
 // UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
 func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *controllers.SubjectReview) {
 	userHash, model := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)

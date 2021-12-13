@@ -1,4 +1,4 @@
-/* package iddigital contains all logic necessary to interact with uspdigital */
+/*Package iddigital contains all logic necessary to interact with uspdigital */
 package iddigital
 
 import (

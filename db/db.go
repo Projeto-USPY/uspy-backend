@@ -1,4 +1,4 @@
-/* Package db contains useful functions related to the Firestore Database */
+/*Package db contains useful functions related to the Firestore Database */
 package db
 
 import (
@@ -41,7 +41,7 @@ type Env struct {
 	Ctx    context.Context
 }
 
-// Env.Restore restores a document with a specific HashID and collection origin from Firestore
+// Restore restores a document with a specific HashID and collection origin from Firestore
 // collection cannot end in "/"
 func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, error) {
 	snap, err := db.Client.Collection(collection).Doc(HashID).Get(db.Ctx)
@@ -52,7 +52,7 @@ func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, e
 	return snap, nil
 }
 
-// Env.RestoreCollection is similar to Env.Restore, but restores all documents from a collection
+// RestoreCollection is similar to Env.Restore, but restores all documents from a collection
 //
 // Collection cannot end in "/"
 func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapshot, error) {
@@ -64,17 +64,17 @@ func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapsho
 	return snap, nil
 }
 
-// Env.Insert inserts an entity that implements Inserter into a DB collection
+// Insert inserts an entity that implements Inserter into a DB collection
 func (db Env) Insert(obj Inserter, collection string) error {
 	return obj.Insert(db, collection)
 }
 
-// Env.Update updates entity in firestore with data in object variable
+// Update updates entity in firestore with data in object variable
 func (db Env) Update(obj Updater, collection string) error {
 	return obj.Update(db, collection)
 }
 
-// Env.BatchWrite will perform inserts atomically
+// BatchWrite will perform inserts atomically
 func (db Env) BatchWrite(objs []Object) error {
 	batch := db.Client.Batch()
 
@@ -89,7 +89,7 @@ func (db Env) BatchWrite(objs []Object) error {
 	return err
 }
 
-// InitFirestore initiates the DB Environment (requires some environment variables to work)
+// InitFireStore initiates the DB Environment (requires some environment variables to work)
 func InitFireStore() Env {
 	var DB = Env{
 		Ctx: context.Background(),
@@ -124,6 +124,7 @@ func InitFireStore() Env {
 	return DB
 }
 
+// SetupDB wraps the Firestore initialization
 func SetupDB() Env {
 	return InitFireStore()
 }
