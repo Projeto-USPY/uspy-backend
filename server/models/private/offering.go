@@ -502,3 +502,50 @@ func PublishComment(
 
 	private.PublishComment(ctx, &newComment)
 }
+
+// DeleteComment deletes a comment made by the given user
+//
+// It deletes not only the comment associated with the offering, but also the replica in user comments
+func DeleteComment(
+	ctx *gin.Context,
+	DB db.Env,
+	userID string,
+	off *controllers.Offering,
+) {
+	subModel := models.NewSubjectFromController(&off.Subject)
+	userHash := models.User{ID: userID}.Hash()
+
+	// get comment ref from offerings
+	commentRef := DB.Client.Doc(fmt.Sprintf(
+		"subjects/%s/offerings/%s/comments/%s",
+		subModel.Hash(),
+		off.Hash,
+		userHash,
+	))
+
+	// get user comment ref from user
+	userCommentModel := models.UserComment{
+		ProfessorHash:  off.Hash,
+		Subject:        off.Code,
+		Course:         off.CourseCode,
+		Specialization: off.Specialization,
+	}
+
+	userCommentRef := DB.Client.Doc(fmt.Sprintf(
+		"users/%s/user_comments/%s",
+		userHash,
+		userCommentModel.Hash(),
+	))
+
+	// Use batch write to delete documents atomically
+	batch := DB.Client.Batch()
+	batch.Delete(commentRef)
+	batch.Delete(userCommentRef)
+
+	if _, err := batch.Commit(ctx); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error deleting comment: %s", err.Error()))
+		return
+	}
+
+	private.DeleteComment(ctx)
+}

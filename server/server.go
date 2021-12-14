@@ -66,6 +66,7 @@ func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
 		{
 			offeringsAPI.GET("/comments", private.GetComment(DB))
 			offeringsAPI.PUT("/comments", private.PublishComment(DB))
+			offeringsAPI.DELETE("/comments", private.DeleteComment(DB))
 
 			commentsAPI := offeringsAPI.Group("/comments", entity.CommentRatingBinder)
 			{

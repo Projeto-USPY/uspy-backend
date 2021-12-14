@@ -34,3 +34,8 @@ func PublishComment(ctx *gin.Context, model *models.Comment) {
 	comment := views.NewCommentFromModel(model)
 	ctx.JSON(http.StatusOK, comment)
 }
+
+// DeleteComment is a dummy view method
+func DeleteComment(ctx *gin.Context) {
+	ctx.Status(http.StatusOK)
+}
