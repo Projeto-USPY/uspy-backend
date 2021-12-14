@@ -1,5 +1,3 @@
-// package controllers
-// for backend-db communication, see /server/models/private
 package private
 
 import (

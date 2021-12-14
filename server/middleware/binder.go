@@ -15,6 +15,7 @@ var allowedTypes = []binding.Binding{
 	binding.FormMultipart,
 }
 
+// Bind takes a binder and returns a middleware function
 func Bind(name string, data interface{}, bindingType binding.Binding) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ok := false

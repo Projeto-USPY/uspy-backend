@@ -1,4 +1,3 @@
-// for backend-db communication, see /server/models/restricted
 package restricted
 
 import (

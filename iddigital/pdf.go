@@ -1,4 +1,4 @@
-/* package iddigital contains all logic necessary to interact with uspdigital */
+/*Package iddigital contains all logic necessary to interact with uspdigital */
 package iddigital
 
 import (
@@ -15,7 +15,7 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 )
 
-// iddigital.PDF represents the pdf file retrieved from uspdigital
+// PDF represents the pdf file retrieved from uspdigital
 // See PostAuthCode for more info.
 type PDF struct {
 	Body         string
@@ -23,7 +23,7 @@ type PDF struct {
 	CreationDate time.Time
 }
 
-// iddigital.Transcript represents the parsed data retrieved from the user's PDF file
+// Transcript represents the parsed data retrieved from the user's PDF file
 type Transcript struct {
 	Grades []models.Record `json:"grades"`
 

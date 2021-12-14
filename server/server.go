@@ -1,4 +1,4 @@
-// package server contains basic setup functions to start up the web server
+//Package server contains basic setup functions to start up the web server
 package server
 
 import (
@@ -77,6 +77,9 @@ func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
 	}
 }
 
+// SetupRouter takes the database and sets up all routes with their associated closure callbacks
+//
+// It returns an error if any validation fails to be registered
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
 	r := gin.Default() // Create web-server object
 

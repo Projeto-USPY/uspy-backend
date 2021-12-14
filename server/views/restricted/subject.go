@@ -10,6 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetGrades takes the grades models and returns its response view object by creating buckets of frequency
+//
+// For example a collection of grades {7.0, 7.5, 10.0, 10.0} will become {0.0: 0, ..., 7.0: 1, ...,  7.5: 1, ..., 10.0: 2}
 func GetGrades(ctx *gin.Context, grades []models.Record) {
 	buckets := make(map[string]int)
 

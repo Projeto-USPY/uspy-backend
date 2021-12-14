@@ -108,7 +108,7 @@ func SignupCaptcha() func(ctx *gin.Context) {
 	}
 }
 
-// Signup is a closure for the DELETE /account endpoint
+// Delete is a closure for the DELETE /account endpoint
 func Delete(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		userID := ctx.MustGet("userID").(string)

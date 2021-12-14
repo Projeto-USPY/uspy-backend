@@ -10,6 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetOfferingComments takes the comments models and returns their view response objects
+//
+// It also sorts comments to display most upvoted (and least downvoted) on top
 func GetOfferingComments(ctx *gin.Context, comments []*models.Comment) {
 	sort.Slice(comments, func(i, j int) bool {
 		if comments[i].Upvotes == comments[j].Upvotes {
@@ -27,7 +30,10 @@ func GetOfferingComments(ctx *gin.Context, comments []*models.Comment) {
 	ctx.JSON(http.StatusOK, results)
 }
 
-// GetOfferings is a closure for the GET /api/restricted/offerings endpoint
+// GetOfferingsWithStats takes the offering models and returns their view response objects
+//
+// It also takes IDs of the professors for each offering (given that this information is not stored in the model directly)
+// Finally, it sorts the offerings to display most interesting ones on top
 func GetOfferingsWithStats(
 	ctx *gin.Context,
 	IDs []string,

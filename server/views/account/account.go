@@ -40,6 +40,7 @@ func Signup(ctx *gin.Context, userID string, records iddigital.Transcript) {
 	ctx.JSON(http.StatusOK, views.NewTranscript(&records))
 }
 
+// VerifyAccount is a dummy view method
 func VerifyAccount(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
@@ -75,10 +76,12 @@ func Logout(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
+// ResetPassword is a dummy view method
 func ResetPassword(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }
 
+// ChangePassword is a dummy view method
 func ChangePassword(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
 }

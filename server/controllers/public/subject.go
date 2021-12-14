@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetSubject is a closure for the GET /api/subject/all endpoint
+// GetSubjects is a closure for the GET /api/subject/all endpoint
 func GetSubjects(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		public.GetAllSubjects(ctx, DB)

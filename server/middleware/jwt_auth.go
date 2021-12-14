@@ -1,4 +1,3 @@
-// package middleware contains useful middleware handlers
 package middleware
 
 import (

@@ -8,13 +8,15 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+// Env is the default variable for the environment to be loaded
 var Env Config
 
+// GeneralConfig is the interface for an environment configuration. It has only one method that must identify the type of authentication used
 type GeneralConfig interface {
 	Identify() string
 }
 
-// Configuration object, for more info see README.md
+// Config is the default configuration object, for more info see README.md
 type Config struct {
 	Domain    string `envconfig:"USPY_DOMAIN" required:"true" default:"localhost"`
 	Port      string `envconfig:"USPY_PORT" required:"true" default:"8080"` // careful with this because cloud run must run on port 8080
@@ -30,26 +32,31 @@ type Config struct {
 	Mailjet // email verification is needed in production
 }
 
+// IsUsingKey returns whether a firestore key is being used to authenticate with Firestore
 func (c Config) IsUsingKey() bool {
 	return c.FirestoreKeyPath != ""
 }
 
+// IsUsingProjectID returns whether the GCP Project ID is being used to authenticate with Firestore
 func (c Config) IsUsingProjectID() bool {
 	return c.ProjectID != ""
 }
 
+// Identify returns the type of the authentication being used by the configuration object
 func (c Config) Identify() string {
 	if c.IsUsingKey() {
 		return c.FirestoreKeyPath
-	} else {
-		return c.ProjectID
 	}
+
+	return c.ProjectID
 }
 
+// IsDev returns whether the configuration environment is in development mode
 func (c Config) IsDev() bool {
 	return c.Mode == "dev"
 }
 
+// IsLocal returns whether the configuration environment is in local mode
 func (c Config) IsLocal() bool {
 	return c.Mode == "local"
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/mailjet/mailjet-apiv3-go"
 )
 
+// Mailjet is the email client object
 type Mailjet struct {
 	APIKey string `envconfig:"USPY_MAILJET_KEY"`
 	Secret string `envconfig:"USPY_MAILJET_SECRET"`
@@ -39,6 +40,7 @@ const (
 	`
 )
 
+// Setup initializes the mailjet client using its API Key and Secret
 func (m *Mailjet) Setup() {
 	if m.APIKey != "" && m.Secret != "" {
 		m.client = mailjet.NewMailjetClient(m.APIKey, m.Secret)
@@ -47,6 +49,9 @@ func (m *Mailjet) Setup() {
 	}
 }
 
+// Send sends an email.
+//
+// It takes a target email recipient, subject and HTML content.
 func (m *Mailjet) Send(target, subject, content string) error {
 	messagesInfo := []mailjet.InfoMessagesV31{
 		{

@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// GetComment retrieves the comment associated with an offering made by a given user
 func GetComment(ctx *gin.Context, DB db.Env, userID string, off *controllers.Offering) {
 	mask := "subjects/%s/offerings/%s/comments"
 	userHash := models.User{ID: userID}.Hash()
@@ -29,7 +30,9 @@ func GetComment(ctx *gin.Context, DB db.Env, userID string, off *controllers.Off
 	}.Hash()
 
 	var comment models.Comment
-	if snap, err := DB.Restore(fmt.Sprintf(mask, subHash, off.Hash), userHash); err != nil {
+	snap, err := DB.Restore(fmt.Sprintf(mask, subHash, off.Hash), userHash)
+
+	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			ctx.AbortWithStatus(http.StatusNotFound)
 			return
@@ -39,17 +42,19 @@ func GetComment(ctx *gin.Context, DB db.Env, userID string, off *controllers.Off
 			http.StatusInternalServerError,
 			fmt.Errorf("error getting comment: (sub:%s/%s, user:%s): %s", subHash, off.Hash, userHash, err.Error()),
 		)
+
 		return
-	} else {
-		if err := snap.DataTo(&comment); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error binding comment: %s", err.Error()))
-			return
-		}
+	}
+
+	if err := snap.DataTo(&comment); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error binding comment: %s", err.Error()))
+		return
 	}
 
 	private.GetComment(ctx, &comment)
 }
 
+// GetCommentRating retrieves the rating made for a comment by a given user
 func GetCommentRating(
 	ctx *gin.Context,
 	DB db.Env,
@@ -62,24 +67,28 @@ func GetCommentRating(
 
 	var model models.CommentRating
 	collectionMask := "users/%s/comment_ratings"
-	if snap, err := DB.Restore(fmt.Sprintf(collectionMask, userHash), comment.ID); err != nil {
+
+	snap, err := DB.Restore(fmt.Sprintf(collectionMask, userHash), comment.ID)
+
+	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			ctx.AbortWithStatus(http.StatusNotFound)
 			return
-		} else {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error looking up comment rating: %s", err.Error()))
-			return
 		}
-	} else {
-		if snap.DataTo(&model); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error binding comment: %s", err.Error()))
-			return
-		}
+
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error looking up comment rating: %s", err.Error()))
+		return
+	}
+
+	if snap.DataTo(&model); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error binding comment: %s", err.Error()))
+		return
 	}
 
 	private.GetCommentRating(ctx, &model)
 }
 
+// RateComment takes a user's rating and applies it to a given comment
 func RateComment(
 	ctx *gin.Context,
 	DB db.Env,
@@ -121,9 +130,9 @@ func RateComment(
 
 		if err := snaps[0].DataTo(&modelComment); err != nil {
 			return err
-		} else {
-			targetRef = snaps[0].Ref
 		}
+
+		targetRef = snaps[0].Ref
 
 		commentRatingMask := "users/%s/comment_ratings/%s"
 		ratingRef := DB.Client.Doc(fmt.Sprintf(commentRatingMask, userHash, comment.ID))
@@ -265,9 +274,10 @@ func RateComment(
 		// upsert comment rating if type isnt none
 		if body.Type != "none" {
 			return tx.Set(ratingRef, commentRating)
-		} else { // delete comment rating
-			return tx.Delete(ratingRef)
 		}
+
+		// delete comment rating
+		return tx.Delete(ratingRef)
 	})
 
 	if err != nil {
@@ -286,6 +296,7 @@ func RateComment(
 	private.RateComment(ctx)
 }
 
+// ReportComment takes a user's report and applies it to a given comment
 func ReportComment(
 	ctx *gin.Context,
 	DB db.Env,
@@ -327,9 +338,9 @@ func ReportComment(
 
 		if err := snaps[0].DataTo(&modelComment); err != nil {
 			return err
-		} else {
-			targetUserID = snaps[0].Ref.ID
 		}
+
+		targetUserID = snaps[0].Ref.ID
 
 		commentReportMask := "users/%s/comment_reports/%s"
 		reportRef := DB.Client.Doc(fmt.Sprintf(commentReportMask, userHash, comment.ID))
@@ -381,6 +392,7 @@ func ReportComment(
 	private.ReportComment(ctx)
 }
 
+// PublishComment publishes a comment and its associated reaction made by a given user
 func PublishComment(
 	ctx *gin.Context,
 	DB db.Env,

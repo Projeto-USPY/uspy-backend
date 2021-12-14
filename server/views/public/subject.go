@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetAllSubjects takes the courses models and returns its response view object.
 func GetAllSubjects(ctx *gin.Context, courses []models.Course) {
 	viewCourses := make([]views.Course, 0, 1000)
 	for i := range courses {
@@ -17,10 +18,13 @@ func GetAllSubjects(ctx *gin.Context, courses []models.Course) {
 	ctx.JSON(http.StatusOK, viewCourses)
 }
 
+// Get takes the subject model and returns its response view object
 func Get(ctx *gin.Context, model *models.Subject) {
 	ctx.JSON(http.StatusOK, views.NewSubjectFromModel(model))
 }
 
+// GetRelations takes the subject model and its weak and strong successors
+// It returns the view object for its graph
 func GetRelations(ctx *gin.Context, model *models.Subject, weak, strong []models.Subject) {
 	subView := views.NewSubjectFromModel(model)
 	graph := views.SubjectGraph{Predecessors: subView.Requirements}

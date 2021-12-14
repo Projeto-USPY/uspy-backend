@@ -1,4 +1,3 @@
-// package models
 package public
 
 import (

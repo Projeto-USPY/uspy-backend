@@ -4,6 +4,10 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 )
 
+// Subject is the response view object for a subject
+//
+// It mostly contains static data that is collected from JupiterWeb
+// Except for Stats, which is a property calculated by user reviews
 type Subject struct {
 	Code           string          `json:"code"`
 	CourseCode     string          `json:"course"`
@@ -36,6 +40,7 @@ func transformRequirements(sub *models.Subject) [][]Requirement {
 	return requirements
 }
 
+// NewSubjectFromModel is a constructor. It takes a model subject and returns its response view object.
 func NewSubjectFromModel(model *models.Subject) *Subject {
 	return &Subject{
 		Code:           model.Code,
