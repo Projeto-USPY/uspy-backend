@@ -459,7 +459,7 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 	if deleteErr := DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		objects := getUserObjects(ctx, DB, tx, userID)
 
-		log.Printf("user %s is removing their account, total objects affected: %v\n", userID, len(objects))
+		log.Printf("user is removing their account, total objects affected: %v\n", len(objects))
 
 		for _, obj := range objects {
 			if obj.err != nil {
