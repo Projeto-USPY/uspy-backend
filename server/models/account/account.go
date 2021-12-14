@@ -128,7 +128,7 @@ func sendPasswordRecoveryEmail(email, userHash string) error {
 }
 
 func sendEmailVerification(email, userHash string) error {
-	if config.Env.IsLocal() {
+	if config.Env.IsLocal() || config.Env.IsDev() {
 		return nil
 	}
 
