@@ -1,7 +1,8 @@
-package db_utils
+package utils
 
 import "errors"
 
+// DB operation errors
 var (
 	ErrSubjectNotFound = errors.New("subject does not exist")
 	ErrNoPermission    = errors.New("user has not done subject")

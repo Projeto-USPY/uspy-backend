@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// GetOfferings retrieves the list of offerings for a given subject
 func GetOfferings(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 

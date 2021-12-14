@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// GetOfferingComments retrieves the comments made so far for a given offering
 func GetOfferingComments(ctx *gin.Context, DB db.Env, off *controllers.Offering) {
 	collectionMask := "subjects/%s/offerings/%s/comments"
 	subHash := models.Subject{
@@ -55,7 +56,9 @@ func GetOfferingComments(ctx *gin.Context, DB db.Env, off *controllers.Offering)
 	restricted.GetOfferingComments(ctx, comments)
 }
 
-// GetOfferings is a closure for the GET /api/restricted/offerings endpoint
+// GetOfferingsWithStats retrieves a list of offerings for a given subject, along with the comment stats associated with them
+//
+// It is a closure for the GET /api/restricted/offerings endpoint
 func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 
@@ -110,19 +113,21 @@ func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject
 
 			var posQt, negQt, neutQt int
 			for _, snap := range commentSnaps {
-				if rating, err := snap.DataAt("rating"); err != nil {
+				rating, err := snap.DataAt("rating")
+
+				if err != nil {
 					ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get comment rating: %s", err.Error()))
 					return
-				} else {
-					value := rating.(int64)
+				}
 
-					if value < 3 {
-						negQt++
-					} else if value > 3 {
-						posQt++
-					} else {
-						neutQt++
-					}
+				value := rating.(int64)
+
+				if value < 3 {
+					negQt++
+				} else if value > 3 {
+					posQt++
+				} else {
+					neutQt++
 				}
 			}
 

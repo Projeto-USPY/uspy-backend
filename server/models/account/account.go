@@ -1,4 +1,3 @@
-// package models
 package account
 
 import (
@@ -27,7 +26,7 @@ import (
 )
 
 var (
-	ErrUserExists = errors.New("user is already registered")
+	errUserExists = errors.New("user is already registered")
 )
 
 type operation struct {
@@ -38,6 +37,7 @@ type operation struct {
 	err error
 }
 
+// InsertUser takes the user object and their transcripts and performs all the required database insertions
 func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) error {
 	_, err := DB.Restore("users", newUser.Hash())
 	if status.Code(err) == codes.NotFound {
@@ -94,7 +94,7 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 	} else if err != nil {
 		return err
 	} else {
-		return ErrUserExists
+		return errUserExists
 	}
 
 	return nil
@@ -128,7 +128,7 @@ func sendPasswordRecoveryEmail(email, userHash string) error {
 }
 
 func sendEmailVerification(email, userHash string) error {
-	if config.Env.IsLocal() {
+	if config.Env.IsLocal() || config.Env.IsDev() {
 		return nil
 	}
 
@@ -175,7 +175,9 @@ func Profile(ctx *gin.Context, DB db.Env, userID string) {
 	account.Profile(ctx, storedUser)
 }
 
-// Signup inserts a new user into the DB
+// Signup performs all the server-side signup operations.
+//
+// It validates database data, gets and parses user records, creates the user object and sends the verification email
 func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 	// check if email already exists in the database
 	hashedEmail := utils.SHA256(signupForm.Email)
@@ -199,61 +201,61 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 	}
 
 	// parse transcript
-	if pdf := iddigital.NewPDF(resp); pdf.Error != nil {
+	pdf := iddigital.NewPDF(resp)
+	if pdf.Error != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error converting pdf to text: %s", pdf.Error.Error()))
 		return
-	} else {
-		data, err := pdf.Parse(DB)
-
-		var maxPDFAge float64
-		if config.Env.Mode == "dev" {
-			maxPDFAge = 24 * 30 // a month
-		} else {
-			maxPDFAge = 1.0 // an hour
-		}
-
-		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error parsing pdf: %s", err.Error()))
-			return
-		} else if time.Since(pdf.CreationDate).Hours() > maxPDFAge {
-			ctx.AbortWithStatus(http.StatusBadRequest)
-			return
-		}
-
-		// create user object
-		newUser, userErr := models.NewUser(
-			data.Nusp,
-			data.Name,
-			signupForm.Email,
-			signupForm.Password,
-			pdf.CreationDate,
-		)
-
-		if userErr != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating user: %s", userErr.Error()))
-			return
-		}
-
-		// insert user object into database
-		if err := InsertUser(DB, newUser, &data); err != nil {
-			if err == ErrUserExists {
-				ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidUser)
-				return
-			}
-
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error inserting user %s: %s", data.Nusp, err.Error()))
-			return
-		}
-
-		// send email verification
-		if err := sendEmailVerification(signupForm.Email, newUser.Hash()); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
-			return
-		}
-
-		account.Signup(ctx, newUser.ID, data)
 	}
 
+	data, err := pdf.Parse(DB)
+
+	var maxPDFAge float64
+	if config.Env.Mode == "dev" {
+		maxPDFAge = 24 * 30 // a month
+	} else {
+		maxPDFAge = 1.0 // an hour
+	}
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error parsing pdf: %s", err.Error()))
+		return
+	} else if time.Since(pdf.CreationDate).Hours() > maxPDFAge {
+		ctx.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	// create user object
+	newUser, userErr := models.NewUser(
+		data.Nusp,
+		data.Name,
+		signupForm.Email,
+		signupForm.Password,
+		pdf.CreationDate,
+	)
+
+	if userErr != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating user: %s", userErr.Error()))
+		return
+	}
+
+	// insert user object into database
+	if err := InsertUser(DB, newUser, &data); err != nil {
+		if err == errUserExists {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidUser)
+			return
+		}
+
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error inserting user %s: %s", data.Nusp, err.Error()))
+		return
+	}
+
+	// send email verification
+	if err := sendEmailVerification(signupForm.Email, newUser.Hash()); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
+		return
+	}
+
+	account.Signup(ctx, newUser.ID, data)
 }
 
 // SignupCaptcha gets the iddigital validation captcha
@@ -272,69 +274,74 @@ func SignupCaptcha(ctx *gin.Context) {
 
 // Login performs the user login by comparing the passwordHash and the stored hash
 func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
-	if snap, err := DB.Restore("users", utils.SHA256(login.ID)); err != nil { // get user from database
+	snap, err := DB.Restore("users", utils.SHA256(login.ID))
+
+	if err != nil { // get user from database
 		if status.Code(err) == codes.NotFound { // if user was not found
 			ctx.AbortWithError(http.StatusUnauthorized, err)
 			return
 		}
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
-	} else {
-		var storedUser models.User
-		if err := snap.DataTo(&storedUser); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, err) // some error happened
-			return
-		}
-
-		// check if password is correct
-		if !utils.BcryptCompare(login.Password, storedUser.PasswordHash) {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, views.ErrInvalidCredentials)
-			return
-		}
-
-		// check if user has verified their email
-		if !storedUser.Verified {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrUnverifiedUser)
-			return
-		}
-
-		// check if user is banned
-		if storedUser.Banned {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrBannedUser)
-			return
-		}
-
-		// generate access_token
-		if jwtToken, err := utils.GenerateJWT(map[string]interface{}{
-			"user":      login.ID,
-			"timestamp": time.Now().Unix(),
-		}, config.Env.JWTSecret); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating jwt for user %s: %s", storedUser.ID, err.Error()))
-			return
-		} else {
-			domain := ctx.MustGet("front_domain").(string)
-
-			// expiration date = 1 month
-			secureCookie := !config.Env.IsLocal()
-			cookieAge := 0
-
-			// remember this login?
-			if login.Remember {
-				cookieAge = 30 * 24 * 3600 // 30 days in seconds
-			}
-
-			if name, err := utils.AESDecrypt(storedUser.NameHash, config.Env.AESKey); err != nil {
-				ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error decrypting name hash: %s", err.Error()))
-				return
-			} else {
-				ctx.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
-				account.Login(ctx, login.ID, name)
-			}
-		}
 	}
 
+	var storedUser models.User
+	if err := snap.DataTo(&storedUser); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err) // some error happened
+		return
+	}
+
+	// check if password is correct
+	if !utils.BcryptCompare(login.Password, storedUser.PasswordHash) {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, views.ErrInvalidCredentials)
+		return
+	}
+
+	// check if user has verified their email
+	if !storedUser.Verified {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrUnverifiedUser)
+		return
+	}
+
+	// check if user is banned
+	if storedUser.Banned {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrBannedUser)
+		return
+	}
+
+	// generate access_token
+	jwtToken, err := utils.GenerateJWT(map[string]interface{}{
+		"user":      login.ID,
+		"timestamp": time.Now().Unix(),
+	}, config.Env.JWTSecret)
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating jwt for user %s: %s", storedUser.ID, err.Error()))
+		return
+	}
+
+	domain := ctx.MustGet("front_domain").(string)
+
+	// expiration date = 1 month
+	secureCookie := !config.Env.IsLocal()
+	cookieAge := 0
+
+	// remember this login?
+	if login.Remember {
+		cookieAge = 30 * 24 * 3600 // 30 days in seconds
+	}
+
+	name, err := utils.AESDecrypt(storedUser.NameHash, config.Env.AESKey)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error decrypting name hash: %s", err.Error()))
+		return
+	}
+
+	ctx.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
+	account.Login(ctx, login.ID, name)
 }
 
+// Logout is a dummy method that simply calls the view method that will unset the access token cookie
 func Logout(ctx *gin.Context) {
 	account.Logout(ctx)
 }
@@ -342,46 +349,49 @@ func Logout(ctx *gin.Context) {
 // ChangePassword changes the user's password in the database
 // This method requires the user to be logged in
 func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *controllers.PasswordChange) {
-	if snap, err := DB.Restore("users", utils.SHA256(userID)); err != nil {
+	snap, err := DB.Restore("users", utils.SHA256(userID))
+
+	if err != nil {
 		if status.Code(err) == codes.NotFound { // if user was not found
 			ctx.AbortWithError(http.StatusForbidden, err)
 			return
 		}
 		ctx.AbortWithError(http.StatusInternalServerError, err)
 		return
-	} else {
-		var storedUser models.User
-		if err := snap.DataTo(&storedUser); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
+	}
 
-		// check if old password is correct
-		if !utils.BcryptCompare(resetForm.OldPassword, storedUser.PasswordHash) {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrWrongPassword)
-			return
-		}
+	var storedUser models.User
+	if err := snap.DataTo(&storedUser); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
 
-		// generate new hash
-		newHash, err := utils.Bcrypt(resetForm.NewPassword)
-		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error hashing password: %s", err.Error()))
-			return
-		}
+	// check if old password is correct
+	if !utils.BcryptCompare(resetForm.OldPassword, storedUser.PasswordHash) {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrWrongPassword)
+		return
+	}
 
-		// update password hash and set userID to be able to find user document
-		storedUser.PasswordHash = newHash
-		storedUser.ID = userID
-		if err := DB.Update(storedUser, "users"); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to update password: %s", err.Error()))
-			return
-		}
+	// generate new hash
+	newHash, err := utils.Bcrypt(resetForm.NewPassword)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error hashing password: %s", err.Error()))
+		return
+	}
+
+	// update password hash and set userID to be able to find user document
+	storedUser.PasswordHash = newHash
+	storedUser.ID = userID
+	if err := DB.Update(storedUser, "users"); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to update password: %s", err.Error()))
+		return
 	}
 
 	account.ChangePassword(ctx)
 }
 
 // ResetPassword resets the user's password in the database
+//
 // It differs from ChangePassword because it does not requires an access token
 func ResetPassword(ctx *gin.Context, DB db.Env, recovery *controllers.PasswordRecovery) {
 	// parse token
@@ -442,12 +452,14 @@ func VerifyAccount(ctx *gin.Context, DB db.Env, verification *controllers.Accoun
 	account.VerifyAccount(ctx)
 }
 
-// Delete deletes the given user (removing all of its traces (grades, reviews, etc)
+// Delete deletes the given user (removing all of its traces (grades, reviews, etc))
+//
+// This function wraps the document lookups and simply performs the necessary database operations
 func Delete(ctx *gin.Context, DB db.Env, userID string) {
 	if deleteErr := DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
-		objects := getUserObjects(DB, ctx, tx, userID)
+		objects := getUserObjects(ctx, DB, tx, userID)
 
-		log.Printf("user %s is removing their account, total objects affected: %v\n", userID, len(objects))
+		log.Printf("user is removing their account, total objects affected: %v\n", len(objects))
 
 		for _, obj := range objects {
 			if obj.err != nil {
@@ -476,7 +488,13 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 	account.Delete(ctx)
 }
 
-func getUserObjects(DB db.Env, ctx context.Context, tx *firestore.Transaction, userID string) []operation {
+// getUserObjects gets all documents necessary (and the corresponding operations that must be applied) for a user to remove their account
+func getUserObjects(
+	ctx context.Context,
+	DB db.Env,
+	tx *firestore.Transaction,
+	userID string,
+) []operation {
 	objects := make(chan operation)
 	defer close(objects)
 
@@ -486,12 +504,12 @@ func getUserObjects(DB db.Env, ctx context.Context, tx *firestore.Transaction, u
 	var wg sync.WaitGroup
 	wg.Add(6)
 
-	go getScoreObjects(DB, ctx, tx, &wg, objects, userRef)
-	go getReviewObjects(DB, ctx, tx, &wg, objects, userRef)
-	go getCommentObjects(DB, ctx, tx, &wg, objects, userRef)
-	go getCommentRatingObjects(DB, ctx, tx, &wg, objects, userRef)
-	go getCommentReportObjects(DB, ctx, tx, &wg, objects, userRef)
-	go getMajorObjects(DB, ctx, tx, &wg, objects, userRef)
+	go getScoreObjects(ctx, DB, tx, &wg, objects, userRef)
+	go getReviewObjects(ctx, DB, tx, &wg, objects, userRef)
+	go getCommentObjects(ctx, DB, tx, &wg, objects, userRef)
+	go getCommentRatingObjects(ctx, DB, tx, &wg, objects, userRef)
+	go getCommentReportObjects(ctx, DB, tx, &wg, objects, userRef)
+	go getMajorObjects(ctx, DB, tx, &wg, objects, userRef)
 
 	// get collected objects and append to array
 	results := make([]operation, 0)
@@ -511,8 +529,10 @@ func getUserObjects(DB db.Env, ctx context.Context, tx *firestore.Transaction, u
 	return results
 }
 
+// getScoreObjects gets a list of grade changes, both from the user's final scores, aswell as the subject grades
 func getScoreObjects(
-	DB db.Env, ctx context.Context,
+	ctx context.Context,
+	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- operation,
@@ -597,8 +617,10 @@ func getScoreObjects(
 	}
 }
 
+// getReviewObjects gets a list of review changes, both from the user's reviews, aswell as the subject grades that must have their stats updated
 func getReviewObjects(
-	DB db.Env, ctx context.Context,
+	ctx context.Context,
+	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- operation,
@@ -664,9 +686,10 @@ func getReviewObjects(
 	}
 }
 
+// getCommentObjects gets a list of comment changes
 func getCommentObjects(
-	DB db.Env,
 	ctx context.Context,
+	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- operation,
@@ -725,9 +748,10 @@ func getCommentObjects(
 	}
 }
 
+// getCommentRatingObjects gets a list of comment rating objects
 func getCommentRatingObjects(
-	DB db.Env,
 	ctx context.Context,
+	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- operation,
@@ -821,9 +845,10 @@ func getCommentRatingObjects(
 	}
 }
 
+// getCommentReportObjects gets a list of report objects
 func getCommentReportObjects(
-	DB db.Env,
 	ctx context.Context,
+	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- operation,
@@ -909,8 +934,10 @@ func getCommentReportObjects(
 	}
 }
 
+// getMajorObjects gets a list of major objects
 func getMajorObjects(
-	DB db.Env, ctx context.Context,
+	ctx context.Context,
+	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- operation,

@@ -1,4 +1,4 @@
-// package middleware contains useful middleware handlers
+//Package middleware contains useful middleware handlers
 package middleware
 
 import (
@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AllowAnyOrigin enables CORS for testing purposes
+// AllowAnyOrigin enables CORS for all origins testing purposes
 func AllowAnyOrigin() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Header("Access-Control-Allow-Credentials", "true")

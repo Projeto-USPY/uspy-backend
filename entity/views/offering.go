@@ -6,6 +6,9 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 )
 
+// Offering is the response view object for an offering
+//
+// It contains time information and some stats
 type Offering struct {
 	ProfessorName string   `json:"professor"`
 	ProfessorCode string   `json:"code"`
@@ -16,6 +19,10 @@ type Offering struct {
 	Disapproval float64 `json:"disapproval"`
 }
 
+// SortOfferings takes a list of offerings and sorts them
+//
+// It sorts based on the approval and neutral ratings values of each offering.
+// If this value is equal in both objects, it uses the disapproval and amount of years as a tiebreaker
 func SortOfferings(results []*Offering) {
 	sort.SliceStable(results,
 		func(i, j int) bool {
@@ -41,6 +48,9 @@ func SortOfferings(results []*Offering) {
 	)
 }
 
+// NewOfferingFromModel is a constructor. It takes a model and returns its response view object.
+//
+// It also requires the ID of the professor in the current context and their approval stats
 func NewOfferingFromModel(ID string, model *models.Offering, approval, disapproval, neutral int) *Offering {
 	total := (approval + disapproval + neutral)
 
@@ -64,6 +74,10 @@ func NewOfferingFromModel(ID string, model *models.Offering, approval, disapprov
 	}
 }
 
+// NewPartialOfferingFromModel is a constructor. It takes an offering model and returns its view response object
+//
+// It is partial because it leaves stats data empty for the given offering
+// This is used in public offering endpoints
 func NewPartialOfferingFromModel(ID string, model *models.Offering) *Offering {
 	return &Offering{
 		ProfessorName: model.Professor,

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetOfferingComments is a closure for the GET /api/restricted/subject/offerings/comments endpoint
 func GetOfferingComments(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
@@ -17,7 +18,9 @@ func GetOfferingComments(DB db.Env) func(ctx *gin.Context) {
 	}
 }
 
-// GetOfferings is a closure for the GET /api/subject/restricted/offerings endpoint
+// GetOfferingsWithStats is a closure for the GET /api/restricted/subject/offerings endpoint
+//
+// It differs from GetOfferings because it includes user ratings (approval, disapproval) for each offering
 func GetOfferingsWithStats(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)

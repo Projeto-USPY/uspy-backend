@@ -79,7 +79,7 @@ var testCourses = []models.Course{
 	},
 }
 
-func Setup(DB db.Env) error {
+func setup(DB db.Env) error {
 	config.TestSetup()
 
 	errChannel := make(chan error, 100)
@@ -205,6 +205,9 @@ func clearDatabase() {
 	}
 }
 
+// MustGet returns the database environment for the testing emulator
+//
+// It is similar to get, but panics in case the environment is not able to be initialized
 func MustGet() db.Env {
 	// clear the database if it already exists
 	clearDatabase()
@@ -216,16 +219,18 @@ func MustGet() db.Env {
 	}
 }
 
+// Get returns the database environment for the testing emulator
 func Get() (testDB db.Env, getError error) {
 	testDB = db.Env{Ctx: context.Background()}
 
-	if client, err := firestore.NewClient(testDB.Ctx, "test"); err != nil {
+	client, err := firestore.NewClient(testDB.Ctx, "test")
+	if err != nil {
 		return db.Env{}, err
-	} else {
-		testDB.Client = client
 	}
 
-	if err := Setup(testDB); err != nil {
+	testDB.Client = client
+
+	if err := setup(testDB); err != nil {
 		getError = err
 		return
 	}
