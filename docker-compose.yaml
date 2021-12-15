@@ -6,7 +6,7 @@ services:
       dockerfile: ./Dockerfile
     volumes:
       - type: bind
-        source: docker/emulator/mount
+        source: ./docker/emulator/mount
         target: /home/node/mount
     environment:
       - FIRESTORE_PROJECT_ID=dummy-project-id

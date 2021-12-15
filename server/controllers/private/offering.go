@@ -98,3 +98,16 @@ func PublishComment(DB db.Env) func(*gin.Context) {
 		private.PublishComment(ctx, DB, userID, off, &comment)
 	}
 }
+
+// DeleteComment is a closure for the DELETE /private/subjects/offerings/comments endpoint
+func DeleteComment(DB db.Env) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
+		off := ctx.MustGet("Offering").(*controllers.Offering)
+		off.Subject = *sub
+
+		userID := ctx.MustGet("userID").(string)
+
+		private.DeleteComment(ctx, DB, userID, off)
+	}
+}
