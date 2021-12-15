@@ -129,9 +129,16 @@ To execute the webserver locally, simply run:
 docker-compose up --build -d
 ```
 
+**P.S.:** If this fails due to ".../docker/emulator/mount" not existing, try creating the folder before running docker-compose like so:
+
+```sh
+mkdir docker/emulator/mount
+```
+
 This will run three daemon containers, mapped to local ports:
 
 - **firestore-emulator on 127.0.0.1:8200**
+- **firestore-emulator (UI) on 127.0.0.1:4000**
 - **uspy-backend on 127.0.0.1:8080**
 - **uspy-scraper on 127.0.0.1:8300**
 
