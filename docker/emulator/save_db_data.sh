@@ -27,5 +27,5 @@ then
     path=$1
 fi
 
-container_id=`docker ps -aqf "name=uspy-backend-firestore_emulator"`
+container_id=`docker ps -aqf "name=firestore_emulator"`
 docker exec $container_id firebase emulators:export mount/db_data --force --project $project
