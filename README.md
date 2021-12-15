@@ -126,10 +126,12 @@ To deploy and/or run this application, there are a few requisites:
 To execute the webserver locally, simply run:
 
 ```sh
-docker-compose up --build -d
+sudo docker-compose up --build -d
 ```
 
-**P.S.:** If this fails due to ".../docker/emulator/mount" not existing, try creating the folder before running docker-compose like so:
+**P.S.:** Make sure to run docker-compose as sudo if you're loading previously exported files. These files are saved as root and running without sudo may fail due to permission errors.
+
+**P.S².:** If this fails due to ".../docker/emulator/mount" not existing, try creating the folder before running docker-compose like so:
 
 ```sh
 mkdir docker/emulator/mount
