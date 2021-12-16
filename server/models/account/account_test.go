@@ -49,7 +49,10 @@ func (s *AccountSuite) TestUpdateUser() {
 		Frequency:      90,
 	}
 
+	// add new grade and change major to simulate new transcript
 	data.Grades = append(data.Grades, newRecord)
+	data.Course = "55090"
+	data.Specialization = "0"
 
 	err = account.UpdateUser(s.DB.Ctx, s.DB, &data, "123456789", creationDate)
 	s.Require().NoError(err, "failed to update user")
@@ -95,4 +98,25 @@ func (s *AccountSuite) TestUpdateUser() {
 	snaps, err := s.DB.RestoreCollection("subjects/" + subHash + "/grades")
 	s.Require().NoError(err)
 	s.Require().Len(snaps, 1)
+
+	// ensure major was created
+	expectedMajor := models.Major{
+		Course:         "55090",
+		Specialization: "0",
+	}
+
+	var storedMajor models.Major
+	snap, err = s.DB.Restore(
+		fmt.Sprintf(
+			"users/%s/majors",
+			utils.SHA256("123456789"),
+		),
+		expectedMajor.Hash(),
+	)
+	s.Require().NoError(err)
+
+	err = snap.DataTo(&storedMajor)
+	s.Require().NoError(err)
+
+	s.Require().Equal(expectedMajor, storedMajor)
 }
