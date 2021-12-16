@@ -197,6 +197,9 @@ func setup(DB db.Env) error {
 	return jointErr
 }
 
+// ClearDatabase wipes all data from the emulator database
+//
+// It panics if the DELETE request fails to be created or executed
 func ClearDatabase() {
 	domain := os.Getenv("FIRESTORE_EMULATOR_HOST")
 
