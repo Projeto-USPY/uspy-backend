@@ -3,7 +3,6 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
@@ -47,7 +46,6 @@ func ApplyOperationsInTransaction(tx *firestore.Transaction, operators []db.Oper
 			return obj.Err
 		}
 
-		log.Printf("operation: %v\n", obj.Ref.Path)
 		var operationErr error
 		switch obj.Method {
 		case "delete":
