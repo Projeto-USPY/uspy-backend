@@ -29,33 +29,25 @@ var (
 	errUserExists = errors.New("user is already registered")
 )
 
-type operation struct {
-	ref     *firestore.DocumentRef
-	method  string
-	payload interface{}
-
-	err error
-}
-
 // InsertUser takes the user object and their transcripts and performs all the required database insertions
 func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) error {
 	_, err := DB.Restore("users", newUser.Hash())
 	if status.Code(err) == codes.NotFound {
 		// user is new
-		objs := []db.Object{
+		objs := []db.BatchObject{
 			{
 				Collection: "users",
 				Doc:        newUser.Hash(),
-				Data:       newUser,
+				WriteData:  newUser,
 			},
 		}
 
 		// register user major
 		major := models.Major{Course: data.Course, Specialization: data.Specialization}
-		objs = append(objs, db.Object{
+		objs = append(objs, db.BatchObject{
 			Collection: "users/" + newUser.Hash() + "/majors",
 			Doc:        major.Hash(),
-			Data:       major,
+			WriteData:  major,
 		})
 
 		for _, g := range data.Grades {
@@ -70,10 +62,10 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 			subHash := models.Subject{Code: g.Subject, CourseCode: g.Course, Specialization: g.Specialization}.Hash()
 
 			// store all user records
-			objs = append(objs, db.Object{
+			objs = append(objs, db.BatchObject{
 				Collection: "users/" + newUser.Hash() + "/final_scores/" + subHash + "/records",
 				Doc:        rec.Hash(),
-				Data:       rec,
+				WriteData:  rec,
 			})
 
 			// add grade to "global" grades collection
@@ -81,9 +73,9 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 				Grade: g.Grade,
 			}
 
-			objs = append(objs, db.Object{
+			objs = append(objs, db.BatchObject{
 				Collection: "subjects/" + subHash + "/grades",
-				Data:       gradeObj,
+				WriteData:  gradeObj,
 			})
 		}
 

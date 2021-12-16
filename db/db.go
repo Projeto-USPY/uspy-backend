@@ -27,12 +27,16 @@ type Writer interface {
 	Updater
 }
 
-// Object is used for batched writes that can contain different types that implement Inserter
+// BatchObject is used for batched writes that can contain different types that implement Inserter
 // Set Doc to empty string if you'd like to use a random Hash
-type Object struct {
+type BatchObject struct {
 	Collection string
 	Doc        string
-	Data       Writer
+
+	WriteData  Writer
+	UpdateData []firestore.Update
+}
+
 }
 
 // Env is passed to /server/dao functions that require DB operations
@@ -74,15 +78,23 @@ func (db Env) Update(obj Updater, collection string) error {
 	return obj.Update(db, collection)
 }
 
-// BatchWrite will perform inserts atomically
-func (db Env) BatchWrite(objs []Object) error {
+// BatchWrite will perform operations atomically
+func (db Env) BatchWrite(objs []BatchObject) error {
 	batch := db.Client.Batch()
 
 	for _, o := range objs {
+		if o.WriteData == nil && o.UpdateData == nil {
+			return errors.New("both write data and update data are nil")
+		}
+
 		if o.Doc == "" { // create document with random hash
-			batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.Data)
+			batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.WriteData)
 		} else {
-			batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.Data)
+			if o.WriteData != nil { // set operation
+				batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.WriteData)
+			} else if o.UpdateData != nil { // update operation
+				batch.Update(db.Client.Collection(o.Collection).Doc(o.Doc), o.UpdateData)
+			}
 		}
 	}
 	_, err := batch.Commit(db.Ctx)
