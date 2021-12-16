@@ -116,3 +116,19 @@ func Delete(DB db.Env) func(ctx *gin.Context) {
 		account.Delete(ctx, DB, userID)
 	}
 }
+
+// Update is a closure for the PUT /account/update endpoint
+func Update(DB db.Env) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		userID := ctx.MustGet("userID").(string)
+
+		// validate update data
+		var updateForm controllers.UpdateForm
+		if err := ctx.ShouldBindJSON(&updateForm); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		account.Update(ctx, DB, userID, &updateForm)
+	}
+}
