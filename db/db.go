@@ -2,6 +2,7 @@
 package db
 
 import (
+	"errors"
 	"log"
 
 	"cloud.google.com/go/firestore"
@@ -37,6 +38,15 @@ type BatchObject struct {
 	UpdateData []firestore.Update
 }
 
+// Operation is used as a generic operation to be applied on a document
+//
+// It is mostly used inside transactions to provide an easy way to store operations to be executed after reads
+type Operation struct {
+	Ref     *firestore.DocumentRef
+	Method  string
+	Payload interface{}
+
+	Err error
 }
 
 // Env is passed to /server/dao functions that require DB operations

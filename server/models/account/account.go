@@ -13,6 +13,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
+	db_utils "github.com/Projeto-USPY/uspy-backend/db/utils"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
@@ -452,10 +453,13 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 		objects := getUserObjects(ctx, DB, tx, userID)
 
 		log.Printf("user is removing their account, total objects affected: %v\n", len(objects))
+		return db_utils.ApplyOperationsInTransaction(tx, objects)
+	}); deleteErr != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, deleteErr)
+		return
+	}
 
-		for _, obj := range objects {
-			if obj.err != nil {
-				return obj.err
+	account.Delete(ctx)
 			}
 
 			var operationErr error
@@ -486,8 +490,8 @@ func getUserObjects(
 	DB db.Env,
 	tx *firestore.Transaction,
 	userID string,
-) []operation {
-	objects := make(chan operation)
+) []db.Operation {
+	objects := make(chan db.Operation)
 	defer close(objects)
 
 	userHash := utils.SHA256(userID)
@@ -504,7 +508,7 @@ func getUserObjects(
 	go getMajorObjects(ctx, DB, tx, &wg, objects, userRef)
 
 	// get collected objects and append to array
-	results := make([]operation, 0)
+	results := make([]db.Operation, 0)
 	go func() {
 		for obj := range objects {
 			results = append(results, obj)
@@ -512,9 +516,9 @@ func getUserObjects(
 	}()
 
 	// add userRef to objects
-	objects <- operation{
-		ref:    userRef,
-		method: "delete",
+	objects <- db.Operation{
+		Ref:    userRef,
+		Method: "delete",
 	}
 
 	wg.Wait()
@@ -527,7 +531,7 @@ func getScoreObjects(
 	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
-	objects chan<- operation,
+	objects chan<- db.Operation,
 	userRef *firestore.DocumentRef,
 ) {
 	defer wg.Done()
@@ -536,7 +540,7 @@ func getScoreObjects(
 	finalScores := userRef.Collection("final_scores")
 	scores, err := tx.DocumentRefs(finalScores).GetAll()
 	if err != nil {
-		objects <- operation{err: errors.New("failed to get final scores from user: " + err.Error())}
+		objects <- db.Operation{Err: errors.New("failed to get final scores from user: " + err.Error())}
 		return
 	}
 
@@ -546,16 +550,16 @@ func getScoreObjects(
 			defer wg.Done()
 
 			// insert final scores in channel
-			objects <- operation{
-				ref:    scoreRef,
-				method: "delete",
+			objects <- db.Operation{
+				Ref:    scoreRef,
+				Method: "delete",
 			}
 
 			// get records
 			records := scoreRef.Collection("records")
 			recordsDocs, err := tx.DocumentRefs(records).GetAll()
 			if err != nil {
-				objects <- operation{err: errors.New("failed to get records from user: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to get records from user: " + err.Error())}
 				return
 			}
 
@@ -565,21 +569,21 @@ func getScoreObjects(
 					defer wg.Done()
 
 					// insert record in channel
-					objects <- operation{
-						ref:    recordRef,
-						method: "delete",
+					objects <- db.Operation{
+						Ref:    recordRef,
+						Method: "delete",
 					}
 
 					// get record value
 					recordSnap, err := tx.Get(recordRef)
 					if err != nil {
-						objects <- operation{err: errors.New("failed to convert record to snap: " + err.Error())}
+						objects <- db.Operation{Err: errors.New("failed to convert record to snap: " + err.Error())}
 						return
 					}
 
 					gradeValue, err := recordSnap.DataAt("grade")
 					if err != nil {
-						objects <- operation{err: errors.New("failed to get grade value from snap at field grade: " + err.Error())}
+						objects <- db.Operation{Err: errors.New("failed to get grade value from snap at field grade: " + err.Error())}
 						return
 					}
 
@@ -592,15 +596,15 @@ func getScoreObjects(
 					query := grades.Where("grade", "==", gradeValue).Limit(1)
 					subjectRecordSnaps, err := tx.Documents(query).GetAll()
 					if err != nil {
-						objects <- operation{err: errors.New("failed to get queried grades from subject: " + err.Error())}
+						objects <- db.Operation{Err: errors.New("failed to get queried grades from subject: " + err.Error())}
 						return
 					}
 
 					// insert subject grades in channel
 					for _, ref := range subjectRecordSnaps {
-						objects <- operation{
-							ref:    ref.Ref,
-							method: "delete",
+						objects <- db.Operation{
+							Ref:    ref.Ref,
+							Method: "delete",
 						}
 					}
 				}(recordRef)
@@ -615,7 +619,7 @@ func getReviewObjects(
 	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
-	objects chan<- operation,
+	objects chan<- db.Operation,
 	userRef *firestore.DocumentRef,
 ) {
 	defer wg.Done()
@@ -625,7 +629,7 @@ func getReviewObjects(
 	userReviews, err := tx.DocumentRefs(subjectReviews).GetAll()
 
 	if err != nil {
-		objects <- operation{err: errors.New("failed to get subject reviews from user: " + err.Error())}
+		objects <- db.Operation{Err: errors.New("failed to get subject reviews from user: " + err.Error())}
 		return
 	}
 
@@ -635,21 +639,21 @@ func getReviewObjects(
 			defer wg.Done()
 
 			// insert user review in channel
-			objects <- operation{
-				ref:    reviewRef,
-				method: "delete",
+			objects <- db.Operation{
+				Ref:    reviewRef,
+				Method: "delete",
 			}
 
 			reviewSnap, err := tx.Get(reviewRef)
 			if err != nil {
-				objects <- operation{err: errors.New("failed to get review snap: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to get review snap: " + err.Error())}
 				return
 			}
 
 			// lookup subjects that need to be updated
 			categories, err := reviewSnap.DataAt("categories") // get existing review categories
 			if err != nil {
-				objects <- operation{err: errors.New("failed to get review snap at field categories: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to get review snap at field categories: " + err.Error())}
 				return
 			}
 
@@ -660,19 +664,19 @@ func getReviewObjects(
 				// decrement every category review which was true
 				if reflect.ValueOf(v).Kind() == reflect.Bool && v.(bool) {
 					path := fmt.Sprintf("stats.%s", k)
-					objects <- operation{
-						ref:     subRef,
-						method:  "update",
-						payload: []firestore.Update{{Path: path, Value: firestore.Increment(-1)}},
+					objects <- db.Operation{
+						Ref:     subRef,
+						Method:  "update",
+						Payload: []firestore.Update{{Path: path, Value: firestore.Increment(-1)}},
 					}
 				}
 			}
 
 			// number of total reviews must also be decreased
-			objects <- operation{
-				ref:     subRef,
-				method:  "update",
-				payload: []firestore.Update{{Path: "stats.total", Value: firestore.Increment(-1)}},
+			objects <- db.Operation{
+				Ref:     subRef,
+				Method:  "update",
+				Payload: []firestore.Update{{Path: "stats.total", Value: firestore.Increment(-1)}},
 			}
 		}(reviewRef)
 	}
@@ -684,7 +688,7 @@ func getCommentObjects(
 	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
-	objects chan<- operation,
+	objects chan<- db.Operation,
 	userRef *firestore.DocumentRef,
 ) {
 	defer wg.Done()
@@ -693,7 +697,7 @@ func getCommentObjects(
 	comments := userRef.Collection("user_comments")
 	commentsRefs, err := tx.DocumentRefs(comments).GetAll()
 	if err != nil {
-		objects <- operation{err: errors.New("failed to get comments from user: " + err.Error())}
+		objects <- db.Operation{Err: errors.New("failed to get comments from user: " + err.Error())}
 		return
 	}
 
@@ -703,22 +707,22 @@ func getCommentObjects(
 			defer wg.Done()
 
 			// add user comment to objects channel
-			objects <- operation{
-				ref:    userCommentRef,
-				method: "delete",
+			objects <- db.Operation{
+				Ref:    userCommentRef,
+				Method: "delete",
 			}
 
 			// get user comment
 			snap, err := tx.Get(userCommentRef)
 			if err != nil {
-				objects <- operation{err: errors.New("failed to get user comment: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to get user comment: " + err.Error())}
 				return
 			}
 
 			// bind user comment
 			var userComment models.UserComment
 			if err := snap.DataTo(&userComment); err != nil {
-				objects <- operation{err: errors.New("failed to bind user comment: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to bind user comment: " + err.Error())}
 				return
 			}
 
@@ -732,9 +736,9 @@ func getCommentObjects(
 			))
 
 			// add comment to objects channel
-			objects <- operation{
-				ref:    commentRef,
-				method: "delete",
+			objects <- db.Operation{
+				Ref:    commentRef,
+				Method: "delete",
 			}
 		}(userCommentRef)
 	}
@@ -746,7 +750,7 @@ func getCommentRatingObjects(
 	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
-	objects chan<- operation,
+	objects chan<- db.Operation,
 	userRef *firestore.DocumentRef,
 ) {
 	defer wg.Done()
@@ -755,7 +759,7 @@ func getCommentRatingObjects(
 	commentRatings := userRef.Collection("comment_ratings")
 	commentRatingsRefs, err := tx.DocumentRefs(commentRatings).GetAll()
 	if err != nil {
-		objects <- operation{err: errors.New("failed to get comment ratings from user: " + err.Error())}
+		objects <- db.Operation{Err: errors.New("failed to get comment ratings from user: " + err.Error())}
 		return
 	}
 
@@ -765,21 +769,21 @@ func getCommentRatingObjects(
 			defer wg.Done()
 
 			// add comment rating to objects channel
-			objects <- operation{
-				ref:    commentRatingRef,
-				method: "delete",
+			objects <- db.Operation{
+				Ref:    commentRatingRef,
+				Method: "delete",
 			}
 
 			// bind comment rating
 			var commentRating models.CommentRating
 			snap, err := tx.Get(commentRatingRef)
 			if err != nil {
-				objects <- operation{err: errors.New("failed to get comment rating: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to get comment rating: " + err.Error())}
 				return
 			}
 
 			if err := snap.DataTo(&commentRating); err != nil {
-				objects <- operation{err: errors.New("failed to bind comment rating: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to bind comment rating: " + err.Error())}
 				return
 			}
 
@@ -793,7 +797,7 @@ func getCommentRatingObjects(
 
 			query := commentsCol.Where("id", "==", commentRating.ID)
 			if commentSnaps, err := tx.Documents(query).GetAll(); err != nil {
-				objects <- operation{err: errors.New("failed to get comment from comment rating: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to get comment from comment rating: " + err.Error())}
 				return
 			} else if len(commentSnaps) == 0 { // this comment does not exist anymore
 				return
@@ -806,10 +810,10 @@ func getCommentRatingObjects(
 					path = "downvotes"
 				}
 
-				objects <- operation{
-					ref:     commentSnaps[0].Ref,
-					method:  "update",
-					payload: []firestore.Update{{Path: path, Value: firestore.Increment(-1)}},
+				objects <- db.Operation{
+					Ref:     commentSnaps[0].Ref,
+					Method:  "update",
+					Payload: []firestore.Update{{Path: path, Value: firestore.Increment(-1)}},
 				}
 
 				targetUserComment := models.UserComment{
@@ -826,10 +830,10 @@ func getCommentRatingObjects(
 					targetUserComment.Hash(),
 				))
 
-				objects <- operation{
-					ref:     targetUserCommentRef,
-					method:  "update",
-					payload: []firestore.Update{{Path: "comment." + path, Value: firestore.Increment(-1)}},
+				objects <- db.Operation{
+					Ref:     targetUserCommentRef,
+					Method:  "update",
+					Payload: []firestore.Update{{Path: "comment." + path, Value: firestore.Increment(-1)}},
 				}
 			}
 
@@ -843,7 +847,7 @@ func getCommentReportObjects(
 	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
-	objects chan<- operation,
+	objects chan<- db.Operation,
 	userRef *firestore.DocumentRef,
 ) {
 	defer wg.Done()
@@ -852,7 +856,7 @@ func getCommentReportObjects(
 	commentReports := userRef.Collection("comment_reports")
 	commentReportsRefs, err := tx.DocumentRefs(commentReports).GetAll()
 	if err != nil {
-		objects <- operation{err: errors.New("failed to get comment reports from user: " + err.Error())}
+		objects <- db.Operation{Err: errors.New("failed to get comment reports from user: " + err.Error())}
 		return
 	}
 
@@ -862,21 +866,21 @@ func getCommentReportObjects(
 			defer wg.Done()
 
 			// add comment report to objects channel
-			objects <- operation{
-				ref:    commentReportRef,
-				method: "delete",
+			objects <- db.Operation{
+				Ref:    commentReportRef,
+				Method: "delete",
 			}
 
 			// bind comment report
 			var commentReport models.CommentReport
 			snap, err := tx.Get(commentReportRef)
 			if err != nil {
-				objects <- operation{err: errors.New("failed to get comment report: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to get comment report: " + err.Error())}
 				return
 			}
 
 			if err := snap.DataTo(&commentReport); err != nil {
-				objects <- operation{err: errors.New("failed to bind comment report: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to bind comment report: " + err.Error())}
 				return
 			}
 
@@ -890,15 +894,15 @@ func getCommentReportObjects(
 
 			query := commentsCol.Where("id", "==", commentReport.ID)
 			if commentSnaps, err := tx.Documents(query).GetAll(); err != nil {
-				objects <- operation{err: errors.New("failed to get comment from comment report: " + err.Error())}
+				objects <- db.Operation{Err: errors.New("failed to get comment from comment report: " + err.Error())}
 				return
 			} else if len(commentSnaps) == 0 {
 				return
 			} else {
-				objects <- operation{
-					ref:     commentSnaps[0].Ref,
-					method:  "update",
-					payload: []firestore.Update{{Path: "reports", Value: firestore.Increment(-1)}},
+				objects <- db.Operation{
+					Ref:     commentSnaps[0].Ref,
+					Method:  "update",
+					Payload: []firestore.Update{{Path: "reports", Value: firestore.Increment(-1)}},
 				}
 
 				targetUserComment := models.UserComment{
@@ -915,10 +919,10 @@ func getCommentReportObjects(
 					targetUserComment.Hash(),
 				))
 
-				objects <- operation{
-					ref:     targetUserCommentRef,
-					method:  "update",
-					payload: []firestore.Update{{Path: "comment.reports", Value: firestore.Increment(-1)}},
+				objects <- db.Operation{
+					Ref:     targetUserCommentRef,
+					Method:  "update",
+					Payload: []firestore.Update{{Path: "comment.reports", Value: firestore.Increment(-1)}},
 				}
 			}
 
@@ -932,7 +936,7 @@ func getMajorObjects(
 	DB db.Env,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
-	objects chan<- operation,
+	objects chan<- db.Operation,
 	userRef *firestore.DocumentRef,
 ) {
 	defer wg.Done()
@@ -942,14 +946,14 @@ func getMajorObjects(
 	majorRefs, err := tx.DocumentRefs(majorCol).GetAll()
 
 	if err != nil {
-		objects <- operation{err: errors.New("failed to get majors from user: " + err.Error())}
+		objects <- db.Operation{Err: errors.New("failed to get majors from user: " + err.Error())}
 		return
 	}
 
 	for _, major := range majorRefs {
-		objects <- operation{
-			ref:    major,
-			method: "delete",
+		objects <- db.Operation{
+			Ref:    major,
+			Method: "delete",
 		}
 	}
 }
