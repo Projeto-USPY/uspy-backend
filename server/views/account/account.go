@@ -91,3 +91,8 @@ func Delete(ctx *gin.Context) {
 	removeAccessToken(ctx)
 	ctx.Status(http.StatusOK)
 }
+
+// Update is a dummy view method
+func Update(ctx *gin.Context) {
+	ctx.Status(http.StatusOK)
+}

@@ -93,6 +93,101 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 	return nil
 }
 
+// UpdateUser takes a new transcript and updates the user stored data
+//
+// It does a diff operation on the already stored grade transcript, adding new final scores to the user's data and updating subject records
+func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, userID string, updateTime time.Time) error {
+	userHash := utils.SHA256(userID)
+
+	return DB.Client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		ops := make([]db.Operation, 0)
+		userRef := DB.Client.Doc(fmt.Sprintf(
+			"users/%s",
+			userHash,
+		))
+
+		// update user last update time
+		ops = append(ops, db.Operation{
+			Ref:    userRef,
+			Method: "update",
+			Payload: []firestore.Update{
+				{
+					Path:  "last_update",
+					Value: updateTime,
+				},
+			},
+		})
+
+		major := models.Major{
+			Course:         data.Course,
+			Specialization: data.Specialization,
+		}
+
+		majorRef := DB.Client.Doc(fmt.Sprintf(
+			"users/%s/majors/%s",
+			userHash,
+			major.Hash(),
+		))
+
+		// set user major
+		ops = append(ops, db.Operation{
+			Ref:     majorRef,
+			Method:  "set",
+			Payload: major,
+		})
+
+		newRecords := 0
+
+		// lookup user records that are not yet stored
+		for _, grade := range data.Grades {
+			subject := models.Subject{Code: grade.Subject, CourseCode: grade.Course, Specialization: grade.Specialization}
+
+			recordRef := DB.Client.Doc(fmt.Sprintf(
+				"users/%s/final_scores/%s/records/%s",
+				userHash,
+				subject.Hash(),
+				grade.Hash(),
+			))
+
+			_, err := tx.Get(recordRef)
+
+			if err != nil {
+				if status.Code(err) == codes.NotFound {
+					newRecords++
+					// record must be added
+					// add operation to array
+					ops = append(ops, db.Operation{
+						Ref:     recordRef,
+						Payload: grade,
+						Method:  "set",
+					})
+
+					// subject grade must be added
+					// create new ref
+					gradeRef := DB.Client.Collection("subjects/" + subject.Hash() + "/grades").NewDoc()
+					subjectGradeDoc := models.Record{
+						Grade: grade.Grade,
+					}
+
+					// add operation to array
+					ops = append(ops, db.Operation{
+						Ref:     gradeRef,
+						Payload: subjectGradeDoc,
+						Method:  "set",
+					})
+				} else {
+					return err
+				}
+			}
+		}
+
+		log.Printf("applying update operation, num of new records:%v, num of operations:%v\n", newRecords, len(ops))
+
+		// apply operations
+		return db_utils.ApplyOperationsInTransaction(tx, ops)
+	})
+}
+
 func sendPasswordRecoveryEmail(email, userHash string) error {
 	if config.Env.IsLocal() || config.Env.IsDev() {
 		return nil
@@ -460,28 +555,51 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 	}
 
 	account.Delete(ctx)
-			}
+}
 
-			var operationErr error
-			switch obj.method {
-			case "delete":
-				operationErr = tx.Delete(obj.ref)
-			case "update":
-				operationErr = tx.Update(obj.ref, obj.payload.([]firestore.Update))
-			}
-
-			if operationErr != nil {
-				return fmt.Errorf("could not apply operation on %#v: %s", obj, operationErr.Error())
-			}
-		}
-
-		return nil
-	}); deleteErr != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, deleteErr)
+// Update updates a user's profile with a new grade transcript
+func Update(ctx *gin.Context, DB db.Env, userID string, updateForm *controllers.UpdateForm) {
+	// get user records
+	cookies := ctx.Request.Cookies()
+	resp, err := iddigital.PostAuthCode(updateForm.AccessKey, updateForm.Captcha, cookies)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting pdf from iddigital: %s", err.Error()))
+		return
+	} else if resp.Header.Get("Content-Type") != "application/pdf" {
+		ctx.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	account.Delete(ctx)
+	// parse transcript
+	pdf := iddigital.NewPDF(resp)
+	if pdf.Error != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error converting pdf to text: %s", pdf.Error.Error()))
+		return
+	}
+
+	data, err := pdf.Parse(DB)
+
+	var maxPDFAge float64
+	if config.Env.IsDev() || config.Env.IsLocal() {
+		maxPDFAge = 24 * 30 // a month
+	} else {
+		maxPDFAge = 1.0 // an hour
+	}
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error parsing pdf: %s", err.Error()))
+		return
+	} else if time.Since(pdf.CreationDate).Hours() > maxPDFAge {
+		ctx.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if err := UpdateUser(ctx, DB, &data, userID, pdf.CreationDate); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error updating user: %s", err.Error()))
+		return
+	}
+
+	account.Update(ctx)
 }
 
 // getUserObjects gets all documents necessary (and the corresponding operations that must be applied) for a user to remove their account
