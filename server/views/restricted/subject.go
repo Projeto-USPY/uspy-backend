@@ -39,7 +39,7 @@ func GetGrades(ctx *gin.Context, grades []models.Record) {
 		avg /= float64(cnt)
 		approval /= float64(cnt)
 
-		if config.Env.Mode == "prod" && cnt <= 10 { // do not return grades if there are too few grades
+		if config.Env.IsProd() && cnt <= 10 { // do not return grades if there are too few grades
 			ctx.JSON(http.StatusOK, gin.H{"grades": map[string]int{}, "average": 0.0, "approval": 0.0})
 			return
 		}

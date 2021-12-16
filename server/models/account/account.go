@@ -116,7 +116,7 @@ func sendPasswordRecoveryEmail(email, userHash string) error {
 	}
 
 	var host string
-	if config.Env.Mode == "dev" {
+	if config.Env.IsDev() {
 		host = "frontdev.uspy.me"
 	} else {
 		host = "uspy.me"
@@ -145,7 +145,7 @@ func sendEmailVerification(email, userHash string) error {
 	}
 
 	var host string
-	if config.Env.Mode == "dev" {
+	if config.Env.IsDev() {
 		host = "frontdev.uspy.me"
 	} else {
 		host = "uspy.me"
@@ -210,7 +210,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 	data, err := pdf.Parse(DB)
 
 	var maxPDFAge float64
-	if config.Env.Mode == "dev" {
+	if config.Env.IsDev() || config.Env.IsLocal() {
 		maxPDFAge = 24 * 30 // a month
 	} else {
 		maxPDFAge = 1.0 // an hour
