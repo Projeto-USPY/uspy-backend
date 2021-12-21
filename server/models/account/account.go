@@ -44,7 +44,7 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 		}
 
 		// register user major
-		major := models.Major{Course: data.Course, Specialization: data.Specialization}
+		major := models.Major{Code: data.Course, Specialization: data.Specialization}
 		objs = append(objs, db.BatchObject{
 			Collection: "users/" + newUser.Hash() + "/majors",
 			Doc:        major.Hash(),
@@ -119,7 +119,7 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 		})
 
 		major := models.Major{
-			Course:         data.Course,
+			Code:           data.Course,
 			Specialization: data.Specialization,
 		}
 
