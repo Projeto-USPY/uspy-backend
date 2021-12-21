@@ -20,3 +20,7 @@ func Profile(ctx *gin.Context, user models.User) {
 	}
 }
 
+// GetMajors sets the major list as the response
+func GetMajors(ctx *gin.Context, majors []*views.Major) {
+	ctx.JSON(http.StatusOK, majors)
+}

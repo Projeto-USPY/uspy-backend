@@ -15,3 +15,11 @@ func Profile(DB db.Env) func(ctx *gin.Context) {
 	}
 }
 
+// GetMajors is a closure for the GET /account/profile/majors endpoint
+func GetMajors(DB db.Env) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		userID := ctx.MustGet("userID").(string)
+
+		account.GetMajors(ctx, DB, userID)
+	}
+}
