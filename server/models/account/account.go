@@ -244,25 +244,6 @@ func sendEmailVerification(email, userHash string) error {
 	return config.Env.Send(email, config.VerificationSubject, content)
 }
 
-// Profile retrieves the user profile from the database
-func Profile(ctx *gin.Context, DB db.Env, userID string) {
-	var storedUser models.User
-
-	snap, err := DB.Restore("users", utils.SHA256(userID))
-	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user with id %s: %s", userID, err.Error()))
-		return
-	}
-	err = snap.DataTo(&storedUser)
-	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind user %s data to model: %s", userID, err.Error()))
-		return
-	}
-
-	storedUser.ID = userID
-	account.Profile(ctx, storedUser)
-}
-
 // Signup performs all the server-side signup operations.
 //
 // It validates database data, gets and parses user records, creates the user object and sends the verification email
