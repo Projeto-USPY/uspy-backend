@@ -13,4 +13,5 @@ var (
 	SubjectBinder       = middleware.Bind("Subject", &controllers.Subject{}, binding.Query)
 	OfferingBinder      = middleware.Bind("Offering", &controllers.Offering{}, binding.Query)
 	CommentRatingBinder = middleware.Bind("CommentRating", &controllers.CommentRating{}, binding.Query)
+	MajorBinder         = middleware.Bind("Major", &controllers.Major{}, binding.Query)
 )
