@@ -24,3 +24,8 @@ func Profile(ctx *gin.Context, user models.User) {
 func GetMajors(ctx *gin.Context, majors []*views.Major) {
 	ctx.JSON(http.StatusOK, majors)
 }
+
+// SearchTranscript sets the transcript record results as the response
+func SearchTranscript(ctx *gin.Context, results []*views.TranscriptResult) {
+	ctx.JSON(http.StatusOK, results)
+}
