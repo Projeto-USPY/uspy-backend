@@ -9,12 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setAccessToken(ctx *gin.Context, token string) {
-	domain := ctx.MustGet("front_domain").(string)
-	secureCookie := !config.Env.IsLocal()
-	ctx.SetCookie("access_token", token, 0, "/", domain, secureCookie, true)
-}
-
 func removeAccessToken(ctx *gin.Context) {
 	domain := ctx.MustGet("front_domain").(string)
 	secureCookie := !config.Env.IsLocal()
