@@ -101,7 +101,7 @@ func (s *AccountSuite) TestUpdateUser() {
 
 	// ensure major was created
 	expectedMajor := models.Major{
-		Course:         "55090",
+		Code:           "55090",
 		Specialization: "0",
 	}
 

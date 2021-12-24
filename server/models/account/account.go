@@ -44,7 +44,7 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 		}
 
 		// register user major
-		major := models.Major{Course: data.Course, Specialization: data.Specialization}
+		major := models.Major{Code: data.Course, Specialization: data.Specialization}
 		objs = append(objs, db.BatchObject{
 			Collection: "users/" + newUser.Hash() + "/majors",
 			Doc:        major.Hash(),
@@ -119,7 +119,7 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 		})
 
 		major := models.Major{
-			Course:         data.Course,
+			Code:           data.Course,
 			Specialization: data.Specialization,
 		}
 
@@ -242,25 +242,6 @@ func sendEmailVerification(email, userHash string) error {
 	url := fmt.Sprintf(`https://%s/account/verify?token=%s`, host, token)
 	content := fmt.Sprintf(config.VerificationContent, url)
 	return config.Env.Send(email, config.VerificationSubject, content)
-}
-
-// Profile retrieves the user profile from the database
-func Profile(ctx *gin.Context, DB db.Env, userID string) {
-	var storedUser models.User
-
-	snap, err := DB.Restore("users", utils.SHA256(userID))
-	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user with id %s: %s", userID, err.Error()))
-		return
-	}
-	err = snap.DataTo(&storedUser)
-	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind user %s data to model: %s", userID, err.Error()))
-		return
-	}
-
-	storedUser.ID = userID
-	account.Profile(ctx, storedUser)
 }
 
 // Signup performs all the server-side signup operations.

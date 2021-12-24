@@ -18,7 +18,6 @@ func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
 	accountGroup.DELETE("", middleware.JWT(), account.Delete(DB))
 	accountGroup.GET("/captcha", account.SignupCaptcha())
 	accountGroup.GET("/logout", middleware.JWT(), account.Logout())
-	accountGroup.GET("/profile", middleware.JWT(), account.Profile(DB))
 	accountGroup.POST("/login", account.Login(DB))
 	accountGroup.POST("/create", account.Signup(DB))
 	accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
@@ -30,6 +29,13 @@ func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
 	{
 		emailGroup.POST("/verification", account.VerifyEmail(DB))
 		emailGroup.POST("/password_reset", account.RequestPasswordReset(DB))
+	}
+
+	profileGroup := accountGroup.Group("/profile", middleware.JWT())
+	{
+		profileGroup.GET("", account.Profile(DB))
+		profileGroup.GET("/majors", account.GetMajors(DB))
+		profileGroup.GET("/transcript", entity.TranscriptQueryBinder, account.SearchTranscript(DB))
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
@@ -11,13 +12,21 @@ import (
 //
 // It is used for storing which courses a user has records of
 type Major struct {
-	Course         string `firestore:"course"`
+	Code           string `firestore:"course"`
 	Specialization string `firestore:"specialization"`
+}
+
+// NewMajorFromController is a constructor. It takes a major controller and returns a model.
+func NewMajorFromController(major *controllers.Major) *Major {
+	return &Major{
+		Code:           major.Course,
+		Specialization: major.Specialization,
+	}
 }
 
 // Hash returns SHA256(concat(course, specialization))
 func (m Major) Hash() string {
-	str := fmt.Sprintf("%s%s", m.Course, m.Specialization)
+	str := fmt.Sprintf("%s%s", m.Code, m.Specialization)
 	return utils.SHA256(str)
 }
 
