@@ -9,7 +9,7 @@ import (
 )
 
 func checkSubjectExists(DB db.Env, subHash string) error {
-	snap, err := DB.Restore("subjects", subHash)
+	snap, err := DB.Restore("subjects/" + subHash)
 	if snap == nil || !snap.Exists() {
 		return ErrSubjectNotFound
 	}

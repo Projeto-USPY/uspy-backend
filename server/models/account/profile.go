@@ -19,7 +19,7 @@ import (
 func Profile(ctx *gin.Context, DB db.Env, userID string) {
 	var storedUser models.User
 
-	snap, err := DB.Restore("users", utils.SHA256(userID))
+	snap, err := DB.Restore("users/" + utils.SHA256(userID))
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user with id %s: %s", userID, err.Error()))
 		return
@@ -61,10 +61,7 @@ func GetMajors(ctx *gin.Context, DB db.Env, userID string) {
 			return
 		}
 
-		snap, err := DB.Restore(
-			"courses",
-			storedMajor.Hash(),
-		)
+		snap, err := DB.Restore("courses/" + storedMajor.Hash())
 
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get course name using major: %s", err.Error()))

@@ -25,7 +25,7 @@ func GetOfferingComments(ctx *gin.Context, DB db.Env, off *controllers.Offering)
 	}.Hash()
 
 	// check if offering exists
-	if _, err := DB.Restore("subjects/"+subHash+"/offerings", off.Hash); err != nil {
+	if _, err := DB.Restore("subjects/" + subHash + "/offerings/" + off.Hash); err != nil {
 		if status.Code(err) == codes.NotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find comments: %s", err.Error()))
 			return

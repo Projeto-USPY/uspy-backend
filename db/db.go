@@ -55,16 +55,14 @@ type Env struct {
 	Ctx    context.Context
 }
 
-// Restore restores a document with a specific HashID and collection origin from Firestore
-//
-// The collection string cannot end in "/"
+// Restore restores a document with a specific hash
 //
 // If the document is not found, returns an error which can be checked with
 // status.Code(err) == codes.NotFound
 //
 // Besides, the Exists method for this Ref will return false
-func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, error) {
-	snap, err := db.Client.Collection(collection).Doc(HashID).Get(db.Ctx)
+func (db Env) Restore(documentHash string) (*firestore.DocumentSnapshot, error) {
+	snap, err := db.Client.Doc(documentHash).Get(db.Ctx)
 	if err != nil {
 		return nil, err
 	}

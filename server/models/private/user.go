@@ -76,7 +76,7 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 		return
 	}
 
-	snap, err := DB.Restore("users/"+userHash+"/subject_reviews", subHash)
+	snap, err := DB.Restore("users/" + userHash + "/subject_reviews/" + subHash)
 
 	if err != nil { // user has not reviewed subject
 		if status.Code(err) == codes.NotFound {
