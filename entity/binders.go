@@ -15,4 +15,5 @@ var (
 	CommentRatingBinder   = middleware.Bind("CommentRating", &controllers.CommentRating{}, binding.Query)
 	MajorBinder           = middleware.Bind("Major", &controllers.Major{}, binding.Query)
 	CurriculumQueryBinder = middleware.Bind("CurriculumQuery", &controllers.CurriculumQuery{}, binding.Query)
+	TranscriptQueryBinder = middleware.Bind("TranscriptQuery", &controllers.TranscriptQuery{}, binding.Query)
 )

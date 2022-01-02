@@ -36,3 +36,26 @@ func SearchCurriculum(DB db.Env) func(ctx *gin.Context) {
 		account.SearchCurriculum(ctx, DB, userID, curriculumQuery)
 	}
 }
+
+// GetTranscriptYears is a closure for the GET /account/profile/transcript/years endpoint
+//
+// It retrieves the last years the user has been in USP
+func GetTranscriptYears(DB db.Env) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		userID := ctx.MustGet("userID").(string)
+
+		account.GetTranscriptYears(ctx, DB, userID)
+	}
+}
+
+// SearchTranscript is a closure for the GET /account/profile/transcript endpoint
+//
+// It looks up into the user's transcript and returns the subjects they took in a given year and semester, along with their grades data
+func SearchTranscript(DB db.Env) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		userID := ctx.MustGet("userID").(string)
+		transcriptQuery := ctx.MustGet("TranscriptQuery").(*controllers.TranscriptQuery)
+
+		account.SearchTranscript(ctx, DB, userID, transcriptQuery)
+	}
+}

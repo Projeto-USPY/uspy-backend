@@ -2,6 +2,7 @@ package account
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
@@ -153,4 +154,89 @@ func SearchCurriculum(ctx *gin.Context, DB db.Env, userID string, controller *co
 	}
 
 	account.SearchCurriculum(ctx, results)
+}
+
+// GetTranscriptYears retrieves the last few years a user's has been in USP
+func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {}
+
+// SearchTranscript takes a transcript query and retrieves its records with subject data attached to them
+func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *controllers.TranscriptQuery) {
+	userHash := utils.SHA256(userID)
+
+	// fetch all final scores from users, we cannot use restore collection here because final scores are missing documents
+	finalScores, err := DB.Client.Collection(
+		fmt.Sprintf(
+			"users/%s/final_scores",
+			userHash,
+		),
+	).
+		DocumentRefs(ctx).
+		GetAll()
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user final scores: %s", err.Error()))
+		return
+	}
+
+	// get all records with same hash as transcript query data
+	results := make([]*views.Record, 0, len(finalScores))
+	recordHash := models.Record{Year: controller.Year, Semester: controller.Semester}.Hash()
+	for _, fs := range finalScores {
+		subHash := fs.ID
+
+		// get final score with given record hash (year + semester)
+		snap, err := DB.Restore(
+			fmt.Sprintf(
+				"users/%s/final_scores/%s/records/%s",
+				userHash,
+				subHash,
+				recordHash,
+			),
+		)
+
+		if err != nil {
+			if status.Code(err) == codes.NotFound { // no document with given record hash
+				continue
+			}
+
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get record: %s", err.Error()))
+			return
+		}
+
+		var model models.Record
+		if err := snap.DataTo(&model); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind record: %s", err.Error()))
+			return
+		}
+
+		record := views.NewRecordFromModel(&model)
+
+		// get subject data to inject into view object
+		snap, err = DB.Restore("subjects/" + subHash)
+		if err != nil {
+			if status.Code(err) == codes.NotFound {
+				log.Printf("failed to get subject with hash %s in records query, this should not happen, maybe subject does not exist anymore?\n", subHash)
+				continue
+			}
+
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get subject with record hash: %s", err.Error()))
+			return
+		}
+
+		var subject models.Subject
+		if err := snap.DataTo(&subject); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject: %s", err.Error()))
+			return
+		}
+
+		// inject subject header
+		record.Code = subject.Code
+		record.Course = subject.CourseCode
+		record.Specialization = subject.Specialization
+		record.Name = subject.Name
+
+		results = append(results, record)
+	}
+
+	account.SearchTranscript(ctx, results)
 }

@@ -29,3 +29,8 @@ func GetMajors(ctx *gin.Context, majors []*views.Major) {
 func SearchCurriculum(ctx *gin.Context, results []*views.CurriculumResult) {
 	ctx.JSON(http.StatusOK, results)
 }
+
+// SearchTranscript sets the transcript results as the response
+func SearchTranscript(ctx *gin.Context, results []*views.Record) {
+	ctx.JSON(http.StatusOK, results)
+}
