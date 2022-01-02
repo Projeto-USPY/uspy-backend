@@ -9,7 +9,8 @@ import "github.com/Projeto-USPY/uspy-backend/entity/models"
 // - record data (grade, status, frequency)
 // - optinal time data
 type Record struct {
-	Subject        string `json:"subject,omitempty"`
+	Code           string `json:"code,omitempty"`
+	Name           string `json:"name,omitempty"`
 	Course         string `json:"course,omitempty"`
 	Specialization string `json:"specialization,omitempty"`
 
