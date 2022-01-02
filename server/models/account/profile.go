@@ -176,7 +176,7 @@ func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {
 	}
 
 	// fetch years the user has been in USP
-	years := make(map[int]struct{})
+	years := make(map[int][]int)
 
 	for _, fs := range finalScores {
 		curYear := time.Now().Year()
@@ -206,17 +206,31 @@ func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {
 				}
 
 				// record was found with this year + semester
-				years[year] = struct{}{}
+
+				if _, ok := years[year]; !ok { // create array if needed
+					years[year] = make([]int, 0)
+				}
+
+				years[year] = append(years[year], semester)
 			}
 		}
 	}
 
-	flattenedYears := make([]int, 0, len(years))
-	for y := range years {
-		flattenedYears = append(flattenedYears, y)
+	flattenedYears := make([]*views.TranscriptYear, 0, len(years))
+	for year, semesters := range years {
+		semesters = utils.UniqueInts(semesters)
+		sort.Ints(semesters)
+
+		flattenedYears = append(flattenedYears, &views.TranscriptYear{
+			Year:      year,
+			Semesters: semesters,
+		})
 	}
 
-	sort.Ints(flattenedYears) // sort years
+	sort.Slice(flattenedYears, func(i, j int) bool {
+		return flattenedYears[i].Year < flattenedYears[j].Year
+	}) // sort years
+
 	account.GetTranscriptYears(ctx, flattenedYears)
 }
 

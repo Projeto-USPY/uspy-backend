@@ -31,7 +31,7 @@ func SearchCurriculum(ctx *gin.Context, results []*views.CurriculumResult) {
 }
 
 // GetTranscriptYears sets the curriculum results as the response
-func GetTranscriptYears(ctx *gin.Context, years []int) {
+func GetTranscriptYears(ctx *gin.Context, years []*views.TranscriptYear) {
 	ctx.JSON(http.StatusOK, years)
 }
 
