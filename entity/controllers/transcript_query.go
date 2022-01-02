@@ -1,10 +1,7 @@
 package controllers
 
-// CurriculumQuery is the object that holds data needed to search in a user's curriculum
-type CurriculumQuery struct {
-	// Subject query data
-	Course         string `form:"course" binding:"required"`
-	Specialization string `form:"specialization" binding:"required"`
-	Optional       bool   `form:"optional"`
-	Semester       int    `form:"semester" binding:"required"`
+// TranscriptQuery is the object used for querying a user's transcript
+type TranscriptQuery struct {
+	Year     int `form:"year" binding:"required"`
+	Semester int `form:"semester" binding:"required,oneof=1 2"`
 }
