@@ -82,6 +82,18 @@ func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapsho
 	return snap, nil
 }
 
+// RestoreCollectionRefs is similar to RestoreCollection, but uses DocRefs that allow missing documents inside the query
+//
+// Collection cannot end in "/"
+func (db Env) RestoreCollectionRefs(collection string) ([]*firestore.DocumentRef, error) {
+	snap, err := db.Client.Collection(collection).DocumentRefs(db.Ctx).GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	return snap, nil
+}
+
 // Insert inserts an entity that implements Inserter into a DB collection
 func (db Env) Insert(obj Inserter, collection string) error {
 	return obj.Insert(db, collection)

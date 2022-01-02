@@ -164,14 +164,12 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 	userHash := utils.SHA256(userID)
 
 	// fetch all final scores from users, we cannot use restore collection here because final scores are missing documents
-	finalScores, err := DB.Client.Collection(
+	finalScores, err := DB.RestoreCollectionRefs(
 		fmt.Sprintf(
 			"users/%s/final_scores",
 			userHash,
 		),
-	).
-		DocumentRefs(ctx).
-		GetAll()
+	)
 
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user final scores: %s", err.Error()))
