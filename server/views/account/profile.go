@@ -30,6 +30,11 @@ func SearchCurriculum(ctx *gin.Context, results []*views.CurriculumResult) {
 	ctx.JSON(http.StatusOK, results)
 }
 
+// GetTranscriptYears sets the curriculum results as the response
+func GetTranscriptYears(ctx *gin.Context, years []int) {
+	ctx.JSON(http.StatusOK, years)
+}
+
 // SearchTranscript sets the transcript results as the response
 func SearchTranscript(ctx *gin.Context, results []*views.Record) {
 	ctx.JSON(http.StatusOK, results)

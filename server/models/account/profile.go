@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
+	"time"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
@@ -157,7 +159,66 @@ func SearchCurriculum(ctx *gin.Context, DB db.Env, userID string, controller *co
 }
 
 // GetTranscriptYears retrieves the last few years a user's has been in USP
-func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {}
+func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {
+	userHash := utils.SHA256(userID)
+
+	// fetch all final scores from users, we cannot use restore collection here because final scores are missing documents
+	finalScores, err := DB.RestoreCollectionRefs(
+		fmt.Sprintf(
+			"users/%s/final_scores",
+			userHash,
+		),
+	)
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user final scores: %s", err.Error()))
+		return
+	}
+
+	// fetch years the user has been in USP
+	years := make(map[int]struct{})
+
+	for _, fs := range finalScores {
+		curYear := time.Now().Year()
+		for year := curYear - 10; year <= curYear; year++ {
+			for _, semester := range []int{1, 2} {
+				recordHash := models.Record{Year: year, Semester: semester}.Hash()
+
+				subHash := fs.ID
+
+				// get final score with given record hash (year + semester)
+				_, err := DB.Restore(
+					fmt.Sprintf(
+						"users/%s/final_scores/%s/records/%s",
+						userHash,
+						subHash,
+						recordHash,
+					),
+				)
+
+				if err != nil {
+					if status.Code(err) == codes.NotFound { // no document with given record hash
+						continue
+					}
+
+					ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get record: %s", err.Error()))
+					return
+				}
+
+				// record was found with this year + semester
+				years[year] = struct{}{}
+			}
+		}
+	}
+
+	flattenedYears := make([]int, 0, len(years))
+	for y := range years {
+		flattenedYears = append(flattenedYears, y)
+	}
+
+	sort.Ints(flattenedYears) // sort years
+	account.GetTranscriptYears(ctx, flattenedYears)
+}
 
 // SearchTranscript takes a transcript query and retrieves its records with subject data attached to them
 func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *controllers.TranscriptQuery) {
