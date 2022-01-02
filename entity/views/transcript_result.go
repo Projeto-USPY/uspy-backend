@@ -1,7 +1,7 @@
 package views
 
-// TranscriptResult is the response view object for a transcript query made for a given user
-type TranscriptResult struct {
+// CurriculumResult is the response view object for a curriculum query made for a given user
+type CurriculumResult struct {
 	// Subject data
 	Name string `json:"name"`
 	Code string `json:"code"`

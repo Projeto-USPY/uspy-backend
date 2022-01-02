@@ -25,7 +25,7 @@ func GetMajors(ctx *gin.Context, majors []*views.Major) {
 	ctx.JSON(http.StatusOK, majors)
 }
 
-// SearchTranscript sets the transcript record results as the response
-func SearchTranscript(ctx *gin.Context, results []*views.TranscriptResult) {
+// SearchCurriculum sets the curriculum results as the response
+func SearchCurriculum(ctx *gin.Context, results []*views.CurriculumResult) {
 	ctx.JSON(http.StatusOK, results)
 }

@@ -85,8 +85,8 @@ func GetMajors(ctx *gin.Context, DB db.Env, userID string) {
 	account.GetMajors(ctx, majors)
 }
 
-// SearchTranscript queries the user's given major subjects and returns which ones they have completed and if so, their record information (grade, status and frequency)
-func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *controllers.TranscriptQuery) {
+// SearchCurriculum queries the user's given major subjects and returns which ones they have completed and if so, their record information (grade, status and frequency)
+func SearchCurriculum(ctx *gin.Context, DB db.Env, userID string, controller *controllers.CurriculumQuery) {
 	courseSubjectIDs, err := DB.Client.Collection("subjects").
 		Where("course", "==", controller.Course).
 		Where("specialization", "==", controller.Specialization).
@@ -97,16 +97,16 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("error running transcript query: %s", err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("error running curriculum query: %s", err.Error()))
 			return
 		}
 
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error running transcript query: %s", err.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error running curriculum query: %s", err.Error()))
 		return
 	}
 
 	userHash := utils.SHA256(userID)
-	results := make([]*views.TranscriptResult, 0, len(courseSubjectIDs))
+	results := make([]*views.CurriculumResult, 0, len(courseSubjectIDs))
 
 	for _, subDoc := range courseSubjectIDs {
 		// query if user has done this subject
@@ -130,7 +130,7 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 			return
 		}
 
-		result := &views.TranscriptResult{
+		result := &views.CurriculumResult{
 			Name:      subject.Name,
 			Code:      subject.Code,
 			Completed: completed,
@@ -155,5 +155,5 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 		}
 	}
 
-	account.SearchTranscript(ctx, results)
+	account.SearchCurriculum(ctx, results)
 }

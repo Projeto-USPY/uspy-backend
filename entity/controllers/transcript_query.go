@@ -1,7 +1,7 @@
 package controllers
 
-// TranscriptQuery is the object that holds data needed to search in a user's transcript
-type TranscriptQuery struct {
+// CurriculumQuery is the object that holds data needed to search in a user's curriculum
+type CurriculumQuery struct {
 	// Subject query data
 	Course         string `form:"course" binding:"required"`
 	Specialization string `form:"specialization" binding:"required"`

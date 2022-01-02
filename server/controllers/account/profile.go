@@ -25,14 +25,14 @@ func GetMajors(DB db.Env) func(ctx *gin.Context) {
 	}
 }
 
-// SearchTranscript is a closure for the GET /account/profile/transcript endpoint
+// SearchCurriculum is a closure for the GET /account/profile/curriculum endpoint
 //
 // It takes an optional query parameter called "optional", which enforces that queried subjects are not obligatory
-func SearchTranscript(DB db.Env) func(ctx *gin.Context) {
+func SearchCurriculum(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		userID := ctx.MustGet("userID").(string)
 
-		transcriptQuery := ctx.MustGet("TranscriptQuery").(*controllers.TranscriptQuery)
-		account.SearchTranscript(ctx, DB, userID, transcriptQuery)
+		curriculumQuery := ctx.MustGet("CurriculumQuery").(*controllers.CurriculumQuery)
+		account.SearchCurriculum(ctx, DB, userID, curriculumQuery)
 	}
 }
