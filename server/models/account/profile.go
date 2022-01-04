@@ -2,7 +2,10 @@ package account
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"sort"
+	"time"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
@@ -19,7 +22,7 @@ import (
 func Profile(ctx *gin.Context, DB db.Env, userID string) {
 	var storedUser models.User
 
-	snap, err := DB.Restore("users", utils.SHA256(userID))
+	snap, err := DB.Restore("users/" + utils.SHA256(userID))
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user with id %s: %s", userID, err.Error()))
 		return
@@ -61,10 +64,7 @@ func GetMajors(ctx *gin.Context, DB db.Env, userID string) {
 			return
 		}
 
-		snap, err := DB.Restore(
-			"courses",
-			storedMajor.Hash(),
-		)
+		snap, err := DB.Restore("courses/" + storedMajor.Hash())
 
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get course name using major: %s", err.Error()))
@@ -85,8 +85,8 @@ func GetMajors(ctx *gin.Context, DB db.Env, userID string) {
 	account.GetMajors(ctx, majors)
 }
 
-// SearchTranscript queries the user's given major subjects and returns which ones they have completed and if so, their record information (grade, status and frequency)
-func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *controllers.TranscriptQuery) {
+// SearchCurriculum queries the user's given major subjects and returns which ones they have completed and if so, their record information (grade, status and frequency)
+func SearchCurriculum(ctx *gin.Context, DB db.Env, userID string, controller *controllers.CurriculumQuery) {
 	courseSubjectIDs, err := DB.Client.Collection("subjects").
 		Where("course", "==", controller.Course).
 		Where("specialization", "==", controller.Specialization).
@@ -97,16 +97,16 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("error running transcript query: %s", err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("error running curriculum query: %s", err.Error()))
 			return
 		}
 
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error running transcript query: %s", err.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error running curriculum query: %s", err.Error()))
 		return
 	}
 
 	userHash := utils.SHA256(userID)
-	results := make([]*views.TranscriptResult, 0, len(courseSubjectIDs))
+	results := make([]*views.CurriculumResult, 0, len(courseSubjectIDs))
 
 	for _, subDoc := range courseSubjectIDs {
 		// query if user has done this subject
@@ -130,7 +130,7 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 			return
 		}
 
-		result := &views.TranscriptResult{
+		result := &views.CurriculumResult{
 			Name:      subject.Name,
 			Code:      subject.Code,
 			Completed: completed,
@@ -153,6 +153,162 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 		} else { // insert oly once if not completed
 			results = append(results, result)
 		}
+	}
+
+	account.SearchCurriculum(ctx, results)
+}
+
+// GetTranscriptYears retrieves the last few years a user's has been in USP
+func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {
+	userHash := utils.SHA256(userID)
+
+	// fetch all final scores from users, we cannot use restore collection here because final scores are missing documents
+	finalScores, err := DB.RestoreCollectionRefs(
+		fmt.Sprintf(
+			"users/%s/final_scores",
+			userHash,
+		),
+	)
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user final scores: %s", err.Error()))
+		return
+	}
+
+	// fetch years the user has been in USP
+	years := make(map[int][]int)
+
+	for _, fs := range finalScores {
+		curYear := time.Now().Year()
+		for year := curYear - 10; year <= curYear; year++ {
+			for _, semester := range []int{1, 2} {
+				recordHash := models.Record{Year: year, Semester: semester}.Hash()
+
+				subHash := fs.ID
+
+				// get final score with given record hash (year + semester)
+				_, err := DB.Restore(
+					fmt.Sprintf(
+						"users/%s/final_scores/%s/records/%s",
+						userHash,
+						subHash,
+						recordHash,
+					),
+				)
+
+				if err != nil {
+					if status.Code(err) == codes.NotFound { // no document with given record hash
+						continue
+					}
+
+					ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get record: %s", err.Error()))
+					return
+				}
+
+				// record was found with this year + semester
+
+				if _, ok := years[year]; !ok { // create array if needed
+					years[year] = make([]int, 0)
+				}
+
+				years[year] = append(years[year], semester)
+			}
+		}
+	}
+
+	flattenedYears := make([]*views.TranscriptYear, 0, len(years))
+	for year, semesters := range years {
+		semesters = utils.UniqueInts(semesters)
+		sort.Ints(semesters)
+
+		flattenedYears = append(flattenedYears, &views.TranscriptYear{
+			Year:      year,
+			Semesters: semesters,
+		})
+	}
+
+	sort.Slice(flattenedYears, func(i, j int) bool {
+		return flattenedYears[i].Year < flattenedYears[j].Year
+	}) // sort years
+
+	account.GetTranscriptYears(ctx, flattenedYears)
+}
+
+// SearchTranscript takes a transcript query and retrieves its records with subject data attached to them
+func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *controllers.TranscriptQuery) {
+	userHash := utils.SHA256(userID)
+
+	// fetch all final scores from users, we cannot use restore collection here because final scores are missing documents
+	finalScores, err := DB.RestoreCollectionRefs(
+		fmt.Sprintf(
+			"users/%s/final_scores",
+			userHash,
+		),
+	)
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user final scores: %s", err.Error()))
+		return
+	}
+
+	// get all records with same hash as transcript query data
+	results := make([]*views.Record, 0, len(finalScores))
+	recordHash := models.Record{Year: controller.Year, Semester: controller.Semester}.Hash()
+	for _, fs := range finalScores {
+		subHash := fs.ID
+
+		// get final score with given record hash (year + semester)
+		snap, err := DB.Restore(
+			fmt.Sprintf(
+				"users/%s/final_scores/%s/records/%s",
+				userHash,
+				subHash,
+				recordHash,
+			),
+		)
+
+		if err != nil {
+			if status.Code(err) == codes.NotFound { // no document with given record hash
+				continue
+			}
+
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get record: %s", err.Error()))
+			return
+		}
+
+		var model models.Record
+		if err := snap.DataTo(&model); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind record: %s", err.Error()))
+			return
+		}
+
+		record := views.NewRecordFromModel(&model)
+
+		// get subject data to inject into view object
+		snap, err = DB.Restore("subjects/" + subHash)
+		if err != nil {
+			if status.Code(err) == codes.NotFound {
+				log.Printf("failed to get subject with hash %s in records query, this should not happen, maybe subject does not exist anymore?\n", subHash)
+				continue
+			}
+
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get subject with record hash: %s", err.Error()))
+			return
+		}
+
+		var subject models.Subject
+		if err := snap.DataTo(&subject); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject: %s", err.Error()))
+			return
+		}
+
+		// inject subject header
+		record.Code = subject.Code
+		record.Course = subject.CourseCode
+		record.Specialization = subject.Specialization
+		record.Name = subject.Name
+
+		results = append(results, record)
 	}
 
 	account.SearchTranscript(ctx, results)

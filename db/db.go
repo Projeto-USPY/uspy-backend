@@ -55,16 +55,14 @@ type Env struct {
 	Ctx    context.Context
 }
 
-// Restore restores a document with a specific HashID and collection origin from Firestore
-//
-// The collection string cannot end in "/"
+// Restore restores a document with a specific hash
 //
 // If the document is not found, returns an error which can be checked with
 // status.Code(err) == codes.NotFound
 //
 // Besides, the Exists method for this Ref will return false
-func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, error) {
-	snap, err := db.Client.Collection(collection).Doc(HashID).Get(db.Ctx)
+func (db Env) Restore(documentHash string) (*firestore.DocumentSnapshot, error) {
+	snap, err := db.Client.Doc(documentHash).Get(db.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +75,18 @@ func (db Env) Restore(collection, HashID string) (*firestore.DocumentSnapshot, e
 // Collection cannot end in "/"
 func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapshot, error) {
 	snap, err := db.Client.Collection(collection).Documents(db.Ctx).GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	return snap, nil
+}
+
+// RestoreCollectionRefs is similar to RestoreCollection, but uses DocRefs that allow missing documents inside the query
+//
+// Collection cannot end in "/"
+func (db Env) RestoreCollectionRefs(collection string) ([]*firestore.DocumentRef, error) {
+	snap, err := db.Client.Collection(collection).DocumentRefs(db.Ctx).GetAll()
 	if err != nil {
 		return nil, err
 	}

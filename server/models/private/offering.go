@@ -21,7 +21,7 @@ import (
 
 // GetComment retrieves the comment associated with an offering made by a given user
 func GetComment(ctx *gin.Context, DB db.Env, userID string, off *controllers.Offering) {
-	mask := "subjects/%s/offerings/%s/comments"
+	mask := "subjects/%s/offerings/%s/comments/%s"
 	userHash := models.User{ID: userID}.Hash()
 	subHash := models.Subject{
 		Code:           off.Subject.Code,
@@ -30,7 +30,7 @@ func GetComment(ctx *gin.Context, DB db.Env, userID string, off *controllers.Off
 	}.Hash()
 
 	var comment models.Comment
-	snap, err := DB.Restore(fmt.Sprintf(mask, subHash, off.Hash), userHash)
+	snap, err := DB.Restore(fmt.Sprintf(mask, subHash, off.Hash, userHash))
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -66,9 +66,9 @@ func GetCommentRating(
 	}.Hash()
 
 	var model models.CommentRating
-	collectionMask := "users/%s/comment_ratings"
+	collectionMask := "users/%s/comment_ratings/%s"
 
-	snap, err := DB.Restore(fmt.Sprintf(collectionMask, userHash), comment.ID)
+	snap, err := DB.Restore(fmt.Sprintf(collectionMask, userHash, comment.ID))
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -417,7 +417,7 @@ func PublishComment(
 
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error checking subject permission: %s", err.Error()))
 		return
-	} else if _, err := DB.Restore("subjects/"+modelSub.Hash()+"/offerings", off.Hash); err != nil {
+	} else if _, err := DB.Restore("subjects/" + modelSub.Hash() + "/offerings/" + off.Hash); err != nil {
 		if status.Code(err) == codes.NotFound {
 			ctx.AbortWithStatus(http.StatusNotFound)
 			return

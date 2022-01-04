@@ -35,7 +35,13 @@ func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
 	{
 		profileGroup.GET("", account.Profile(DB))
 		profileGroup.GET("/majors", account.GetMajors(DB))
-		profileGroup.GET("/transcript", entity.TranscriptQueryBinder, account.SearchTranscript(DB))
+		profileGroup.GET("/curriculum", entity.CurriculumQueryBinder, account.SearchCurriculum(DB))
+
+		transcriptGroup := profileGroup.Group("/transcript")
+		{
+			transcriptGroup.GET("", entity.TranscriptQueryBinder, account.SearchTranscript(DB))
+			transcriptGroup.GET("/years", account.GetTranscriptYears(DB))
+		}
 	}
 }
 

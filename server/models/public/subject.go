@@ -43,7 +43,7 @@ func GetAllSubjects(ctx *gin.Context, DB db.Env) {
 // Get gets a subject by its identifier: subject code, course code and course specialization code
 func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 	model := models.Subject{Code: sub.Code, CourseCode: sub.CourseCode, Specialization: sub.Specialization}
-	snap, err := DB.Restore("subjects", model.Hash())
+	snap, err := DB.Restore("subjects/" + model.Hash())
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
@@ -64,7 +64,7 @@ func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 // GetRelations gets the subject's graph: their direct predecessors and successors
 func GetRelations(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
-	snap, err := DB.Restore("subjects", model.Hash())
+	snap, err := DB.Restore("subjects/" + model.Hash())
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {

@@ -18,7 +18,7 @@ func GetGrades(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 
 	// check subject existence
-	if _, err := DB.Restore("subjects", model.Hash()); err != nil && status.Code(err) == codes.NotFound {
+	if _, err := DB.Restore("subjects/" + model.Hash()); err != nil && status.Code(err) == codes.NotFound {
 		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 		return
 	}

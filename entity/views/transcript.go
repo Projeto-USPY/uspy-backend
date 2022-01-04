@@ -21,7 +21,7 @@ func NewTranscript(model *iddigital.Transcript) *Transcript {
 
 	for _, g := range model.Grades {
 		t.Grades = append(t.Grades, Record{
-			Subject:        g.Subject,
+			Code:           g.Subject,
 			Course:         g.Course,
 			Specialization: g.Specialization,
 			Grade:          g.Grade,

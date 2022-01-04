@@ -59,10 +59,7 @@ func (s *AccountSuite) TestUpdateUser() {
 
 	// ensure user had its last_update property updated
 	var storedUser models.User
-	snap, err := s.DB.Restore(
-		"users",
-		utils.SHA256("123456789"),
-	)
+	snap, err := s.DB.Restore("users/" + utils.SHA256("123456789"))
 	s.Require().NoError(err)
 
 	err = snap.DataTo(&storedUser)
@@ -81,11 +78,11 @@ func (s *AccountSuite) TestUpdateUser() {
 	var storedRecord models.Record
 	snap, err = s.DB.Restore(
 		fmt.Sprintf(
-			"users/%s/final_scores/%s/records",
+			"users/%s/final_scores/%s/records/%s",
 			utils.SHA256("123456789"),
 			subHash,
+			newRecord.Hash(),
 		),
-		newRecord.Hash(),
 	)
 	s.Require().NoError(err)
 
@@ -108,10 +105,10 @@ func (s *AccountSuite) TestUpdateUser() {
 	var storedMajor models.Major
 	snap, err = s.DB.Restore(
 		fmt.Sprintf(
-			"users/%s/majors",
+			"users/%s/majors/%s",
 			utils.SHA256("123456789"),
+			expectedMajor.Hash(),
 		),
-		expectedMajor.Hash(),
 	)
 	s.Require().NoError(err)
 

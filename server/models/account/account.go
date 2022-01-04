@@ -32,7 +32,7 @@ var (
 
 // InsertUser takes the user object and their transcripts and performs all the required database insertions
 func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) error {
-	_, err := DB.Restore("users", newUser.Hash())
+	_, err := DB.Restore("users/" + newUser.Hash())
 	if status.Code(err) == codes.NotFound {
 		// user is new
 		objs := []db.BatchObject{
@@ -343,7 +343,7 @@ func SignupCaptcha(ctx *gin.Context) {
 
 // Login performs the user login by comparing the passwordHash and the stored hash
 func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
-	snap, err := DB.Restore("users", utils.SHA256(login.ID))
+	snap, err := DB.Restore("users/" + utils.SHA256(login.ID))
 
 	if err != nil { // get user from database
 		if status.Code(err) == codes.NotFound { // if user was not found
@@ -418,7 +418,7 @@ func Logout(ctx *gin.Context) {
 // ChangePassword changes the user's password in the database
 // This method requires the user to be logged in
 func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *controllers.PasswordChange) {
-	snap, err := DB.Restore("users", utils.SHA256(userID))
+	snap, err := DB.Restore("users/" + utils.SHA256(userID))
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound { // if user was not found
@@ -471,7 +471,7 @@ func ResetPassword(ctx *gin.Context, DB db.Env, recovery *controllers.PasswordRe
 	var storedUser models.User
 
 	// assert user exists
-	if snap, err := DB.Restore("users", userHash); err != nil {
+	if snap, err := DB.Restore("users/" + userHash); err != nil {
 		if status.Code(err) == codes.NotFound { // if user was not found
 			ctx.AbortWithError(http.StatusNotFound, err)
 			return
