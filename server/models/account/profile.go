@@ -222,7 +222,7 @@ func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {
 		sort.Ints(semesters)
 
 		flattenedYears = append(flattenedYears, &views.TranscriptYear{
-			Year:      year,
+			Year:      utils.MustAtoi(year),
 			Semesters: semesters,
 		})
 	}

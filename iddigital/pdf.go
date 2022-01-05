@@ -141,8 +141,8 @@ func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 		// get current year and semester
 		info := regexp.MustCompile(`(\d{4}) ([1-2])º\. Semestre`).FindStringSubmatch(pdf.Body[pairs[i][0]:pairs[i][1]])
 
-		year, _ := strconv.Atoi(info[1])
-		semester, _ := strconv.Atoi(info[2])
+		year := utils.MustAtoi(info[1])
+		semester := utils.MustAtoi(info[2])
 
 		// get all subjects in current year and semester
 		subRXP := regexp.MustCompile(`((?:SMA|SME|SSC|SCC)\d+).*`)
@@ -159,7 +159,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 				continue
 			}
 
-			freq, _ := strconv.Atoi(values[1])
+			freq := utils.MustAtoi(values[1])
 			grade, _ := strconv.ParseFloat(values[2], 64)
 			status := values[3]
 			subCourse := ""
