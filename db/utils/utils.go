@@ -2,7 +2,7 @@ package utils
 
 import (
 	"errors"
-	"fmt"
+	"sync"
 
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
@@ -13,6 +13,7 @@ func checkSubjectExists(DB db.Env, subHash string) error {
 	if snap == nil || !snap.Exists() {
 		return ErrSubjectNotFound
 	}
+
 	return err
 }
 
@@ -36,31 +37,48 @@ func CheckSubjectPermission(DB db.Env, userHash, subHash string) error {
 	return nil
 }
 
-// ApplyOperationsInTransaction takes a transaction and a list of operations and applies them sequentially
+// ApplyConcurrentOperationsInTransaction takes a transaction and a list of operations and applies them using concurrency
 //
 // It returns an error in case any operation fails
-// Use this function at the end of a transaction to ensure reads are done in the beginning of the transaction
-func ApplyOperationsInTransaction(tx *firestore.Transaction, operators []db.Operation) error {
+// Use this function at the end of a transaction to ensure write operations are done in the end of the transaction
+func ApplyConcurrentOperationsInTransaction(tx *firestore.Transaction, operators []db.Operation) error {
+	var wg sync.WaitGroup
+
+	// launch producers
+	errChan := make(chan error, len(operators))
+	wg.Add(len(operators))
 	for _, obj := range operators {
-		if obj.Err != nil {
-			return obj.Err
-		}
+		go func(job db.Operation, wg *sync.WaitGroup) {
+			defer wg.Done()
 
-		var operationErr error
-		switch obj.Method {
-		case "delete":
-			operationErr = tx.Delete(obj.Ref)
-		case "update":
-			operationErr = tx.Update(obj.Ref, obj.Payload.([]firestore.Update))
-		case "set":
-			operationErr = tx.Set(obj.Ref, obj.Payload)
-		default:
-			return errors.New(`method not specify, please choose from "set", "delete", "update"`)
+			if job.Err != nil { // if any operator failed, stop all goroutines, then return error
+				errChan <- job.Err
+				return
+			}
 
-		}
+			var operationErr error
+			switch job.Method {
+			case "delete":
+				operationErr = tx.Delete(job.Ref)
+			case "update":
+				operationErr = tx.Update(job.Ref, job.Payload.([]firestore.Update))
+			case "set":
+				operationErr = tx.Set(job.Ref, job.Payload)
+			default: // incorrect operation
+				operationErr = errors.New(`method not specified, please choose from "set", "delete", "update"`)
+			}
 
-		if operationErr != nil {
-			return fmt.Errorf("could not apply operation on %#v: %s", obj, operationErr.Error())
+			errChan <- operationErr
+		}(obj, &wg)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	// receiver statuses
+	for err := range errChan {
+		if err != nil {
+			return err
 		}
 	}
 
