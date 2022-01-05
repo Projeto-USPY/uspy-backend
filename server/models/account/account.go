@@ -106,7 +106,31 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 			userHash,
 		))
 
-		// update user last update time
+		// lookup user to get trascript years map and do diff
+		snap, err := tx.Get(userRef)
+		if err != nil {
+			return err
+		}
+
+		var storedUser models.User
+		if err := snap.DataTo(&storedUser); err != nil {
+			return err
+		}
+
+		if storedUser.TranscriptYears != nil { // merge maps
+			for year, semesters := range data.TranscriptYears {
+				if _, ok := storedUser.TranscriptYears[year]; !ok { // add whole new year to transcript
+					storedUser.TranscriptYears[year] = semesters
+				} else { // merge arrays
+					storedUser.TranscriptYears[year] = append(storedUser.TranscriptYears[year], semesters...) // merge
+					storedUser.TranscriptYears[year] = utils.UniqueInts(storedUser.TranscriptYears[year])     // unique
+				}
+			}
+		} else { // maybe user is outdated. This was added after a change in signup
+			storedUser.TranscriptYears = data.TranscriptYears
+		}
+
+		// update user transcript years map and user last update time
 		ops = append(ops, db.Operation{
 			Ref:    userRef,
 			Method: "update",
@@ -114,6 +138,10 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 				{
 					Path:  "last_update",
 					Value: updateTime,
+				},
+				{
+					Path:  "transcript_years",
+					Value: storedUser.TranscriptYears,
 				},
 			},
 		})
@@ -300,6 +328,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 		signupForm.Email,
 		signupForm.Password,
 		pdf.CreationDate,
+		data.TranscriptYears,
 	)
 
 	if userErr != nil {

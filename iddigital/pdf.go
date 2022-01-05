@@ -13,6 +13,7 @@ import (
 
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
 // PDF represents the pdf file retrieved from uspdigital
@@ -25,7 +26,8 @@ type PDF struct {
 
 // Transcript represents the parsed data retrieved from the user's PDF file
 type Transcript struct {
-	Grades []models.Record `json:"grades"`
+	Grades          []models.Record  `json:"grades"`
+	TranscriptYears map[string][]int `json:"transcript_years"`
 
 	Name string `json:"name"`
 	Nusp string `json:"nusp"`
@@ -103,7 +105,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			rec = Transcript{nil, "", "", "", ""}
+			rec = Transcript{Grades: nil, TranscriptYears: nil, Name: "", Nusp: "", Course: "", Specialization: ""}
 			err = r.(error)
 		}
 	}()
@@ -192,6 +194,29 @@ func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 				Semester:       semester,
 				Year:           year,
 			})
+
+			yearStr := strconv.Itoa(year)
+			// append to transcript years it necessary
+			if _, ok := rec.TranscriptYears[yearStr]; !ok {
+				if rec.TranscriptYears == nil {
+					rec.TranscriptYears = make(map[string][]int)
+				}
+
+				rec.TranscriptYears[yearStr] = make([]int, 0, 2)
+			}
+
+			found := false
+			for i := 0; i < utils.Min(2, len(rec.TranscriptYears[yearStr])); i++ {
+				if rec.TranscriptYears[yearStr][i] == semester { // already appended
+					found = true
+					break
+				}
+			}
+
+			if !found { // if semester was not added yet
+				rec.TranscriptYears[yearStr] = append(rec.TranscriptYears[yearStr], semester)
+			}
+
 		}
 	}
 
