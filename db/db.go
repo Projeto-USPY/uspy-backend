@@ -70,6 +70,20 @@ func (db Env) Restore(documentHash string) (*firestore.DocumentSnapshot, error) 
 	return snap, nil
 }
 
+// RestoreBatch is similar to Env.Restore, but restores a batch of documents concurrently
+//
+// If any document is not found, the Exists method for that snap will return false
+//
+// It is guaranteed that snapshots are returned in the same order as passed hashes
+func (db Env) RestoreBatch(documentHashes []string) ([]*firestore.DocumentSnapshot, error) {
+	refs := make([]*firestore.DocumentRef, 0, len(documentHashes))
+	for _, doc := range documentHashes {
+		refs = append(refs, db.Client.Doc(doc))
+	}
+
+	return db.Client.GetAll(db.Ctx, refs)
+}
+
 // RestoreCollection is similar to Env.Restore, but restores all documents from a collection
 //
 // Collection cannot end in "/"
