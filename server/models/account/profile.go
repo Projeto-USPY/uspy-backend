@@ -1,11 +1,11 @@
 package account
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"sort"
-	"time"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
@@ -162,62 +162,21 @@ func SearchCurriculum(ctx *gin.Context, DB db.Env, userID string, controller *co
 func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {
 	userHash := utils.SHA256(userID)
 
-	// fetch all final scores from users, we cannot use restore collection here because final scores are missing documents
-	finalScores, err := DB.RestoreCollectionRefs(
-		fmt.Sprintf(
-			"users/%s/final_scores",
-			userHash,
-		),
-	)
+	var storedUser models.User
+	snap, err := DB.Restore("users/" + userHash)
 
 	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user final scores: %s", err.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not get user in transcript years query: %s", err.Error()))
 		return
 	}
 
-	// fetch years the user has been in USP
-	years := make(map[int][]int)
-
-	for _, fs := range finalScores {
-		curYear := time.Now().Year()
-		for year := curYear - 10; year <= curYear; year++ {
-			for _, semester := range []int{1, 2} {
-				recordHash := models.Record{Year: year, Semester: semester}.Hash()
-
-				subHash := fs.ID
-
-				// get final score with given record hash (year + semester)
-				_, err := DB.Restore(
-					fmt.Sprintf(
-						"users/%s/final_scores/%s/records/%s",
-						userHash,
-						subHash,
-						recordHash,
-					),
-				)
-
-				if err != nil {
-					if status.Code(err) == codes.NotFound { // no document with given record hash
-						continue
-					}
-
-					ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get record: %s", err.Error()))
-					return
-				}
-
-				// record was found with this year + semester
-
-				if _, ok := years[year]; !ok { // create array if needed
-					years[year] = make([]int, 0)
-				}
-
-				years[year] = append(years[year], semester)
-			}
-		}
+	if err := snap.DataTo(&storedUser); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind user to object: %s", err.Error()))
+		return
 	}
 
-	flattenedYears := make([]*views.TranscriptYear, 0, len(years))
-	for year, semesters := range years {
+	flattenedYears := make([]*views.TranscriptYear, 0, len(storedUser.TranscriptYears))
+	for year, semesters := range storedUser.TranscriptYears {
 		semesters = utils.UniqueInts(semesters)
 		sort.Ints(semesters)
 
@@ -254,55 +213,72 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 	// get all records with same hash as transcript query data
 	results := make([]*views.Record, 0, len(finalScores))
 	recordHash := models.Record{Year: controller.Year, Semester: controller.Semester}.Hash()
+
+	gradeDocs := make([]string, 0, len(finalScores))
+	subDocs := make([]string, 0, len(finalScores))
+
 	for _, fs := range finalScores {
 		subHash := fs.ID
 
-		// get final score with given record hash (year + semester)
-		snap, err := DB.Restore(
-			fmt.Sprintf(
-				"users/%s/final_scores/%s/records/%s",
-				userHash,
-				subHash,
-				recordHash,
-			),
-		)
+		gradeDocs = append(gradeDocs, fmt.Sprintf(
+			"users/%s/final_scores/%s/records/%s",
+			userHash,
+			subHash,
+			recordHash,
+		))
 
-		if err != nil {
-			if status.Code(err) == codes.NotFound { // no document with given record hash
-				continue
-			}
+		subDocs = append(subDocs, "subjects/"+subHash)
+	}
 
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get record: %s", err.Error()))
-			return
+	// restore grades
+	gradeSnaps, err := DB.RestoreBatch(gradeDocs)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user grades: %s", err.Error()))
+		return
+	}
+
+	// restore subjects to inject subject data
+	subSnaps, err := DB.RestoreBatch(subDocs)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get subjects from user final scores: %s", err.Error()))
+		return
+	}
+
+	// assert same number of results
+	if len(gradeSnaps) != len(subSnaps) {
+		ctx.AbortWithError(http.StatusInternalServerError, errors.New("different number of fetched grade snaps and sub snaps"))
+		return
+	}
+
+	for i := 0; i < len(gradeSnaps); i++ {
+		gradeSnap := gradeSnaps[i]
+		subSnap := subSnaps[i]
+
+		// if no grade found, user has not done this suject in this year/semester
+		if !gradeSnap.Exists() {
+			continue
+		}
+
+		// if subject was not found, this is unexpected
+		if !subSnap.Exists() {
+			log.Printf("failed to get subject with hash %s in records query, this should not happen, maybe subject does not exist anymore?\n", subSnap.Ref.ID)
+			continue
 		}
 
 		var model models.Record
-		if err := snap.DataTo(&model); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind record: %s", err.Error()))
-			return
-		}
-
-		record := views.NewRecordFromModel(&model)
-
-		// get subject data to inject into view object
-		snap, err = DB.Restore("subjects/" + subHash)
-		if err != nil {
-			if status.Code(err) == codes.NotFound {
-				log.Printf("failed to get subject with hash %s in records query, this should not happen, maybe subject does not exist anymore?\n", subHash)
-				continue
-			}
-
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get subject with record hash: %s", err.Error()))
+		if err := gradeSnap.DataTo(&model); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind grade record: %s", err.Error()))
 			return
 		}
 
 		var subject models.Subject
-		if err := snap.DataTo(&subject); err != nil {
+		if err := subSnap.DataTo(&subject); err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject: %s", err.Error()))
 			return
 		}
 
 		// inject subject header
+		record := views.NewRecordFromModel(&model)
 		record.Code = subject.Code
 		record.Course = subject.CourseCode
 		record.Specialization = subject.Specialization
