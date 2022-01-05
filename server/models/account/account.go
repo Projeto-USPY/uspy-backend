@@ -182,7 +182,7 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 		}
 
 		snaps, err := tx.GetAll(recordRefs)
-			if err != nil {
+		if err != nil {
 			return err
 		}
 
@@ -191,30 +191,30 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 			grade := data.Grades[i]
 
 			if !snap.Exists() {
-					newRecords++
-					// record must be added
-					// add operation to array
-					ops = append(ops, db.Operation{
+				newRecords++
+				// record must be added
+				// add operation to array
+				ops = append(ops, db.Operation{
 					Ref:     snap.Ref,
-						Payload: grade,
-						Method:  "set",
-					})
+					Payload: grade,
+					Method:  "set",
+				})
 
-					// subject grade must be added
+				// subject grade must be added
 				subject := models.Subject{Code: grade.Subject, CourseCode: grade.Course, Specialization: grade.Specialization}
 
-					// create new ref
-					gradeRef := DB.Client.Collection("subjects/" + subject.Hash() + "/grades").NewDoc()
-					subjectGradeDoc := models.Record{
-						Grade: grade.Grade,
-					}
+				// create new ref
+				gradeRef := DB.Client.Collection("subjects/" + subject.Hash() + "/grades").NewDoc()
+				subjectGradeDoc := models.Record{
+					Grade: grade.Grade,
+				}
 
-					// add operation to array
-					ops = append(ops, db.Operation{
-						Ref:     gradeRef,
-						Payload: subjectGradeDoc,
-						Method:  "set",
-					})
+				// add operation to array
+				ops = append(ops, db.Operation{
+					Ref:     gradeRef,
+					Payload: subjectGradeDoc,
+					Method:  "set",
+				})
 			}
 		}
 
@@ -567,7 +567,7 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 		objects := getUserObjects(ctx, DB, tx, userID)
 
 		log.Printf("user is removing their account, total objects affected: %v\n", len(objects))
-		return db_utils.ApplyOperationsInTransaction(tx, objects)
+		return db_utils.ApplyConcurrentOperationsInTransaction(tx, objects)
 	}); deleteErr != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, deleteErr)
 		return
