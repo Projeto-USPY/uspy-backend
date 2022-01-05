@@ -176,6 +176,9 @@ func setup(DB db.Env) error {
 			"email_teste@usp.br",
 			"r4nd0mpass123!@#",
 			time.Date(2020, time.January, 0, 0, 0, 0, 0, timezone),
+			map[string][]int{
+				"2018": {1, 2},
+			},
 		)
 
 		user.Verified = true

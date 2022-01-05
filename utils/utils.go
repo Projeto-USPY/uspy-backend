@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -164,4 +165,14 @@ func UniqueInts(values []int) []int {
 	}
 
 	return results
+}
+
+// MustAtoi is like strconv.Atoi, but panics if it fails
+func MustAtoi(value string) int {
+	v, err := strconv.Atoi(value)
+	if err != nil {
+		panic(err)
+	}
+
+	return v
 }

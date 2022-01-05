@@ -82,7 +82,7 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 
 		// write atomically
 		if writeErr := DB.BatchWrite(objs); writeErr != nil {
-			return err
+			return writeErr
 		}
 	} else if err != nil {
 		return err
@@ -106,7 +106,31 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 			userHash,
 		))
 
-		// update user last update time
+		// lookup user to get trascript years map and do diff
+		snap, err := tx.Get(userRef)
+		if err != nil {
+			return err
+		}
+
+		var storedUser models.User
+		if err := snap.DataTo(&storedUser); err != nil {
+			return err
+		}
+
+		if storedUser.TranscriptYears != nil { // merge maps
+			for year, semesters := range data.TranscriptYears {
+				if _, ok := storedUser.TranscriptYears[year]; !ok { // add whole new year to transcript
+					storedUser.TranscriptYears[year] = semesters
+				} else { // merge arrays
+					storedUser.TranscriptYears[year] = append(storedUser.TranscriptYears[year], semesters...) // merge
+					storedUser.TranscriptYears[year] = utils.UniqueInts(storedUser.TranscriptYears[year])     // unique
+				}
+			}
+		} else { // maybe user is outdated. This was added after a change in signup
+			storedUser.TranscriptYears = data.TranscriptYears
+		}
+
+		// update user transcript years map and user last update time
 		ops = append(ops, db.Operation{
 			Ref:    userRef,
 			Method: "update",
@@ -114,6 +138,10 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 				{
 					Path:  "last_update",
 					Value: updateTime,
+				},
+				{
+					Path:  "transcript_years",
+					Value: storedUser.TranscriptYears,
 				},
 			},
 		})
@@ -139,52 +167,61 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 		newRecords := 0
 
 		// lookup user records that are not yet stored
+		recordRefs := make([]*firestore.DocumentRef, 0, len(data.Grades))
 		for _, grade := range data.Grades {
 			subject := models.Subject{Code: grade.Subject, CourseCode: grade.Course, Specialization: grade.Specialization}
 
-			recordRef := DB.Client.Doc(fmt.Sprintf(
+			ref := DB.Client.Doc(fmt.Sprintf(
 				"users/%s/final_scores/%s/records/%s",
 				userHash,
 				subject.Hash(),
 				grade.Hash(),
 			))
 
-			_, err := tx.Get(recordRef)
+			recordRefs = append(recordRefs, ref)
+		}
 
-			if err != nil {
-				if status.Code(err) == codes.NotFound {
-					newRecords++
-					// record must be added
-					// add operation to array
-					ops = append(ops, db.Operation{
-						Ref:     recordRef,
-						Payload: grade,
-						Method:  "set",
-					})
+		snaps, err := tx.GetAll(recordRefs)
+		if err != nil {
+			return err
+		}
 
-					// subject grade must be added
-					// create new ref
-					gradeRef := DB.Client.Collection("subjects/" + subject.Hash() + "/grades").NewDoc()
-					subjectGradeDoc := models.Record{
-						Grade: grade.Grade,
-					}
+		for i := 0; i < len(snaps); i++ { // assuming Get All returns snaps in the same order as refs passed
+			snap := snaps[i]
+			grade := data.Grades[i]
 
-					// add operation to array
-					ops = append(ops, db.Operation{
-						Ref:     gradeRef,
-						Payload: subjectGradeDoc,
-						Method:  "set",
-					})
-				} else {
-					return err
+			if !snap.Exists() {
+				newRecords++
+				// record must be added
+				// add operation to array
+				ops = append(ops, db.Operation{
+					Ref:     snap.Ref,
+					Payload: grade,
+					Method:  "set",
+				})
+
+				// subject grade must be added
+				subject := models.Subject{Code: grade.Subject, CourseCode: grade.Course, Specialization: grade.Specialization}
+
+				// create new ref
+				gradeRef := DB.Client.Collection("subjects/" + subject.Hash() + "/grades").NewDoc()
+				subjectGradeDoc := models.Record{
+					Grade: grade.Grade,
 				}
+
+				// add operation to array
+				ops = append(ops, db.Operation{
+					Ref:     gradeRef,
+					Payload: subjectGradeDoc,
+					Method:  "set",
+				})
 			}
 		}
 
 		log.Printf("applying update operation, num of new records:%v, num of operations:%v\n", newRecords, len(ops))
 
 		// apply operations
-		return db_utils.ApplyOperationsInTransaction(tx, ops)
+		return db_utils.ApplyConcurrentOperationsInTransaction(tx, ops)
 	})
 }
 
@@ -300,6 +337,7 @@ func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
 		signupForm.Email,
 		signupForm.Password,
 		pdf.CreationDate,
+		data.TranscriptYears,
 	)
 
 	if userErr != nil {
@@ -529,7 +567,7 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 		objects := getUserObjects(ctx, DB, tx, userID)
 
 		log.Printf("user is removing their account, total objects affected: %v\n", len(objects))
-		return db_utils.ApplyOperationsInTransaction(tx, objects)
+		return db_utils.ApplyConcurrentOperationsInTransaction(tx, objects)
 	}); deleteErr != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, deleteErr)
 		return
