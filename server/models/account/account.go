@@ -82,7 +82,7 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 
 		// write atomically
 		if writeErr := DB.BatchWrite(objs); writeErr != nil {
-			return err
+			return writeErr
 		}
 	} else if err != nil {
 		return err
