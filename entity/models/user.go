@@ -30,7 +30,8 @@ type User struct {
 	// bcrypt hashing cause password is more sensitive
 	PasswordHash string `firestore:"password"`
 
-	LastUpdate time.Time `firestore:"last_update"`
+	LastUpdate      time.Time        `firestore:"last_update"`
+	TranscriptYears map[string][]int `firestore:"transcript_years"` // map of years as keys and array of semesters as values
 }
 
 // Hash returns SHA256(user_id)
@@ -45,7 +46,7 @@ func (u User) Hash() string {
 // NewUser creates a new user. It takes raw data and processes all the encrypted data
 //
 // User email verification is also bypassed in dev or local environments
-func NewUser(ID, name, email, password string, lastUpdate time.Time) (*User, error) {
+func NewUser(ID, name, email, password string, lastUpdate time.Time, transcriptYears map[string][]int) (*User, error) {
 	nHash, err := utils.AESEncrypt(name, config.Env.AESKey)
 	if err != nil {
 		return nil, err
@@ -58,14 +59,15 @@ func NewUser(ID, name, email, password string, lastUpdate time.Time) (*User, err
 	}
 
 	return &User{
-		ID:           ID,
-		Name:         name,
-		NameHash:     nHash,
-		EmailHash:    eHash,
-		PasswordHash: pHash,
-		LastUpdate:   lastUpdate,
-		Verified:     config.Env.IsLocal() || config.Env.IsDev(),
-		Banned:       false,
+		ID:              ID,
+		Name:            name,
+		NameHash:        nHash,
+		EmailHash:       eHash,
+		PasswordHash:    pHash,
+		LastUpdate:      lastUpdate,
+		TranscriptYears: transcriptYears,
+		Verified:        config.Env.IsLocal() || config.Env.IsDev(),
+		Banned:          false,
 	}, nil
 
 }

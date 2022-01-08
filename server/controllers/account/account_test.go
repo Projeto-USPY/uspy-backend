@@ -1,6 +1,7 @@
 package account_test
 
 import (
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -36,6 +37,31 @@ func (s *AccountSuite) TestProfile() {
 	// Attach cookie and re run request
 	w = utils.MakeRequest(s.router, http.MethodGet, "/account/profile", nil, s.accessToken)
 	s.Equal(http.StatusOK, w.Result().StatusCode, "profile should return 200 because we have the login cookie")
+}
+
+func (s *AccountSuite) TestGetMajors() {
+	// Make request without any access token
+	w := utils.MakeRequest(s.router, http.MethodGet, "/account/profile/majors", nil)
+	s.Equal(http.StatusUnauthorized, w.Result().StatusCode, "status should be 401 because there is no jwt")
+
+	expectedResponse := `
+		[
+			{
+				"name": "Bacharelado em Ciências de Computação",
+				"code": "55041",
+				"specialization": "0"
+			}
+		]
+	`
+
+	// Attach cookie and re run request
+	w = utils.MakeRequest(s.router, http.MethodGet, "/account/profile/majors", nil, s.accessToken)
+	s.Equal(http.StatusOK, w.Result().StatusCode, "profile should return 200 because we have the login cookie")
+
+	// expect correct response
+	bytes, err := io.ReadAll(w.Result().Body)
+	s.NoError(err)
+	s.JSONEq(expectedResponse, string(bytes))
 }
 
 func (s *AccountSuite) TestSignupCaptcha() {

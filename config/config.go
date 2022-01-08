@@ -61,6 +61,11 @@ func (c Config) IsLocal() bool {
 	return c.Mode == "local"
 }
 
+// IsProd returns whether the configuration environment is in production mode
+func (c Config) IsProd() bool {
+	return c.Mode == "prod"
+}
+
 // Redact can be used to print the environment config without exposing secret
 func (c Config) Redact() Config {
 	c.AESKey = "[REDACTED]"

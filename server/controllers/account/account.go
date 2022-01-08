@@ -9,15 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Profile is a closure for the GET /account/profile endpoint
-func Profile(DB db.Env) func(ctx *gin.Context) {
-	return func(ctx *gin.Context) {
-		userID := ctx.MustGet("userID").(string)
-
-		account.Profile(ctx, DB, userID)
-	}
-}
-
 // ResetPassword is a closure for PUT /account/password_reset
 // It differs from ChangePassword because the user does not have to be logged in.
 func ResetPassword(DB db.Env) func(ctx *gin.Context) {
@@ -114,5 +105,21 @@ func Delete(DB db.Env) func(ctx *gin.Context) {
 		userID := ctx.MustGet("userID").(string)
 
 		account.Delete(ctx, DB, userID)
+	}
+}
+
+// Update is a closure for the PUT /account/update endpoint
+func Update(DB db.Env) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		userID := ctx.MustGet("userID").(string)
+
+		// validate update data
+		var updateForm controllers.UpdateForm
+		if err := ctx.ShouldBindJSON(&updateForm); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		account.Update(ctx, DB, userID, &updateForm)
 	}
 }

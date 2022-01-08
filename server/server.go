@@ -18,17 +18,30 @@ func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
 	accountGroup.DELETE("", middleware.JWT(), account.Delete(DB))
 	accountGroup.GET("/captcha", account.SignupCaptcha())
 	accountGroup.GET("/logout", middleware.JWT(), account.Logout())
-	accountGroup.GET("/profile", middleware.JWT(), account.Profile(DB))
 	accountGroup.POST("/login", account.Login(DB))
 	accountGroup.POST("/create", account.Signup(DB))
 	accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
 	accountGroup.PUT("/password_reset", account.ResetPassword(DB))
 	accountGroup.GET("/verify", account.VerifyAccount(DB))
+	accountGroup.PUT("/update", middleware.JWT(), account.Update(DB))
 
 	emailGroup := accountGroup.Group("/email")
 	{
 		emailGroup.POST("/verification", account.VerifyEmail(DB))
 		emailGroup.POST("/password_reset", account.RequestPasswordReset(DB))
+	}
+
+	profileGroup := accountGroup.Group("/profile", middleware.JWT())
+	{
+		profileGroup.GET("", account.Profile(DB))
+		profileGroup.GET("/majors", account.GetMajors(DB))
+		profileGroup.GET("/curriculum", entity.CurriculumQueryBinder, account.SearchCurriculum(DB))
+
+		transcriptGroup := profileGroup.Group("/transcript")
+		{
+			transcriptGroup.GET("", entity.TranscriptQueryBinder, account.SearchTranscript(DB))
+			transcriptGroup.GET("/years", account.GetTranscriptYears(DB))
+		}
 	}
 }
 
@@ -66,6 +79,7 @@ func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
 		{
 			offeringsAPI.GET("/comments", private.GetComment(DB))
 			offeringsAPI.PUT("/comments", private.PublishComment(DB))
+			offeringsAPI.DELETE("/comments", private.DeleteComment(DB))
 
 			commentsAPI := offeringsAPI.Group("/comments", entity.CommentRatingBinder)
 			{

@@ -34,7 +34,7 @@ func AllowUSPYOrigin() gin.HandlerFunc {
 		ctx.Header("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With,observe")
 
 		var frontURL string
-		if config.Env.Mode == "dev" {
+		if config.Env.IsDev() {
 			frontURL = "https://frontdev.uspy.me"
 		} else {
 			frontURL = "https://uspy.me"

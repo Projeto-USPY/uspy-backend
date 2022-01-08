@@ -10,7 +10,10 @@ import (
 //
 // These are used not only for sanitization purposes, but also for simplifying internal logic
 var (
-	SubjectBinder       = middleware.Bind("Subject", &controllers.Subject{}, binding.Query)
-	OfferingBinder      = middleware.Bind("Offering", &controllers.Offering{}, binding.Query)
-	CommentRatingBinder = middleware.Bind("CommentRating", &controllers.CommentRating{}, binding.Query)
+	SubjectBinder         = middleware.Bind("Subject", &controllers.Subject{}, binding.Query)
+	OfferingBinder        = middleware.Bind("Offering", &controllers.Offering{}, binding.Query)
+	CommentRatingBinder   = middleware.Bind("CommentRating", &controllers.CommentRating{}, binding.Query)
+	MajorBinder           = middleware.Bind("Major", &controllers.Major{}, binding.Query)
+	CurriculumQueryBinder = middleware.Bind("CurriculumQuery", &controllers.CurriculumQuery{}, binding.Query)
+	TranscriptQueryBinder = middleware.Bind("TranscriptQuery", &controllers.TranscriptQuery{}, binding.Query)
 )

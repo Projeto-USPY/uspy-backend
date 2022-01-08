@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -147,4 +148,31 @@ func IsHex(s string) bool {
 	}
 
 	return true
+}
+
+// UniqueInts takes a slice of integers and returns a new slice without duplicates
+func UniqueInts(values []int) []int {
+	results := make([]int, 0, len(values))
+
+	set := make(map[int]struct{})
+	for _, v := range values {
+		if _, ok := set[v]; ok {
+			continue
+		}
+
+		set[v] = struct{}{}
+		results = append(results, v)
+	}
+
+	return results
+}
+
+// MustAtoi is like strconv.Atoi, but panics if it fails
+func MustAtoi(value string) int {
+	v, err := strconv.Atoi(value)
+	if err != nil {
+		panic(err)
+	}
+
+	return v
 }

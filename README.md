@@ -126,12 +126,21 @@ To deploy and/or run this application, there are a few requisites:
 To execute the webserver locally, simply run:
 
 ```sh
-docker-compose up --build -d
+sudo docker-compose up --build -d
+```
+
+**P.S.:** Make sure to run docker-compose as sudo if you're loading previously exported files. These files are saved as root and running without sudo may fail due to permission errors.
+
+**P.S².:** If this fails due to ".../docker/emulator/mount" not existing, try creating the folder before running docker-compose like so:
+
+```sh
+mkdir docker/emulator/mount
 ```
 
 This will run three daemon containers, mapped to local ports:
 
 - **firestore-emulator on 127.0.0.1:8200**
+- **firestore-emulator (UI) on 127.0.0.1:4000**
 - **uspy-backend on 127.0.0.1:8080**
 - **uspy-scraper on 127.0.0.1:8300**
 
