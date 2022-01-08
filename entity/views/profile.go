@@ -13,6 +13,7 @@ type Profile struct {
 	LastUpdate time.Time `json:"last_update"`
 }
 
+// NewProfile returns a new view profile object from user data
 func NewProfile(user, name string, lastUpdate time.Time) *Profile {
 	return &Profile{
 		User:       user,
