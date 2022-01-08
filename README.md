@@ -263,4 +263,6 @@ If this is the case, please submit an issue through the [contributions repositor
 
 If you'd to directly contribute, fork this repository and create a pull request to merge on `dev` branch. Please do not submit pull requests to the main branch as they will be denied. The main branch is used for releases and we don't really push to it other than through the `deploy.sh` script.
 
-We really appreciate any contributors! This project is from USP students and for USP students! If you have any questions or would simply like to chat, contact us on Telegram `@preischadt` `@lucsturci`
+If you'd to directly contribute, fork this repository and create a pull request to merge on `dev` branch. Please do not submit pull requests to the main branch as they will be denied. The main branch is used for releases and we don't really push to it other than through the `deploy.sh` script.
+
+We really appreciate any contributors! This project is from USP students and for USP students! If you have any questions or would simply like to chat, contact us on Telegram @preischadt @lucsturci
