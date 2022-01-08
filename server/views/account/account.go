@@ -2,6 +2,7 @@ package account
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
@@ -48,8 +49,8 @@ func SignupCaptcha(ctx *gin.Context, resp *http.Response) {
 }
 
 // Login sets the profile data once it is successful
-func Login(ctx *gin.Context, id, name string) {
-	ctx.JSON(http.StatusOK, views.Profile{User: id, Name: name})
+func Login(ctx *gin.Context, id, name string, lastUpdate time.Time) {
+	ctx.JSON(http.StatusOK, views.NewProfile(id, name, lastUpdate))
 }
 
 // Logout removes the access token once it is successful
