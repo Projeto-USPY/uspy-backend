@@ -445,7 +445,7 @@ func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
 	}
 
 	ctx.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
-	account.Login(ctx, login.ID, name)
+	account.Login(ctx, login.ID, name, storedUser.LastUpdate)
 }
 
 // Logout is a dummy method that simply calls the view method that will unset the access token cookie
