@@ -614,7 +614,7 @@ func Update(ctx *gin.Context, DB db.Env, userID string, updateForm *controllers.
 	}
 
 	if userID != data.Nusp {
-		ctx.AbortWithError(http.StatusForbidden, errors.New("user tried updating with someone else's transcript"))
+		ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidUpdate)
 		return
 	}
 
