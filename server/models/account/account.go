@@ -613,6 +613,11 @@ func Update(ctx *gin.Context, DB db.Env, userID string, updateForm *controllers.
 		return
 	}
 
+	if userID != data.Nusp {
+		ctx.AbortWithError(http.StatusForbidden, errors.New("user tried updating with someone else's transcript"))
+		return
+	}
+
 	if err := UpdateUser(ctx, DB, &data, userID, pdf.CreationDate); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error updating user: %s", err.Error()))
 		return
