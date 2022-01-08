@@ -137,8 +137,15 @@ func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 	// Divide records data into each semester/year
 	pairs := regexp.MustCompile(`\s+\d{4} [1-2]º\. Semestre\s+`).FindAllStringIndex(pdf.Body, -1)
 
-	for i := 0; i < len(pairs)-1; i++ {
-		l, r := pairs[i][0], pairs[i+1][0]
+	for i := 0; i < len(pairs); i++ {
+		l := pairs[i][0]
+
+		var r int
+		if i+1 < len(pairs) {
+			r = pairs[i+1][0]
+		} else {
+			r = len(pdf.Body)
+		}
 
 		// get current year and semester
 		info := regexp.MustCompile(`(\d{4}) ([1-2])º\. Semestre`).FindStringSubmatch(pdf.Body[pairs[i][0]:pairs[i][1]])
