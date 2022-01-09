@@ -26,24 +26,25 @@ type Offering struct {
 func SortOfferings(results []*Offering) {
 	sort.SliceStable(results,
 		func(i, j int) bool {
-			// sort by ratings
-			ithApproval, jthApproval := (results[i].Approval + results[i].Neutral), (results[j].Approval + results[j].Neutral)
+			if results[i].Approval == results[j].Approval {
+				if results[i].Neutral == results[j].Neutral {
+					if results[i].Disapproval == results[j].Disapproval {
+						// if ratings are the same, show latest or most offerings
+						sizeI, sizeJ := len(results[i].Years), len(results[j].Years)
+						if results[i].Years[sizeI-1] == results[j].Years[sizeJ-1] {
+							return len(results[i].Years) > len(results[j].Years)
+						}
 
-			if ithApproval == jthApproval {
-				if results[i].Disapproval == results[j].Disapproval {
-					// if ratings are the same, show latest or most offerings
-					sizeI, sizeJ := len(results[i].Years), len(results[j].Years)
-					if results[i].Years[sizeI-1] == results[j].Years[sizeJ-1] {
-						return len(results[i].Years) > len(results[j].Years)
+						return results[i].Years[sizeI-1] > results[j].Years[sizeJ-1]
 					}
 
-					return results[i].Years[sizeI-1] > results[j].Years[sizeJ-1]
+					return results[i].Disapproval < results[j].Disapproval
 				}
 
-				return results[i].Disapproval < results[j].Disapproval
+				return results[i].Neutral > results[j].Neutral
 			}
 
-			return ithApproval > jthApproval
+			return results[i].Approval > results[j].Approval
 		},
 	)
 }
