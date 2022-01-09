@@ -49,7 +49,8 @@ func (s *UserSuite) TestGetGrade() {
 	expectedResponse := `{
 		"grade": 9.0,
 		"status": "A",
-		"frequency": 100
+		"frequency": 100,
+		"reviewed": false
 	}`
 
 	bytes, err := io.ReadAll(w.Result().Body)
