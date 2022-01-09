@@ -250,6 +250,34 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 		return
 	}
 
+	// get all user comments and cache them, we will use them for injecting the reviewed property on the record view
+	snaps, err := DB.RestoreCollection(fmt.Sprintf(
+		"users/%s/user_comments",
+		userHash,
+	))
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch refs of user comments: %s", err.Error()))
+		return
+	}
+
+	commentHashes := make(map[string]struct{})
+	for _, snap := range snaps {
+		var userComment models.UserComment
+		if err := snap.DataTo(&userComment); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind snap to user comment: %s", err.Error()))
+			return
+		}
+
+		subHash := models.Subject{
+			Code:           userComment.Subject,
+			CourseCode:     userComment.Course,
+			Specialization: userComment.Specialization,
+		}.Hash()
+
+		commentHashes[subHash] = struct{}{}
+	}
+
 	for i := 0; i < len(gradeSnaps); i++ {
 		gradeSnap := gradeSnaps[i]
 		subSnap := subSnaps[i]
@@ -284,6 +312,9 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 		record.Specialization = subject.Specialization
 		record.Name = subject.Name
 
+		// inject reviewed property
+		_, ok := commentHashes[subject.Hash()]
+		record.Reviewed = ok
 		results = append(results, record)
 	}
 

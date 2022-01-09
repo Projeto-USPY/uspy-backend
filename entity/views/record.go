@@ -13,6 +13,7 @@ type Record struct {
 	Name           string `json:"name,omitempty"`
 	Course         string `json:"course,omitempty"`
 	Specialization string `json:"specialization,omitempty"`
+	Reviewed       bool   `json:"reviewed"`
 
 	Grade     float64 `json:"grade"`
 	Status    string  `json:"status"`
