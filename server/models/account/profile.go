@@ -24,6 +24,9 @@ func Profile(ctx *gin.Context, DB db.Env, userID string) {
 
 	snap, err := DB.Restore("users/" + utils.SHA256(userID))
 	if err != nil {
+		// safely remove cookie just to make sure user is not logged on with an account that does not exist anymore
+		utils.RemoveAccessToken(ctx, !config.Env.IsLocal())
+
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get user with id %s: %s", userID, err.Error()))
 		return
 	}
