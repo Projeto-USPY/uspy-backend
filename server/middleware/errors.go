@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,8 +9,9 @@ import (
 // DumpErrors is a middleware for dumping all errors that are set in the context
 func DumpErrors() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		ctx.Next()
 		for _, err := range ctx.Errors {
-			log.Printf("Got error: %s\n", err.Error())
+			log.Error(err)
 		}
 	}
 }

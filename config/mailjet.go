@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/mailjet/mailjet-apiv3-go"
 )
@@ -45,7 +45,7 @@ func (m *Mailjet) Setup() {
 	if m.APIKey != "" && m.Secret != "" {
 		m.client = mailjet.NewMailjetClient(m.APIKey, m.Secret)
 	} else {
-		log.Println("failed to configure email client")
+		log.Error("failed to configure email client")
 	}
 }
 

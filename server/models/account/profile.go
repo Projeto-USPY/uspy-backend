@@ -3,10 +3,12 @@ package account
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"sort"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
@@ -292,7 +294,9 @@ func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *co
 
 		// if subject was not found, this is unexpected
 		if !subSnap.Exists() {
-			log.Printf("failed to get subject with hash %s in records query, this should not happen, maybe subject does not exist anymore?\n", subSnap.Ref.ID)
+			log.WithFields(log.Fields{
+				"path": subSnap.Ref.Path,
+			}).Warn("failed to get subject in records query, this should not happen, maybe subject does not exist anymore?")
 			continue
 		}
 

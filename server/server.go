@@ -95,14 +95,15 @@ func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
 //
 // It returns an error if any validation fails to be registered
 func SetupRouter(DB db.Env) (*gin.Engine, error) {
-	r := gin.Default() // Create web-server object
+	r := gin.New() // Create web-server object
 
 	err := validation.SetupValidators()
 	if err != nil {
 		return nil, err
 	}
 
-	r.Use(gin.Recovery(), middleware.DefineDomain(), middleware.DumpErrors())
+	r.Use(gin.Recovery(), middleware.Logger(), middleware.DefineDomain(), middleware.DumpErrors())
+	gin.ForceConsoleColor()
 
 	if config.Env.IsLocal() {
 		r.Use(middleware.AllowAnyOrigin())
