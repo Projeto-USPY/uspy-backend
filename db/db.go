@@ -3,7 +3,8 @@ package db
 
 import (
 	"errors"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
@@ -151,25 +152,24 @@ func InitFireStore() Env {
 		conf := &firebase.Config{ProjectID: config.Env.Identify()}
 		app, err := firebase.NewApp(DB.Ctx, conf)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 
 		DB.Client, err = app.Firestore(DB.Ctx)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 	} else {
 		sa := option.WithCredentialsFile(config.Env.Identify())
 
 		app, err := firebase.NewApp(DB.Ctx, nil, sa)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
 
 		DB.Client, err = app.Firestore(DB.Ctx)
 		if err != nil {
-			log.Println(err)
-			log.Fatalln("There might be something wrong with your credentials file!")
+			log.Fatal("There might be something wrong with your credentials file!")
 		}
 	}
 
