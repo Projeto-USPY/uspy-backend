@@ -46,6 +46,7 @@ func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
 }
 
 func setupPublic(DB db.Env, apiGroup *gin.RouterGroup) {
+	apiGroup.GET("/stats", public.GetStats(DB))
 	apiGroup.GET("/subject/all", public.GetSubjects(DB))
 	subjectAPI := apiGroup.Group("/subject", entity.SubjectBinder)
 	{
