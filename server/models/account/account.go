@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"reflect"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/config"
@@ -218,7 +219,10 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 			}
 		}
 
-		log.Printf("applying update operation, num of new records:%v, num of operations:%v\n", newRecords, len(ops))
+		log.WithFields(log.Fields{
+			"new_records": newRecords,
+			"num_ops":     len(ops),
+		}).Debug("applying update operation")
 
 		// apply operations
 		return db_utils.ApplyConcurrentOperationsInTransaction(tx, ops)
@@ -566,7 +570,9 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 	if deleteErr := DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		objects := getUserObjects(ctx, DB, tx, userID)
 
-		log.Printf("user is removing their account, total objects affected: %v\n", len(objects))
+		log.WithFields(log.Fields{
+			"affected_objects": len(objects),
+		}).Debug("user is removing their account")
 		return db_utils.ApplyConcurrentOperationsInTransaction(tx, objects)
 	}); deleteErr != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, deleteErr)

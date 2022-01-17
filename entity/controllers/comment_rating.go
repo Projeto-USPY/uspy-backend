@@ -13,5 +13,5 @@ type CommentRateBody struct {
 
 // CommentReportBody is the object that holds the message when reporting users' comments
 type CommentReportBody struct {
-	Body string `json:"body" binding:"required,min=10,max=300"`
+	Body string `json:"body" binding:"required,min=10,max=500"`
 }
