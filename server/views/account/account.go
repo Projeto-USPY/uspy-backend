@@ -7,16 +7,9 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 )
-
-func removeAccessToken(ctx *gin.Context) {
-	domain := ctx.MustGet("front_domain").(string)
-	secureCookie := !config.Env.IsLocal()
-
-	// delete access_token cookie
-	ctx.SetCookie("access_token", "", -1, "/", domain, secureCookie, true)
-}
 
 // Signup sets the records
 func Signup(ctx *gin.Context, userID string, records iddigital.Transcript) {
@@ -55,7 +48,7 @@ func Login(ctx *gin.Context, id, name string, lastUpdate time.Time) {
 
 // Logout removes the access token once it is successful
 func Logout(ctx *gin.Context) {
-	removeAccessToken(ctx)
+	utils.RemoveAccessToken(ctx, !config.Env.IsLocal())
 	ctx.Status(http.StatusOK)
 }
 
@@ -71,7 +64,7 @@ func ChangePassword(ctx *gin.Context) {
 
 // Delete removes the access token once it is succesful
 func Delete(ctx *gin.Context) {
-	removeAccessToken(ctx)
+	utils.RemoveAccessToken(ctx, !config.Env.IsLocal())
 	ctx.Status(http.StatusOK)
 }
 

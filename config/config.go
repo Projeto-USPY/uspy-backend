@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/joho/godotenv"
@@ -84,30 +84,30 @@ func TestSetup() {
 		log.Fatal("could not process default env variables: ", err)
 	}
 
-	log.Printf("env variables set: %#v\n", Env)
+	log.Info("env variables set", Env)
 }
 
 // Setup parses the .env file (or uses defaults) to determine environment constants and variables
 func Setup() {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Println("did not parse .env file, falling to default env variables")
+		log.Info("did not parse .env file, falling to default env variables")
 	}
 
 	if err := envconfig.Process("uspy", &Env); err != nil {
 		log.Fatal("could not process default env variables: ", err)
 	}
 
-	log.Printf("env variables set: %#v\n", Env.Redact())
+	log.Info("env variables set", Env.Redact())
 
 	if Env.IsUsingKey() {
-		log.Println("Running backend with firestore key")
+		log.Info("Running backend with firestore key")
 
 		if !utils.CheckFileExists(Env.FirestoreKeyPath) {
 			log.Fatal("Could not find firestore key path: ", Env.FirestoreKeyPath)
 		}
 	} else if Env.IsUsingProjectID() {
-		log.Println("Running backend with project ID")
+		log.Info("Running backend with project ID")
 
 		// setup email client
 		Env.Mailjet.Setup()
