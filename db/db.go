@@ -123,26 +123,44 @@ func (db Env) Update(obj Updater, collection string) error {
 }
 
 // BatchWrite will perform operations atomically
+//
+// For a batch of more than 500 documents, batch write will perform each of these batches sequentially
+// TODO: Apply batches concurrently
 func (db Env) BatchWrite(objs []BatchObject) error {
-	batch := db.Client.Batch()
-
-	for _, o := range objs {
-		if o.WriteData == nil && o.UpdateData == nil {
-			return errors.New("both write data and update data are nil")
+	numObjs := len(objs)
+	for i := 0; i < numObjs; i += 500 {
+		last := i + 500
+		if last > numObjs {
+			last = numObjs
 		}
 
-		if o.Doc == "" { // create document with random hash
-			batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.WriteData, o.SetOptions...)
-		} else {
-			if o.WriteData != nil { // set operation
-				batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.WriteData, o.SetOptions...)
-			} else if o.UpdateData != nil { // update operation
-				batch.Update(db.Client.Collection(o.Collection).Doc(o.Doc), o.UpdateData, o.Preconditions...)
+		// perform batch of at maximum 500 operations
+		batch := db.Client.Batch()
+
+		for j := i; j < last; j++ {
+			o := objs[i]
+
+			if o.WriteData == nil && o.UpdateData == nil {
+				return errors.New("both write data and update data are nil")
+			}
+
+			if o.Doc == "" { // create document with random hash
+				batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.WriteData, o.SetOptions...)
+			} else {
+				if o.WriteData != nil { // set operation
+					batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.WriteData, o.SetOptions...)
+				} else if o.UpdateData != nil { // update operation
+					batch.Update(db.Client.Collection(o.Collection).Doc(o.Doc), o.UpdateData, o.Preconditions...)
+				}
 			}
 		}
+
+		if _, err := batch.Commit(db.Ctx); err != nil {
+			return err
+		}
 	}
-	_, err := batch.Commit(db.Ctx)
-	return err
+
+	return nil
 }
 
 // InitFireStore initiates the DB Environment (requires some environment variables to work)
