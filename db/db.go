@@ -37,6 +37,9 @@ type BatchObject struct {
 
 	WriteData  Writer
 	UpdateData []firestore.Update
+
+	Preconditions []firestore.Precondition
+	SetOptions    []firestore.SetOption
 }
 
 // Operation is used as a generic operation to be applied on a document
@@ -129,12 +132,12 @@ func (db Env) BatchWrite(objs []BatchObject) error {
 		}
 
 		if o.Doc == "" { // create document with random hash
-			batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.WriteData)
+			batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.WriteData, o.SetOptions...)
 		} else {
 			if o.WriteData != nil { // set operation
-				batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.WriteData)
+				batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.WriteData, o.SetOptions...)
 			} else if o.UpdateData != nil { // update operation
-				batch.Update(db.Client.Collection(o.Collection).Doc(o.Doc), o.UpdateData)
+				batch.Update(db.Client.Collection(o.Collection).Doc(o.Doc), o.UpdateData, o.Preconditions...)
 			}
 		}
 	}
