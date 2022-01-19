@@ -150,10 +150,10 @@ Some things to consider:
 2. After the container initializes, the database will be empty, you can build its data using uspy-scraper by running
 
 ```sh
-curl -X POST "localhost:8300/build?targets=subjects"
+curl -X POST "localhost:8300/build?institute=55"
 ```
 
-This operation may take a minute to complete and it may fail due to errors on JupiterWeb. You can also **omit the query parameter** if you'd like to also scrape offerings data.
+This operation should only take a few seconds to complete and it may fail due to errors on JupiterWeb. You can also use a different value other than 55 for scraping data from other institutes, but some other features may not work correctly.
 
 To clean up:
 
