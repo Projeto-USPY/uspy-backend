@@ -138,7 +138,7 @@ func (db Env) BatchWrite(objs []BatchObject) error {
 		batch := db.Client.Batch()
 
 		for j := i; j < last; j++ {
-			o := objs[i]
+			o := objs[j]
 
 			if o.WriteData == nil && o.UpdateData == nil {
 				return errors.New("both write data and update data are nil")
