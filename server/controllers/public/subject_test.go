@@ -38,6 +38,7 @@ func (s *SubjectSuite) TestGetAll() {
 				"name": "Bacharelado em Ciências de Computação",
 				"code": "55041",
 				"specialization": "0",
+				"shift": "integral",
 				"subjects": {
 					"SCC0222": "Laboratório de Introdução à Ciência de Computação I",
 					"SCC0217": "Linguages de Programação e Compiladores"
@@ -47,6 +48,7 @@ func (s *SubjectSuite) TestGetAll() {
 				"name": "Bacharelado em Ciência de Dados",
 				"code": "55090",
 				"specialization": "0",
+				"shift": "integral",
 				"subjects": {
 					"SCC0230": "Inteligência Artificial"
 				}

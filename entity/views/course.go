@@ -7,6 +7,7 @@ type Course struct {
 	Name           string            `json:"name"`
 	Code           string            `json:"code"`
 	Specialization string            `json:"specialization"`
+	Shift          string            `json:"shift"`
 	SubjectCodes   map[string]string `json:"subjects"`
 }
 
@@ -16,7 +17,9 @@ func NewCourseFromModel(course *models.Course) *Course {
 		Name:           course.Name,
 		Code:           course.Code,
 		Specialization: course.Specialization,
-		SubjectCodes:   make(map[string]string),
+		Shift:          course.Shift,
+
+		SubjectCodes: make(map[string]string),
 	}
 
 	for k, v := range course.SubjectCodes {

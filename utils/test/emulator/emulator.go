@@ -66,6 +66,7 @@ var (
 			Name:           "Bacharelado em Ciência de Dados",
 			Code:           "55090",
 			Specialization: "0",
+			Shift:          "integral",
 			SubjectCodes: map[string]string{
 				"SCC0230": "Inteligência Artificial",
 			},
@@ -74,6 +75,7 @@ var (
 			Name:           "Bacharelado em Ciências de Computação",
 			Code:           "55041",
 			Specialization: "0",
+			Shift:          "integral",
 			SubjectCodes: map[string]string{
 				"SCC0222": "Laboratório de Introdução à Ciência de Computação I",
 				"SCC0217": "Linguages de Programação e Compiladores",

@@ -13,6 +13,7 @@ type Course struct {
 	Name           string            `firestore:"name"`
 	Code           string            `firestore:"code"`
 	Specialization string            `firestore:"specialization"`
+	Shift          string            `firestore:"shift"`
 	SubjectCodes   map[string]string `firestore:"subjects"`
 
 	Subjects []Subject `firestore:"-"`
