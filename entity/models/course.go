@@ -25,7 +25,7 @@ func (c Course) Hash() string {
 	return utils.SHA256(str)
 }
 
-// Insert sets a course to a given collection. This is usually /courses
+// Insert sets a course to a given collection. This is usually /institutes/#institute/courses
 func (c Course) Insert(DB db.Env, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Set(DB.Ctx, c)
 	return err

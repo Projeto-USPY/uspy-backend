@@ -7,10 +7,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetInstitutes is a closure for the GET /institutes endpoint
+func GetInstitutes(DB db.Env) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		public.GetInstitutes(ctx, DB)
+	}
+}
+
 // GetSubjects is a closure for the GET /api/subject/all endpoint
 func GetSubjects(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		public.GetAllSubjects(ctx, DB)
+		institute := ctx.MustGet("Institute").(*controllers.Institute)
+		public.GetAllSubjects(ctx, DB, institute)
 	}
 }
 

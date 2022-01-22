@@ -8,6 +8,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetInstitutes takes the institute models and returns its response view objects
+func GetInstitutes(ctx *gin.Context, institutes []models.Institute) {
+	viewInstitutes := make([]*views.Institute, 0, len(institutes))
+	for _, inst := range institutes {
+		viewInstitutes = append(viewInstitutes, views.NewInstituteFromModel(&inst))
+	}
+
+	ctx.JSON(http.StatusOK, viewInstitutes)
+}
+
 // GetAllSubjects takes the courses models and returns its response view object.
 func GetAllSubjects(ctx *gin.Context, courses []models.Course) {
 	viewCourses := make([]views.Course, 0, 1000)

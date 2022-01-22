@@ -14,9 +14,40 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// GetInstitutes gets all institutes from the database
+func GetInstitutes(ctx *gin.Context, DB db.Env) {
+	snaps, err := DB.RestoreCollection("institutes")
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find collection institutes: %s", err.Error()))
+			return
+		}
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch institutes: %s", err.Error()))
+		return
+	}
+
+	institutes := make([]models.Institute, 0, 200)
+	for _, s := range snaps {
+		var c models.Institute
+		err = s.DataTo(&c)
+		institutes = append(institutes, c)
+		if err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch institutes: %s", err.Error()))
+			return
+		}
+	}
+
+	public.GetInstitutes(ctx, institutes)
+}
+
 // GetAllSubjects gets all subjects from the database
-func GetAllSubjects(ctx *gin.Context, DB db.Env) {
-	snaps, err := DB.RestoreCollection("courses")
+func GetAllSubjects(ctx *gin.Context, DB db.Env, controller *controllers.Institute) {
+	institute := models.NewInstituteFromController(controller)
+	snaps, err := DB.RestoreCollection(fmt.Sprintf(
+		"institutes/%s/courses",
+		institute.Hash(),
+	))
+
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find collection courses: %s", err.Error()))
