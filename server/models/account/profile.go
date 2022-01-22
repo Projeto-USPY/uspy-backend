@@ -69,14 +69,21 @@ func GetMajors(ctx *gin.Context, DB db.Env, userID string) {
 			return
 		}
 
-		snap, err := DB.Restore(fmt.Sprintf("institutes/%s/courses/%s", utils.SHA256("55"), storedMajor.Hash()))
+		snaps, err := DB.Client.CollectionGroup("courses").
+			Where("code", "==", storedMajor.Code).
+			Where("specialization", "==", storedMajor.Specialization).
+			Documents(ctx).
+			GetAll()
 
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get course name using major: %s", err.Error()))
 			return
+		} else if len(snaps) != 1 {
+			ctx.AbortWithError(http.StatusInternalServerError, errors.New("got more than 1 course with tuple (code, specialization), this is unexpected"))
+			return
 		}
 
-		if err := snap.DataTo(&storedCourse); err != nil {
+		if err := snaps[0].DataTo(&storedCourse); err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind course: %s", err.Error()))
 			return
 		}
