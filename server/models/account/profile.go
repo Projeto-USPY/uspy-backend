@@ -69,7 +69,7 @@ func GetMajors(ctx *gin.Context, DB db.Env, userID string) {
 			return
 		}
 
-		snap, err := DB.Restore("courses/" + storedMajor.Hash())
+		snap, err := DB.Restore(fmt.Sprintf("institutes/%s/courses/%s", utils.SHA256("55"), storedMajor.Hash()))
 
 		if err != nil {
 			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to get course name using major: %s", err.Error()))

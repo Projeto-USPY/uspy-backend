@@ -30,7 +30,7 @@ func TestSubjectSuite(t *testing.T) {
 }
 
 func (s *SubjectSuite) TestGetAll() {
-	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/all", nil)
+	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/all?institute=55", nil)
 
 	expectedResponse := `
 		[

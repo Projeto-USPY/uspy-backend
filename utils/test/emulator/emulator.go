@@ -15,6 +15,7 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/iddigital"
 	"github.com/Projeto-USPY/uspy-backend/server/models/account"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 )
 
 // Test constants
@@ -58,6 +59,13 @@ var (
 			TotalHours:     "120 h",
 			Stats:          map[string]int{"total": 0, "worth_it": 0},
 			Optional:       false,
+		},
+	}
+
+	Institutes = []models.Institute{
+		{
+			Name: "Instituto de Ciências Matemáticas e de Computação",
+			Code: "55",
 		},
 	}
 
@@ -161,11 +169,19 @@ func setup(DB db.Env) error {
 		}(v)
 	}
 
+	for _, i := range Institutes {
+		wg.Add(1)
+		go func(i models.Institute) {
+			defer wg.Done()
+			errChannel <- DB.Insert(i, "institutes")
+		}(i)
+	}
+
 	for _, c := range Courses {
 		wg.Add(1)
 		go func(c models.Course) {
 			defer wg.Done()
-			errChannel <- DB.Insert(c, "courses")
+			errChannel <- DB.Insert(c, fmt.Sprintf("institutes/%s/courses", utils.SHA256("55")))
 		}(c)
 	}
 

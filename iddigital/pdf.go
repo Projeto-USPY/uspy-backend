@@ -3,6 +3,7 @@ package iddigital
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -127,7 +128,7 @@ func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 	}
 
 	course, specialization := matches[1], matches[2]
-	snaps, err := DB.RestoreCollection("courses")
+	snaps, err := DB.RestoreCollection(fmt.Sprintf("institutes/%s/courses", utils.SHA256("55")))
 	if err != nil {
 		panic(errors.New("could not fetch courses from firestore"))
 	}
