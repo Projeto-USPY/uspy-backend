@@ -184,11 +184,15 @@ func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
 				_, exists := c.SubjectCodes[subCode]
 
 				if exists {
-					if c.Code == course && c.Specialization == specialization { // if subject is from students course, then subject's course should be it
+					if c.Code == course && c.Specialization == specialization { // perfect match, there's a subject with exact course and specialization
 						subCourse = c.Code
 						subSpecialization = c.Specialization
-					} else if subCourse == "" && subSpecialization == "" { // otherwise choose any course to be the subject course
+						break
+					} else if subCourse == "" && subSpecialization == "" { // get from any major that contains this subject code
 						subCourse = c.Code
+						subSpecialization = c.Specialization
+					} else if c.Code == course { // replace any by a more likely match (this is useful for majors that have "ciclos básicos")
+						subCode = c.Code
 						subSpecialization = c.Specialization
 					}
 				}
