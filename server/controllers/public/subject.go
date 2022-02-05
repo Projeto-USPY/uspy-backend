@@ -14,11 +14,19 @@ func GetInstitutes(DB db.Env) func(ctx *gin.Context) {
 	}
 }
 
+// GetCourses is a closure for the GET /courses endpoint
+func GetCourses(DB db.Env) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		inst := ctx.MustGet("Institute").(*controllers.Institute)
+		public.GetCourses(ctx, DB, inst)
+	}
+}
+
 // GetSubjects is a closure for the GET /api/subject/all endpoint
 func GetSubjects(DB db.Env) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		institute := ctx.MustGet("Institute").(*controllers.Institute)
-		public.GetAllSubjects(ctx, DB, institute)
+		course := ctx.MustGet("Course").(*controllers.Course)
+		public.GetAllSubjects(ctx, DB, course)
 	}
 }
 

@@ -8,7 +8,7 @@ type Course struct {
 	Code           string            `json:"code"`
 	Specialization string            `json:"specialization"`
 	Shift          string            `json:"shift"`
-	SubjectCodes   map[string]string `json:"subjects"`
+	SubjectCodes   map[string]string `json:"subjects,omitempty"`
 }
 
 // NewCourseFromModel is a constructor. It takes a course model and returns its response view object.

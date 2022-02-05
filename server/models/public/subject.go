@@ -8,6 +8,7 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/views/public"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
@@ -40,35 +41,63 @@ func GetInstitutes(ctx *gin.Context, DB db.Env) {
 	public.GetInstitutes(ctx, institutes)
 }
 
-// GetAllSubjects gets all subjects from the database
-func GetAllSubjects(ctx *gin.Context, DB db.Env, controller *controllers.Institute) {
-	institute := models.NewInstituteFromController(controller)
+// GetCourses gets all course codes from a given institute the database
+func GetCourses(ctx *gin.Context, DB db.Env, institute *controllers.Institute) {
+	model := models.NewInstituteFromController(institute)
 	snaps, err := DB.RestoreCollection(fmt.Sprintf(
 		"institutes/%s/courses",
-		institute.Hash(),
+		model.Hash(),
+	),
+	)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find courses collection from institute: %s", err.Error()))
+			return
+		}
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses from institute: %s", err.Error()))
+		return
+	}
+
+	courses := make([]*models.Course, 0, 200)
+	for _, s := range snaps {
+		var c models.Course
+		if err := s.DataTo(&c); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
+			return
+		}
+
+		c.Subjects = nil // omit subject data to make response payload smaller
+		courses = append(courses, &c)
+	}
+
+	public.GetCourses(ctx, courses)
+}
+
+// GetAllSubjects gets all subjects from a given course in the database
+func GetAllSubjects(ctx *gin.Context, DB db.Env, controller *controllers.Course) {
+	course := models.NewCourseFromController(controller)
+	snap, err := DB.Restore(fmt.Sprintf(
+		"institutes/%s/courses/%s",
+		utils.SHA256(course.Institute),
+		course.Hash(),
 	))
 
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find collection courses: %s", err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find course: %s", err.Error()))
 			return
 		}
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch course: %s", err.Error()))
 		return
 	}
 
-	courses := make([]models.Course, 0, 1000)
-	for _, s := range snaps {
-		var c models.Course
-		err = s.DataTo(&c)
-		courses = append(courses, c)
-		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
-			return
-		}
+	var courseModel models.Course
+	if err := snap.DataTo(&courseModel); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind course to object: %s", err))
+		return
 	}
 
-	public.GetAllSubjects(ctx, courses)
+	public.GetAllSubjects(ctx, &courseModel)
 }
 
 // Get gets a subject by its identifier: subject code, course code and course specialization code
