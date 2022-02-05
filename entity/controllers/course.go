@@ -1,6 +1,6 @@
 package controllers
 
-// Course is a query parameter to specify which Course to get course data from
+// Course is a controller to specify which course to get course data from
 type Course struct {
 	Institute string `form:"institute" binding:"required,alphanum"`
 
