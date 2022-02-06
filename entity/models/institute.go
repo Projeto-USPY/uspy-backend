@@ -17,8 +17,10 @@ type Institute struct {
 }
 
 // NewInstituteFromController is a constructor. It takes a institute controller and returns a model.
-func NewInstituteFromController(inst *controllers.Institute) *Institute {
-	return &Institute{Code: inst.Code}
+func NewInstituteFromController(controller *controllers.Institute) *Institute {
+	return &Institute{
+		Code: controller.Code,
+	}
 }
 
 // Hash returns SHA256(code)
