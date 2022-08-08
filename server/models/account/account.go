@@ -14,7 +14,6 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
-	db_utils "github.com/Projeto-USPY/uspy-backend/db/utils"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
@@ -225,7 +224,7 @@ func UpdateUser(ctx context.Context, DB db.Database, data *iddigital.Transcript,
 		}).Debug("applying update operation")
 
 		// apply operations
-		return db_utils.ApplyConcurrentOperationsInTransaction(tx, ops)
+		return db.ApplyConcurrentOperationsInTransaction(tx, ops)
 	})
 }
 
@@ -573,7 +572,7 @@ func Delete(ctx *gin.Context, DB db.Database, userID string) {
 		log.WithFields(log.Fields{
 			"affected_objects": len(objects),
 		}).Debug("user is removing their account")
-		return db_utils.ApplyConcurrentOperationsInTransaction(tx, objects)
+		return db.ApplyConcurrentOperationsInTransaction(tx, objects)
 	}); deleteErr != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, deleteErr)
 		return

@@ -1,14 +1,13 @@
-package utils
+package db
 
 import (
 	"errors"
 	"sync"
 
 	"cloud.google.com/go/firestore"
-	"github.com/Projeto-USPY/uspy-backend/db"
 )
 
-func checkSubjectExists(DB db.Database, subHash string) error {
+func checkSubjectExists(DB Database, subHash string) error {
 	snap, err := DB.Restore("subjects/" + subHash)
 	if snap == nil || !snap.Exists() {
 		return ErrSubjectNotFound
@@ -17,7 +16,7 @@ func checkSubjectExists(DB db.Database, subHash string) error {
 	return err
 }
 
-func checkSubjectRecords(DB db.Database, userHash, subHash string) error {
+func checkSubjectRecords(DB Database, userHash, subHash string) error {
 	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
 	if len(col) == 0 {
 		return ErrNoPermission
@@ -26,7 +25,7 @@ func checkSubjectRecords(DB db.Database, userHash, subHash string) error {
 }
 
 // CheckSubjectPermission takes a user hash and a subject hash and checks whether the user has done this subject
-func CheckSubjectPermission(DB db.Database, userHash, subHash string) error {
+func CheckSubjectPermission(DB Database, userHash, subHash string) error {
 	errSub, errRec := checkSubjectExists(DB, subHash), checkSubjectRecords(DB, userHash, subHash)
 	if errSub != nil {
 		return errSub
@@ -41,14 +40,14 @@ func CheckSubjectPermission(DB db.Database, userHash, subHash string) error {
 //
 // It returns an error in case any operation fails
 // Use this function at the end of a transaction to ensure write operations are done in the end of the transaction
-func ApplyConcurrentOperationsInTransaction(tx *firestore.Transaction, operators []db.Operation) error {
+func ApplyConcurrentOperationsInTransaction(tx *firestore.Transaction, operators []Operation) error {
 	var wg sync.WaitGroup
 
 	// launch producers
 	errChan := make(chan error, len(operators))
 	wg.Add(len(operators))
 	for _, obj := range operators {
-		go func(job db.Operation, wg *sync.WaitGroup) {
+		go func(job Operation, wg *sync.WaitGroup) {
 			defer wg.Done()
 
 			if job.Err != nil { // if any operator failed, stop all goroutines, then return error

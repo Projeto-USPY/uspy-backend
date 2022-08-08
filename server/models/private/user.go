@@ -8,7 +8,6 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
-	db_utils "github.com/Projeto-USPY/uspy-backend/db/utils"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/views/private"
@@ -60,14 +59,14 @@ func GetSubjectReview(ctx *gin.Context, DB db.Database, userID string, sub *cont
 	userHash, subHash := user.Hash(), model.Hash()
 	review := models.SubjectReview{}
 
-	err := db_utils.CheckSubjectPermission(DB, userHash, subHash)
+	err := db.CheckSubjectPermission(DB, userHash, subHash)
 	if err != nil {
-		if err == db_utils.ErrSubjectNotFound {
+		if err == db.ErrSubjectNotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
-		if err == db_utils.ErrNoPermission {
+		if err == db.ErrNoPermission {
 			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
 			return
 		}
@@ -101,14 +100,14 @@ func GetSubjectReview(ctx *gin.Context, DB db.Database, userID string, sub *cont
 // UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
 func UpdateSubjectReview(ctx *gin.Context, DB db.Database, userID string, review *controllers.SubjectReview) {
 	userHash, model := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)
-	err := db_utils.CheckSubjectPermission(DB, userHash, model.Hash())
+	err := db.CheckSubjectPermission(DB, userHash, model.Hash())
 	if err != nil {
-		if err == db_utils.ErrSubjectNotFound {
+		if err == db.ErrSubjectNotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
-		if err == db_utils.ErrNoPermission {
+		if err == db.ErrNoPermission {
 			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
 			return
 		}

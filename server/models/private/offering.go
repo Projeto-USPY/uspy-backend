@@ -9,7 +9,6 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/db"
-	db_utils "github.com/Projeto-USPY/uspy-backend/db/utils"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/views/private"
@@ -122,7 +121,7 @@ func RateComment(
 		if err != nil {
 			return err
 		} else if len(snaps) == 0 {
-			return db_utils.ErrCommentNotFound
+			return db.ErrCommentNotFound
 		}
 
 		var modelComment models.Comment
@@ -281,7 +280,7 @@ func RateComment(
 	})
 
 	if err != nil {
-		if status.Code(err) == codes.NotFound || err == db_utils.ErrCommentNotFound {
+		if status.Code(err) == codes.NotFound || err == db.ErrCommentNotFound {
 			ctx.AbortWithStatus(http.StatusNotFound)
 			return
 		}
@@ -330,7 +329,7 @@ func ReportComment(
 		if err != nil {
 			return err
 		} else if len(snaps) == 0 {
-			return db_utils.ErrCommentNotFound
+			return db.ErrCommentNotFound
 		}
 
 		var modelComment models.Comment
@@ -377,7 +376,7 @@ func ReportComment(
 	})
 
 	if err != nil {
-		if status.Code(err) == codes.NotFound || err == db_utils.ErrCommentNotFound {
+		if status.Code(err) == codes.NotFound || err == db.ErrCommentNotFound {
 			ctx.AbortWithStatus(http.StatusNotFound)
 			return
 		}
@@ -404,13 +403,13 @@ func PublishComment(
 	userHash := models.User{ID: userID}.Hash()
 
 	// check if subject exists and if user has permission to comment
-	if err := db_utils.CheckSubjectPermission(DB, userHash, modelSub.Hash()); err != nil {
-		if err == db_utils.ErrSubjectNotFound {
+	if err := db.CheckSubjectPermission(DB, userHash, modelSub.Hash()); err != nil {
+		if err == db.ErrSubjectNotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", modelSub, err.Error()))
 			return
 		}
 
-		if err == db_utils.ErrNoPermission {
+		if err == db.ErrNoPermission {
 			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to comment: %s", userID, err.Error()))
 			return
 		}

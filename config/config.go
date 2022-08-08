@@ -25,7 +25,8 @@ type Config struct {
 	AESKey    string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
 	RateLimit string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
 
-	FirestoreKeyPath string `envconfig:"USPY_FIRESTORE_KEY"`
+	FirestoreKeyPath  string `envconfig:"USPY_FIRESTORE_KEY"`
+	MockFirestoreData bool   `envconfig:"USPY_MOCK_FIRESTORE_DATA" default:"false"`
 
 	ProjectID string `envconfig:"USPY_PROJECT_ID"`
 
@@ -80,11 +81,15 @@ func (c Config) Redact() Config {
 
 // TestSetup is used by the emulator, it will only load required defaults, no project-related identifiers
 func TestSetup() {
+	if (Env != Config{}) { // idempotent function
+		return
+	}
+
 	if err := envconfig.Process("uspy", &Env); err != nil {
 		log.Fatal("could not process default env variables: ", err)
 	}
 
-	log.Info("env variables set", Env)
+	log.Infof("env variables set %#v", Env)
 }
 
 // Setup parses the .env file (or uses defaults) to determine environment constants and variables

@@ -6,6 +6,7 @@ import (
 
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/db/mock"
 	"github.com/Projeto-USPY/uspy-backend/server"
 )
 
@@ -27,11 +28,22 @@ func init() {
 }
 
 func main() {
+	// connect with database
 	DB := db.SetupDB()
+
+	// setup dummy data for local testing if needed
+	if config.Env.MockFirestoreData {
+		if err := mock.SetupMockData(DB); err != nil {
+			log.Error("error inserting mock data: ", err)
+		}
+	}
+
+	// setup routes and callbacks
 	r, err := server.SetupRouter(DB)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// run web server
 	_ = r.Run(config.Env.Domain + ":" + config.Env.Port)
 }
