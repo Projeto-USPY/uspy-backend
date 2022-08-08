@@ -41,13 +41,13 @@ func (c Course) Hash() string {
 }
 
 // Insert sets a course to a given collection. This is usually /institutes/#institute/courses
-func (c Course) Insert(DB db.Env, collection string) error {
+func (c Course) Insert(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Set(DB.Ctx, c)
 	return err
 }
 
 // Update sets a course to a given collection
-func (c Course) Update(DB db.Env, collection string) error {
+func (c Course) Update(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(c.Hash()).Set(DB.Ctx, c)
 	return err
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
+func setupAccount(DB db.Database, accountGroup *gin.RouterGroup) {
 	accountGroup.DELETE("", middleware.JWT(), account.Delete(DB))
 	accountGroup.GET("/captcha", account.SignupCaptcha())
 	accountGroup.GET("/logout", middleware.JWT(), account.Logout())
@@ -45,7 +45,7 @@ func setupAccount(DB db.Env, accountGroup *gin.RouterGroup) {
 	}
 }
 
-func setupPublic(DB db.Env, apiGroup *gin.RouterGroup) {
+func setupPublic(DB db.Database, apiGroup *gin.RouterGroup) {
 	apiGroup.GET("/stats", public.GetStats(DB))
 	apiGroup.GET("/subject/all", entity.CourseBinder, public.GetSubjects(DB))
 	apiGroup.GET("/institutes", public.GetInstitutes(DB))
@@ -58,7 +58,7 @@ func setupPublic(DB db.Env, apiGroup *gin.RouterGroup) {
 	}
 }
 
-func setupRestricted(DB db.Env, restrictedGroup *gin.RouterGroup) {
+func setupRestricted(DB db.Database, restrictedGroup *gin.RouterGroup) {
 	subjectAPI := restrictedGroup.Group("/subject", entity.SubjectBinder)
 	{
 		subjectAPI.GET("/grades", restricted.GetGrades(DB))
@@ -71,7 +71,7 @@ func setupRestricted(DB db.Env, restrictedGroup *gin.RouterGroup) {
 	}
 }
 
-func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
+func setupPrivate(DB db.Database, privateGroup *gin.RouterGroup) {
 	subjectAPI := privateGroup.Group("/subject", entity.SubjectBinder)
 	{
 		subjectAPI.GET("/grade", private.GetSubjectGrade(DB))
@@ -97,7 +97,7 @@ func setupPrivate(DB db.Env, privateGroup *gin.RouterGroup) {
 // SetupRouter takes the database and sets up all routes with their associated closure callbacks
 //
 // It returns an error if any validation fails to be registered
-func SetupRouter(DB db.Env) (*gin.Engine, error) {
+func SetupRouter(DB db.Database) (*gin.Engine, error) {
 	r := gin.New() // Create web-server object
 
 	err := validation.SetupValidators()

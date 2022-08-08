@@ -20,7 +20,7 @@ import (
 // GetSubjectGrade retrieves the grade a user has in the given subject
 //
 // GetSubjectGrade is the model implementation for /server/controller/private/user.GetSubjectGrade
-func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
+func GetSubjectGrade(ctx *gin.Context, DB db.Database, userID string, sub *controllers.Subject) {
 	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
 	userHash, subHash := user.Hash(), model.Hash()
 
@@ -55,7 +55,7 @@ func GetSubjectGrade(ctx *gin.Context, DB db.Env, userID string, sub *controller
 // GetSubjectReview retrieves the review made for a subject by an user
 //
 // GetSubjectReview is the model implementation for /server/controller/private/user.GetSubjectReview
-func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controllers.Subject) {
+func GetSubjectReview(ctx *gin.Context, DB db.Database, userID string, sub *controllers.Subject) {
 	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
 	userHash, subHash := user.Hash(), model.Hash()
 	review := models.SubjectReview{}
@@ -99,7 +99,7 @@ func GetSubjectReview(ctx *gin.Context, DB db.Env, userID string, sub *controlle
 // UpdateSubjectReview updates the review made for a subject given by an user
 //
 // UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
-func UpdateSubjectReview(ctx *gin.Context, DB db.Env, userID string, review *controllers.SubjectReview) {
+func UpdateSubjectReview(ctx *gin.Context, DB db.Database, userID string, review *controllers.SubjectReview) {
 	userHash, model := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)
 	err := db_utils.CheckSubjectPermission(DB, userHash, model.Hash())
 	if err != nil {

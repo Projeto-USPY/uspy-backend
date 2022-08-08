@@ -40,7 +40,7 @@ func NewSubjectFromController(sub *controllers.Subject) *Subject {
 }
 
 // Insert sets a subject to a given collection. This is usually /subjects
-func (s Subject) Insert(DB db.Env, collection string) error {
+func (s Subject) Insert(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Set(DB.Ctx, s)
 	return err
 }
@@ -48,7 +48,7 @@ func (s Subject) Insert(DB db.Env, collection string) error {
 // Update sets a subject to a given collection. This is usually /subjects
 //
 // This method prohibits from changing the stats map
-func (s Subject) Update(DB db.Env, collection string) error {
+func (s Subject) Update(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Set(DB.Ctx, s, firestoreUtils.MergeWithout(
 		s,
 		"stats",

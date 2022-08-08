@@ -14,7 +14,7 @@ import (
 )
 
 // GetOfferings retrieves the list of offerings for a given subject
-func GetOfferings(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+func GetOfferings(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 
 	offerings := make([]*models.Offering, 0, 20)

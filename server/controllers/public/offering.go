@@ -8,7 +8,7 @@ import (
 )
 
 // GetOfferings is a closure for the GET /api/offerings endpoint
-func GetOfferings(DB db.Env) func(ctx *gin.Context) {
+func GetOfferings(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		public.GetOfferings(ctx, DB, sub)

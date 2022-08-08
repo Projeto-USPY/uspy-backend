@@ -8,7 +8,7 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/db"
 )
 
-func checkSubjectExists(DB db.Env, subHash string) error {
+func checkSubjectExists(DB db.Database, subHash string) error {
 	snap, err := DB.Restore("subjects/" + subHash)
 	if snap == nil || !snap.Exists() {
 		return ErrSubjectNotFound
@@ -17,7 +17,7 @@ func checkSubjectExists(DB db.Env, subHash string) error {
 	return err
 }
 
-func checkSubjectRecords(DB db.Env, userHash, subHash string) error {
+func checkSubjectRecords(DB db.Database, userHash, subHash string) error {
 	col, err := DB.RestoreCollection("users/" + userHash + "/final_scores/" + subHash + "/records")
 	if len(col) == 0 {
 		return ErrNoPermission
@@ -26,7 +26,7 @@ func checkSubjectRecords(DB db.Env, userHash, subHash string) error {
 }
 
 // CheckSubjectPermission takes a user hash and a subject hash and checks whether the user has done this subject
-func CheckSubjectPermission(DB db.Env, userHash, subHash string) error {
+func CheckSubjectPermission(DB db.Database, userHash, subHash string) error {
 	errSub, errRec := checkSubjectExists(DB, subHash), checkSubjectRecords(DB, userHash, subHash)
 	if errSub != nil {
 		return errSub

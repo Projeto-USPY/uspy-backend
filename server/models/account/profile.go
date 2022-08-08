@@ -21,7 +21,7 @@ import (
 )
 
 // Profile retrieves the user profile from the database
-func Profile(ctx *gin.Context, DB db.Env, userID string) {
+func Profile(ctx *gin.Context, DB db.Database, userID string) {
 	var storedUser models.User
 
 	snap, err := DB.Restore("users/" + utils.SHA256(userID))
@@ -43,7 +43,7 @@ func Profile(ctx *gin.Context, DB db.Env, userID string) {
 }
 
 // GetMajors retrieves the majors from a given user
-func GetMajors(ctx *gin.Context, DB db.Env, userID string) {
+func GetMajors(ctx *gin.Context, DB db.Database, userID string) {
 	snaps, err := DB.RestoreCollection(fmt.Sprintf(
 		"users/%s/majors",
 		utils.SHA256(userID),
@@ -91,7 +91,7 @@ func GetMajors(ctx *gin.Context, DB db.Env, userID string) {
 }
 
 // SearchCurriculum queries the user's given major subjects and returns which ones they have completed and if so, their record information (grade, status and frequency)
-func SearchCurriculum(ctx *gin.Context, DB db.Env, userID string, controller *controllers.CurriculumQuery) {
+func SearchCurriculum(ctx *gin.Context, DB db.Database, userID string, controller *controllers.CurriculumQuery) {
 	courseSubjectIDs, err := DB.Client.Collection("subjects").
 		Where("course", "==", controller.Course).
 		Where("specialization", "==", controller.Specialization).
@@ -164,7 +164,7 @@ func SearchCurriculum(ctx *gin.Context, DB db.Env, userID string, controller *co
 }
 
 // GetTranscriptYears retrieves the last few years a user's has been in USP
-func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {
+func GetTranscriptYears(ctx *gin.Context, DB db.Database, userID string) {
 	userHash := utils.SHA256(userID)
 
 	var storedUser models.User
@@ -199,7 +199,7 @@ func GetTranscriptYears(ctx *gin.Context, DB db.Env, userID string) {
 }
 
 // SearchTranscript takes a transcript query and retrieves its records with subject data attached to them
-func SearchTranscript(ctx *gin.Context, DB db.Env, userID string, controller *controllers.TranscriptQuery) {
+func SearchTranscript(ctx *gin.Context, DB db.Database, userID string, controller *controllers.TranscriptQuery) {
 	userHash := utils.SHA256(userID)
 
 	// fetch all final scores from users, we cannot use restore collection here because final scores are missing documents

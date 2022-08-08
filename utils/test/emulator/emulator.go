@@ -151,7 +151,7 @@ var (
 	}
 )
 
-func setup(DB db.Env) error {
+func setup(DB db.Database) error {
 	config.TestSetup()
 
 	timezone, err := time.LoadLocation("America/Sao_Paulo")
@@ -241,7 +241,7 @@ func ClearDatabase() {
 // MustGet returns the database environment for the testing emulator
 //
 // It is similar to get, but panics in case the environment is not able to be initialized
-func MustGet() db.Env {
+func MustGet() db.Database {
 	// clear the database if it already exists
 	ClearDatabase()
 
@@ -253,12 +253,12 @@ func MustGet() db.Env {
 }
 
 // Get returns the database environment for the testing emulator
-func Get() (testDB db.Env, getError error) {
-	testDB = db.Env{Ctx: context.Background()}
+func Get() (testDB db.Database, getError error) {
+	testDB = db.Database{Ctx: context.Background()}
 
 	client, err := firestore.NewClient(testDB.Ctx, "test")
 	if err != nil {
-		return db.Env{}, err
+		return db.Database{}, err
 	}
 
 	testDB.Client = client
