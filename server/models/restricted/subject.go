@@ -14,7 +14,7 @@ import (
 )
 
 // GetGrades returns all grades from a given subject
-func GetGrades(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+func GetGrades(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 
 	// check subject existence

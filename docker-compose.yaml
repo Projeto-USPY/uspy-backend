@@ -22,6 +22,7 @@ services:
       - "8080:8080"
     environment:
       - FIRESTORE_EMULATOR_HOST=firestore_emulator:8200
+      - USPY_MOCK_FIRESTORE_DATA=true
       - USPY_PROJECT_ID=dummy-project-id
       - USPY_DOMAIN=0.0.0.0
       - USPY_ENFORCE_LOCAL=true

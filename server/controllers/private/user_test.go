@@ -14,7 +14,7 @@ import (
 
 type UserSuite struct {
 	suite.Suite
-	DB          db.Env
+	DB          db.Database
 	router      *gin.Engine
 	accessToken *http.Cookie
 }

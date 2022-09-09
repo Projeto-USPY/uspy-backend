@@ -31,10 +31,10 @@ func (m Major) Hash() string {
 }
 
 // Insert sets a major to a given collection. This is usually /users/#user/majors
-func (m Major) Insert(DB db.Env, collection string) error {
+func (m Major) Insert(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(m.Hash()).Set(DB.Ctx, m)
 	return err
 }
 
 // Update is a dummy method for a major
-func (m Major) Update(DB db.Env, collection string) error { return nil }
+func (m Major) Update(DB db.Database, collection string) error { return nil }

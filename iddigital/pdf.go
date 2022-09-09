@@ -102,7 +102,7 @@ func NewPDF(r *http.Response) (pdf PDF) {
 }
 
 // Parse takes the (already read) PDF and parses it into a Transcript object
-func (pdf PDF) Parse(DB db.Env) (rec Transcript, err error) {
+func (pdf PDF) Parse(DB db.Database) (rec Transcript, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			rec = Transcript{Grades: nil, TranscriptYears: nil, Name: "", Nusp: "", Course: "", Specialization: ""}

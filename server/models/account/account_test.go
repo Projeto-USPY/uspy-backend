@@ -7,18 +7,18 @@ import (
 	"time"
 
 	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/db/mock"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/models/account"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/Projeto-USPY/uspy-backend/utils/test"
-	"github.com/Projeto-USPY/uspy-backend/utils/test/emulator"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/suite"
 )
 
 type AccountSuite struct {
 	suite.Suite
-	DB          db.Env
+	DB          db.Database
 	router      *gin.Engine
 	accessToken *http.Cookie
 }
@@ -37,7 +37,7 @@ func (s *AccountSuite) TestUpdateUser() {
 	s.Require().NoError(err)
 	creationDate := time.Date(2021, time.January, 1, 0, 0, 0, 0, timezone)
 
-	var data = emulator.Transcript
+	var data = mock.MockTranscript
 	newRecord := models.Record{
 		Subject:        "SCC0230",
 		Course:         "55090",

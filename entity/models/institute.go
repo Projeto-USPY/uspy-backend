@@ -29,13 +29,13 @@ func (i Institute) Hash() string {
 }
 
 // Insert sets an institute to a given collection. This is usually /institutes
-func (i Institute) Insert(DB db.Env, collection string) error {
+func (i Institute) Insert(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(i.Hash()).Set(DB.Ctx, i)
 	return err
 }
 
 // Update sets an institute to a given collection. This is usually /institutes
-func (i Institute) Update(DB db.Env, collection string) error {
+func (i Institute) Update(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(i.Hash()).Set(DB.Ctx, i)
 	return err
 }

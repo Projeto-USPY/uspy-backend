@@ -14,7 +14,6 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
-	db_utils "github.com/Projeto-USPY/uspy-backend/db/utils"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
@@ -32,7 +31,7 @@ var (
 )
 
 // InsertUser takes the user object and their transcripts and performs all the required database insertions
-func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) error {
+func InsertUser(DB db.Database, newUser *models.User, data *iddigital.Transcript) error {
 	_, err := DB.Restore("users/" + newUser.Hash())
 	if status.Code(err) == codes.NotFound {
 		// user is new
@@ -97,7 +96,7 @@ func InsertUser(DB db.Env, newUser *models.User, data *iddigital.Transcript) err
 // UpdateUser takes a new transcript and updates the user stored data
 //
 // It does a diff operation on the already stored grade transcript, adding new final scores to the user's data and updating subject records
-func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, userID string, updateTime time.Time) error {
+func UpdateUser(ctx context.Context, DB db.Database, data *iddigital.Transcript, userID string, updateTime time.Time) error {
 	userHash := utils.SHA256(userID)
 
 	return DB.Client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
@@ -225,7 +224,7 @@ func UpdateUser(ctx context.Context, DB db.Env, data *iddigital.Transcript, user
 		}).Debug("applying update operation")
 
 		// apply operations
-		return db_utils.ApplyConcurrentOperationsInTransaction(tx, ops)
+		return db.ApplyConcurrentOperationsInTransaction(tx, ops)
 	})
 }
 
@@ -288,7 +287,7 @@ func sendEmailVerification(email, userHash string) error {
 // Signup performs all the server-side signup operations.
 //
 // It validates database data, gets and parses user records, creates the user object and sends the verification email
-func Signup(ctx *gin.Context, DB db.Env, signupForm *controllers.SignupForm) {
+func Signup(ctx *gin.Context, DB db.Database, signupForm *controllers.SignupForm) {
 	// check if email already exists in the database
 	hashedEmail := utils.SHA256(signupForm.Email)
 	query := DB.Client.Collection("users").Where("email", "==", hashedEmail).Limit(1)
@@ -384,7 +383,7 @@ func SignupCaptcha(ctx *gin.Context) {
 }
 
 // Login performs the user login by comparing the passwordHash and the stored hash
-func Login(ctx *gin.Context, DB db.Env, login *controllers.Login) {
+func Login(ctx *gin.Context, DB db.Database, login *controllers.Login) {
 	snap, err := DB.Restore("users/" + utils.SHA256(login.ID))
 
 	if err != nil { // get user from database
@@ -459,7 +458,7 @@ func Logout(ctx *gin.Context) {
 
 // ChangePassword changes the user's password in the database
 // This method requires the user to be logged in
-func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *controllers.PasswordChange) {
+func ChangePassword(ctx *gin.Context, DB db.Database, userID string, resetForm *controllers.PasswordChange) {
 	snap, err := DB.Restore("users/" + utils.SHA256(userID))
 
 	if err != nil {
@@ -504,7 +503,7 @@ func ChangePassword(ctx *gin.Context, DB db.Env, userID string, resetForm *contr
 // ResetPassword resets the user's password in the database
 //
 // It differs from ChangePassword because it does not requires an access token
-func ResetPassword(ctx *gin.Context, DB db.Env, recovery *controllers.PasswordRecovery) {
+func ResetPassword(ctx *gin.Context, DB db.Database, recovery *controllers.PasswordRecovery) {
 	// parse token
 	token, _ := utils.ValidateJWT(recovery.Token, config.Env.JWTSecret) // ignoring error because it was already validated in controller
 	claims := token.Claims.(jwt.MapClaims)
@@ -546,7 +545,7 @@ func ResetPassword(ctx *gin.Context, DB db.Env, recovery *controllers.PasswordRe
 }
 
 // VerifyAccount sets the user's email as verified
-func VerifyAccount(ctx *gin.Context, DB db.Env, verification *controllers.AccountVerification) {
+func VerifyAccount(ctx *gin.Context, DB db.Database, verification *controllers.AccountVerification) {
 	token, _ := utils.ValidateJWT(verification.Token, config.Env.JWTSecret) // ignoring error because it was already validated in controller
 	claims := token.Claims.(jwt.MapClaims)
 
@@ -566,14 +565,14 @@ func VerifyAccount(ctx *gin.Context, DB db.Env, verification *controllers.Accoun
 // Delete deletes the given user (removing all of its traces (grades, reviews, etc))
 //
 // This function wraps the document lookups and simply performs the necessary database operations
-func Delete(ctx *gin.Context, DB db.Env, userID string) {
+func Delete(ctx *gin.Context, DB db.Database, userID string) {
 	if deleteErr := DB.Client.RunTransaction(DB.Ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		objects := getUserObjects(ctx, DB, tx, userID)
 
 		log.WithFields(log.Fields{
 			"affected_objects": len(objects),
 		}).Debug("user is removing their account")
-		return db_utils.ApplyConcurrentOperationsInTransaction(tx, objects)
+		return db.ApplyConcurrentOperationsInTransaction(tx, objects)
 	}); deleteErr != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, deleteErr)
 		return
@@ -583,7 +582,7 @@ func Delete(ctx *gin.Context, DB db.Env, userID string) {
 }
 
 // Update updates a user's profile with a new grade transcript
-func Update(ctx *gin.Context, DB db.Env, userID string, updateForm *controllers.UpdateForm) {
+func Update(ctx *gin.Context, DB db.Database, userID string, updateForm *controllers.UpdateForm) {
 	// get user records
 	cookies := ctx.Request.Cookies()
 	resp, err := iddigital.PostAuthCode(updateForm.AccessKey, updateForm.Captcha, cookies)
@@ -635,7 +634,7 @@ func Update(ctx *gin.Context, DB db.Env, userID string, updateForm *controllers.
 // getUserObjects gets all documents necessary (and the corresponding operations that must be applied) for a user to remove their account
 func getUserObjects(
 	ctx context.Context,
-	DB db.Env,
+	DB db.Database,
 	tx *firestore.Transaction,
 	userID string,
 ) []db.Operation {
@@ -676,7 +675,7 @@ func getUserObjects(
 // getScoreObjects gets a list of grade changes, both from the user's final scores, aswell as the subject grades
 func getScoreObjects(
 	ctx context.Context,
-	DB db.Env,
+	DB db.Database,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- db.Operation,
@@ -764,7 +763,7 @@ func getScoreObjects(
 // getReviewObjects gets a list of review changes, both from the user's reviews, aswell as the subject grades that must have their stats updated
 func getReviewObjects(
 	ctx context.Context,
-	DB db.Env,
+	DB db.Database,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- db.Operation,
@@ -833,7 +832,7 @@ func getReviewObjects(
 // getCommentObjects gets a list of comment changes
 func getCommentObjects(
 	ctx context.Context,
-	DB db.Env,
+	DB db.Database,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- db.Operation,
@@ -895,7 +894,7 @@ func getCommentObjects(
 // getCommentRatingObjects gets a list of comment rating objects
 func getCommentRatingObjects(
 	ctx context.Context,
-	DB db.Env,
+	DB db.Database,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- db.Operation,
@@ -992,7 +991,7 @@ func getCommentRatingObjects(
 // getCommentReportObjects gets a list of report objects
 func getCommentReportObjects(
 	ctx context.Context,
-	DB db.Env,
+	DB db.Database,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- db.Operation,
@@ -1081,7 +1080,7 @@ func getCommentReportObjects(
 // getMajorObjects gets a list of major objects
 func getMajorObjects(
 	ctx context.Context,
-	DB db.Env,
+	DB db.Database,
 	tx *firestore.Transaction,
 	wg *sync.WaitGroup,
 	objects chan<- db.Operation,

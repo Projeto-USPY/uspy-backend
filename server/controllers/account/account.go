@@ -11,7 +11,7 @@ import (
 
 // ResetPassword is a closure for PUT /account/password_reset
 // It differs from ChangePassword because the user does not have to be logged in.
-func ResetPassword(DB db.Env) func(ctx *gin.Context) {
+func ResetPassword(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		// validate user data
 		var recovery controllers.PasswordRecovery
@@ -26,7 +26,7 @@ func ResetPassword(DB db.Env) func(ctx *gin.Context) {
 
 // ChangePassword is a closure for PUT /account/password_change
 // It differs from ResetPassword because the user must be logged in.
-func ChangePassword(DB db.Env) func(ctx *gin.Context) {
+func ChangePassword(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		// get user info
 		userID := ctx.MustGet("userID").(string)
@@ -50,7 +50,7 @@ func Logout() func(ctx *gin.Context) {
 }
 
 // Login is a closure for the POST /account/login endpoint
-func Login(DB db.Env) func(ctx *gin.Context) {
+func Login(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		var login controllers.Login
 
@@ -65,7 +65,7 @@ func Login(DB db.Env) func(ctx *gin.Context) {
 }
 
 // Signup is a closure for the POST /account/create endpoint
-func Signup(DB db.Env) func(g *gin.Context) {
+func Signup(DB db.Database) func(g *gin.Context) {
 	return func(ctx *gin.Context) {
 		// validate user data
 		var signupForm controllers.SignupForm
@@ -79,7 +79,7 @@ func Signup(DB db.Env) func(g *gin.Context) {
 }
 
 // VerifyAccount is a closure for the GET /account/verify endpoint
-func VerifyAccount(DB db.Env) func(g *gin.Context) {
+func VerifyAccount(DB db.Database) func(g *gin.Context) {
 	return func(ctx *gin.Context) {
 		// validate verification token
 		var verification controllers.AccountVerification
@@ -100,7 +100,7 @@ func SignupCaptcha() func(ctx *gin.Context) {
 }
 
 // Delete is a closure for the DELETE /account endpoint
-func Delete(DB db.Env) func(ctx *gin.Context) {
+func Delete(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		userID := ctx.MustGet("userID").(string)
 
@@ -109,7 +109,7 @@ func Delete(DB db.Env) func(ctx *gin.Context) {
 }
 
 // Update is a closure for the PUT /account/update endpoint
-func Update(DB db.Env) func(ctx *gin.Context) {
+func Update(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		userID := ctx.MustGet("userID").(string)
 

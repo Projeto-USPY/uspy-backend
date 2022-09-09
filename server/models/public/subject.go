@@ -16,7 +16,7 @@ import (
 )
 
 // GetInstitutes gets all institutes from the database
-func GetInstitutes(ctx *gin.Context, DB db.Env) {
+func GetInstitutes(ctx *gin.Context, DB db.Database) {
 	snaps, err := DB.RestoreCollection("institutes")
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -42,7 +42,7 @@ func GetInstitutes(ctx *gin.Context, DB db.Env) {
 }
 
 // GetCourses gets all course codes from a given institute the database
-func GetCourses(ctx *gin.Context, DB db.Env, institute *controllers.Institute) {
+func GetCourses(ctx *gin.Context, DB db.Database, institute *controllers.Institute) {
 	model := models.NewInstituteFromController(institute)
 	snaps, err := DB.RestoreCollection(fmt.Sprintf(
 		"institutes/%s/courses",
@@ -74,7 +74,7 @@ func GetCourses(ctx *gin.Context, DB db.Env, institute *controllers.Institute) {
 }
 
 // GetAllSubjects gets all subjects from a given course in the database
-func GetAllSubjects(ctx *gin.Context, DB db.Env, controller *controllers.Course) {
+func GetAllSubjects(ctx *gin.Context, DB db.Database, controller *controllers.Course) {
 	course := models.NewCourseFromController(controller)
 	snap, err := DB.Restore(fmt.Sprintf(
 		"institutes/%s/courses/%s",
@@ -101,7 +101,7 @@ func GetAllSubjects(ctx *gin.Context, DB db.Env, controller *controllers.Course)
 }
 
 // Get gets a subject by its identifier: subject code, course code and course specialization code
-func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+func Get(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	model := models.Subject{Code: sub.Code, CourseCode: sub.CourseCode, Specialization: sub.Specialization}
 	snap, err := DB.Restore("subjects/" + model.Hash())
 	if err != nil {
@@ -122,7 +122,7 @@ func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 }
 
 // GetRelations gets the subject's graph: their direct predecessors and successors
-func GetRelations(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+func GetRelations(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 	snap, err := DB.Restore("subjects/" + model.Hash())
 

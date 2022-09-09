@@ -10,7 +10,7 @@ import (
 )
 
 // VerifyEmail is a closure for the POST /account/email/verification endpoint
-func VerifyEmail(DB db.Env) func(g *gin.Context) {
+func VerifyEmail(DB db.Database) func(g *gin.Context) {
 	return func(ctx *gin.Context) {
 		var form controllers.EmailVerificationSubmission
 		if err := ctx.ShouldBindJSON(&form); err != nil {
@@ -23,7 +23,7 @@ func VerifyEmail(DB db.Env) func(g *gin.Context) {
 }
 
 // RequestPasswordReset is a closure for the POST /account/email/password_reset endpoint
-func RequestPasswordReset(DB db.Env) func(g *gin.Context) {
+func RequestPasswordReset(DB db.Database) func(g *gin.Context) {
 	return func(ctx *gin.Context) {
 		var form controllers.EmailVerificationSubmission
 		if err := ctx.ShouldBindJSON(&form); err != nil {

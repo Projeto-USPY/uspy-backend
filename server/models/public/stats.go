@@ -15,7 +15,7 @@ import (
 //
 // This function does not scale well.
 // TODO: Switch to a manual counter later on
-func GetStats(ctx *gin.Context, DB db.Env) {
+func GetStats(ctx *gin.Context, DB db.Database) {
 	statsChan := make(chan *views.StatsEntry, 5)
 
 	performQuery := func(ctx *gin.Context, category string, action func() ([]*firestore.DocumentSnapshot, error)) {
