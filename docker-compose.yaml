@@ -1,4 +1,4 @@
-version: "3.2"
+version: "3.5"
 services:
   firestore_emulator:
     build:
@@ -27,8 +27,8 @@ services:
       - USPY_DOMAIN=0.0.0.0
       - USPY_ENFORCE_LOCAL=true
       - USPY_MODE=local
-    depends_on:
-      - firestore_emulator
+    networks:
+      - scraper_network
   uspy-scraper:
     image: tprei/uspy-scraper
     environment:
@@ -40,3 +40,7 @@ services:
       - "8300:8300"
     depends_on:
       - firestore_emulator
+networks:
+  scraper_network:
+    external:
+      name: scraper_network

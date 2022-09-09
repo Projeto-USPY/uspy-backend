@@ -3,7 +3,6 @@ package iddigital
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -128,7 +127,10 @@ func (pdf PDF) Parse(DB db.Database) (rec Transcript, err error) {
 	}
 
 	course, specialization := matches[1], matches[2]
-	snaps, err := DB.RestoreCollection(fmt.Sprintf("institutes/%s/courses", utils.SHA256("55")))
+	// this does not scale well for multiple institutes
+	// TODO: change field subjects in courses to a subcollection to change it to a collection group query
+	snaps, err := DB.Client.CollectionGroup("courses").Documents(DB.Ctx).GetAll()
+
 	if err != nil {
 		panic(errors.New("could not fetch courses from firestore"))
 	}
@@ -155,7 +157,7 @@ func (pdf PDF) Parse(DB db.Database) (rec Transcript, err error) {
 		semester := utils.MustAtoi(info[2])
 
 		// get all subjects in current year and semester
-		subRXP := regexp.MustCompile(`((?:SMA|SME|SSC|SCC)\d+).*`)
+		subRXP := regexp.MustCompile(`([0-9A-Z]{5,10}).*`)
 		gradeRows := subRXP.FindAllStringSubmatch(pdf.Body[l:r], -1)
 
 		for _, match := range gradeRows {
@@ -182,11 +184,15 @@ func (pdf PDF) Parse(DB db.Database) (rec Transcript, err error) {
 				_, exists := c.SubjectCodes[subCode]
 
 				if exists {
-					if c.Code == course && c.Specialization == specialization { // if subject is from students course, then subject's course should be it
+					if c.Code == course && c.Specialization == specialization { // perfect match, there's a subject with exact course and specialization
 						subCourse = c.Code
 						subSpecialization = c.Specialization
-					} else if subCourse == "" && subSpecialization == "" { // otherwise choose any course to be the subject course
+						break
+					} else if subCourse == "" && subSpecialization == "" { // get from any major that contains this subject code
 						subCourse = c.Code
+						subSpecialization = c.Specialization
+					} else if c.Code == course { // replace any by a more likely match (this is useful for majors that have "ciclos básicos")
+						subCode = c.Code
 						subSpecialization = c.Specialization
 					}
 				}
