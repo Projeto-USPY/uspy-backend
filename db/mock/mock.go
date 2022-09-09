@@ -146,6 +146,7 @@ var (
 	}
 )
 
+// SetupMockData inputs some mocked data into the emulator database
 func SetupMockData(
 	DB db.Database,
 ) error {
