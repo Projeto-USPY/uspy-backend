@@ -34,7 +34,7 @@ func (sr SubjectReview) Hash() string {
 }
 
 // Insert sets an offering to a given collection. This is usually /users/#user/subject_reviews
-func (sr SubjectReview) Insert(DB db.Env, collection string) error {
+func (sr SubjectReview) Insert(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(sr.Hash()).Set(DB.Ctx, sr)
 	return err
 }

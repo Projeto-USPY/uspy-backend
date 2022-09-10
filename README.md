@@ -1,9 +1,10 @@
 # USPY 🕵️ - Backend
-
 This is the official repository for the [USPY](https://uspy.me) Backend! Here you can find how to run the application youself and some brief explanation on the code repository.
 
-## Package organization
+&nbsp;
 
+## **Package organization**
+___
 This repository is organized in these packages:
 
 ```
@@ -102,11 +103,17 @@ Their respective responsibilities are the following:
     - Utility functions such as hashing functions and encoding stuff
     - Also contains testing utilities like the emulator functions
 
-## Deployment & Execution
+&nbsp;
 
-To deploy and/or run this application, there are a few requisites:
 
-### Environment variables
+## **Deployment & Execution**
+___
+
+
+To deploy and/or run this application, there are a few variables:
+
+
+### **Environment variables**
 
 | Name                   | Description                                     |    Required?     | Possible values |  Default Value  |
 | :--------------------- | :---------------------------------------------- | :--------------: | :-------------: | :-------------: |
@@ -121,7 +128,11 @@ To deploy and/or run this application, there are a few requisites:
 | **USPY_MAILJET_KEY**   | Mailjet key used for e-mail operations          | **In the Cloud** |                 |                 |
 | **USPY_MAILJET_SECRET**| Mailjet secret used for e-mail operations       | **In the Cloud** |                 |                 |
 
-### Running Locally
+&nbsp;
+
+## **Running Locally**
+___
+### **Simple way**
 
 To execute the webserver locally, simply run:
 
@@ -150,10 +161,27 @@ Some things to consider:
 2. After the container initializes, the database will be empty, you can build its data using uspy-scraper by running
 
 ```sh
-curl -X POST "localhost:8300/build?targets=subjects"
+curl -X POST "localhost:8300/build?institute=55"
 ```
 
-This operation may take a minute to complete and it may fail due to errors on JupiterWeb. You can also **omit the query parameter** if you'd like to also scrape offerings data.
+This operation should only take a few seconds to complete and it may fail due to errors on JupiterWeb. You can also use a different value other than 55 for scraping data from other institutes, but some other features may not work correctly and it may consume a lot of memory, since firestore will be hosted in memory.
+
+&nbsp;
+
+
+### **More advanced way: modifying the scraper!**
+
+If you'd like to mess around with the data scraper source code and test your changes against the Backend, use the docker-compose file **located in the uspy-scraper repository** to spin up firestore and the scraper itself. Then, when running the backend, spin up **only** the uspy-backend container like so:
+
+```sh
+sudo docker-compose --build -d up uspy-backend
+```
+
+This will prevent the backend from running its own firestore and scraper containers and use the changed container and external network provided by the scraper itself.
+
+&nbsp;
+
+### **Cleanup**
 
 To clean up:
 
@@ -169,7 +197,11 @@ docker/emulator/save_db_data.sh
 
 This will save the data inside `docker/emulator/mount/db_data`. Note that `docker/emulator/mount` is mounted into the firestore docker container. When running again the emulator, the saved data will be automatically reused as long as `docker/emulator/mount/db_data` exists. The `IMPORT_DATA` environment variable can be changed to customize the `mount/db_data` path.
 
-### Testing
+&nbsp;
+
+## **Testing**
+___
+
 
 To run tests, you must set up the firestore emulator. Folow these steps:
 
@@ -194,31 +226,41 @@ Info on how to install here: [Firebase installation reference](https://firebase.
 
 #### Run tests
 
-`chmod u+x test.sh && ./test.sh`
+```sh
+chmod u+x test.sh && ./test.sh
+```
 
-### Cloud Services
 
-The following services are used by the backend application:
+&nbsp;
 
-### Firestore:
+
+## **Cloud Services**
+---
+
+The following services are used by the backend application
+
+### **Firestore**:
 
     - Non relational database. Used to store all persistent data.
     - Must be accessed with an IAM key when running locally or just with the project ID if in production
 
-### Cloud run:
+### **Cloud run**:
 
     - Serverless application that will run the web server
     - Can be set up manually, but also through cloud build using the cloubuild.yaml configuration file
     - Runs the web server by building the container using the Dockerfile in the repository
 
-## How to contribute
+&nbsp;
 
-### Features, requests, bug reports
+## **How to contribute**
+---
+
+### **Features, requests, bug reports**
 
 If this is the case, please submit an issue through the [contributions repository](github.com/Projeto-USPY/uspy-contributions/issues).
 
-### Actual code
+### **Actual code**
 
 If you'd to directly contribute, fork this repository and create a pull request to merge on `dev` branch. Please do not submit pull requests to the main branch as they will be denied. The main branch is used for releases and we don't really push to it other than through the `deploy.sh` script.
 
-We really appreciate any contributors! This project is from USP students and for USP students! If you have any questions or would simply like to chat, contact us on Telegram @preischadt @lucsturci
+We really appreciate any contributors! This project is from USP students and for USP students! If you have any questions or would simply like to chat, contact us on Telegram `@preischadt` `@lucsturci`

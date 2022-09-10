@@ -16,7 +16,7 @@ import (
 )
 
 // GetOfferingComments retrieves the comments made so far for a given offering
-func GetOfferingComments(ctx *gin.Context, DB db.Env, off *controllers.Offering) {
+func GetOfferingComments(ctx *gin.Context, DB db.Database, off *controllers.Offering) {
 	collectionMask := "subjects/%s/offerings/%s/comments"
 	subHash := models.Subject{
 		Code:           off.Subject.Code,
@@ -59,7 +59,7 @@ func GetOfferingComments(ctx *gin.Context, DB db.Env, off *controllers.Offering)
 // GetOfferingsWithStats retrieves a list of offerings for a given subject, along with the comment stats associated with them
 //
 // It is a closure for the GET /api/restricted/offerings endpoint
-func GetOfferingsWithStats(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+func GetOfferingsWithStats(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 
 	offerings := make([]*models.Offering, 0, 20)

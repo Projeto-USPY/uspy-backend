@@ -13,7 +13,7 @@ import (
 )
 
 // VerifyEmail sends a new verification email
-func VerifyEmail(ctx *gin.Context, DB db.Env, emailForm *controllers.EmailVerificationSubmission) {
+func VerifyEmail(ctx *gin.Context, DB db.Database, emailForm *controllers.EmailVerificationSubmission) {
 	// check if email exists and if it's not already verified
 	emailHash := utils.SHA256(emailForm.Email)
 	docs := DB.Client.Collection("users").Where("email", "==", emailHash).Limit(1).Documents(ctx)
@@ -47,7 +47,7 @@ func VerifyEmail(ctx *gin.Context, DB db.Env, emailForm *controllers.EmailVerifi
 }
 
 // RequestPasswordReset send a password reset link to the requested email
-func RequestPasswordReset(ctx *gin.Context, DB db.Env, form *controllers.EmailVerificationSubmission) {
+func RequestPasswordReset(ctx *gin.Context, DB db.Database, form *controllers.EmailVerificationSubmission) {
 	// check if email exists
 	emailHash := utils.SHA256(form.Email)
 	docs := DB.Client.Collection("users").Where("email", "==", emailHash).Limit(1).Documents(ctx)

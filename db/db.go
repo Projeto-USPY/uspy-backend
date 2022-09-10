@@ -15,12 +15,12 @@ import (
 
 // Inserter will be implemented by almost all entities
 type Inserter interface {
-	Insert(db Env, collection string) error
+	Insert(db Database, collection string) error
 }
 
 // Updater will be implemented by almost all entities
 type Updater interface {
-	Update(db Env, collection string) error
+	Update(db Database, collection string) error
 }
 
 // Writer implements Inserter and Updater (InserterUpdater is a bad name)
@@ -37,6 +37,9 @@ type BatchObject struct {
 
 	WriteData  Writer
 	UpdateData []firestore.Update
+
+	Preconditions []firestore.Precondition
+	SetOptions    []firestore.SetOption
 }
 
 // Operation is used as a generic operation to be applied on a document
@@ -50,8 +53,8 @@ type Operation struct {
 	Err error
 }
 
-// Env is passed to /server/dao functions that require DB operations
-type Env struct {
+// Database is passed to /server/dao functions that require DB operations
+type Database struct {
 	Client *firestore.Client
 	Ctx    context.Context
 }
@@ -62,7 +65,7 @@ type Env struct {
 // status.Code(err) == codes.NotFound
 //
 // Besides, the Exists method for this Ref will return false
-func (db Env) Restore(documentHash string) (*firestore.DocumentSnapshot, error) {
+func (db Database) Restore(documentHash string) (*firestore.DocumentSnapshot, error) {
 	snap, err := db.Client.Doc(documentHash).Get(db.Ctx)
 	if err != nil {
 		return nil, err
@@ -76,7 +79,7 @@ func (db Env) Restore(documentHash string) (*firestore.DocumentSnapshot, error) 
 // If any document is not found, the Exists method for that snap will return false
 //
 // It is guaranteed that snapshots are returned in the same order as passed hashes
-func (db Env) RestoreBatch(documentHashes []string) ([]*firestore.DocumentSnapshot, error) {
+func (db Database) RestoreBatch(documentHashes []string) ([]*firestore.DocumentSnapshot, error) {
 	refs := make([]*firestore.DocumentRef, 0, len(documentHashes))
 	for _, doc := range documentHashes {
 		refs = append(refs, db.Client.Doc(doc))
@@ -88,7 +91,7 @@ func (db Env) RestoreBatch(documentHashes []string) ([]*firestore.DocumentSnapsh
 // RestoreCollection is similar to Env.Restore, but restores all documents from a collection
 //
 // Collection cannot end in "/"
-func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapshot, error) {
+func (db Database) RestoreCollection(collection string) ([]*firestore.DocumentSnapshot, error) {
 	snap, err := db.Client.Collection(collection).Documents(db.Ctx).GetAll()
 	if err != nil {
 		return nil, err
@@ -100,7 +103,7 @@ func (db Env) RestoreCollection(collection string) ([]*firestore.DocumentSnapsho
 // RestoreCollectionRefs is similar to RestoreCollection, but uses DocRefs that allow missing documents inside the query
 //
 // Collection cannot end in "/"
-func (db Env) RestoreCollectionRefs(collection string) ([]*firestore.DocumentRef, error) {
+func (db Database) RestoreCollectionRefs(collection string) ([]*firestore.DocumentRef, error) {
 	snap, err := db.Client.Collection(collection).DocumentRefs(db.Ctx).GetAll()
 	if err != nil {
 		return nil, err
@@ -110,41 +113,59 @@ func (db Env) RestoreCollectionRefs(collection string) ([]*firestore.DocumentRef
 }
 
 // Insert inserts an entity that implements Inserter into a DB collection
-func (db Env) Insert(obj Inserter, collection string) error {
+func (db Database) Insert(obj Inserter, collection string) error {
 	return obj.Insert(db, collection)
 }
 
 // Update updates entity in firestore with data in object variable
-func (db Env) Update(obj Updater, collection string) error {
+func (db Database) Update(obj Updater, collection string) error {
 	return obj.Update(db, collection)
 }
 
 // BatchWrite will perform operations atomically
-func (db Env) BatchWrite(objs []BatchObject) error {
-	batch := db.Client.Batch()
-
-	for _, o := range objs {
-		if o.WriteData == nil && o.UpdateData == nil {
-			return errors.New("both write data and update data are nil")
+//
+// For a batch of more than 500 documents, batch write will perform each of these batches sequentially
+// TODO: Apply batches concurrently
+func (db Database) BatchWrite(objs []BatchObject) error {
+	numObjs := len(objs)
+	for i := 0; i < numObjs; i += 500 {
+		last := i + 500
+		if last > numObjs {
+			last = numObjs
 		}
 
-		if o.Doc == "" { // create document with random hash
-			batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.WriteData)
-		} else {
-			if o.WriteData != nil { // set operation
-				batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.WriteData)
-			} else if o.UpdateData != nil { // update operation
-				batch.Update(db.Client.Collection(o.Collection).Doc(o.Doc), o.UpdateData)
+		// perform batch of at maximum 500 operations
+		batch := db.Client.Batch()
+
+		for j := i; j < last; j++ {
+			o := objs[j]
+
+			if o.WriteData == nil && o.UpdateData == nil {
+				return errors.New("both write data and update data are nil")
+			}
+
+			if o.Doc == "" { // create document with random hash
+				batch.Set(db.Client.Collection(o.Collection).NewDoc(), o.WriteData, o.SetOptions...)
+			} else {
+				if o.WriteData != nil { // set operation
+					batch.Set(db.Client.Collection(o.Collection).Doc(o.Doc), o.WriteData, o.SetOptions...)
+				} else if o.UpdateData != nil { // update operation
+					batch.Update(db.Client.Collection(o.Collection).Doc(o.Doc), o.UpdateData, o.Preconditions...)
+				}
 			}
 		}
+
+		if _, err := batch.Commit(db.Ctx); err != nil {
+			return err
+		}
 	}
-	_, err := batch.Commit(db.Ctx)
-	return err
+
+	return nil
 }
 
 // InitFireStore initiates the DB Environment (requires some environment variables to work)
-func InitFireStore() Env {
-	var DB = Env{
+func InitFireStore() Database {
+	var DB = Database{
 		Ctx: context.Background(),
 	}
 
@@ -177,6 +198,6 @@ func InitFireStore() Env {
 }
 
 // SetupDB wraps the Firestore initialization
-func SetupDB() Env {
+func SetupDB() Database {
 	return InitFireStore()
 }

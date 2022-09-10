@@ -10,7 +10,7 @@ import (
 )
 
 // GetComment is a closure for the GET /private/subjects/offerings/comments endpoint
-func GetComment(DB db.Env) func(*gin.Context) {
+func GetComment(DB db.Database) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		off := ctx.MustGet("Offering").(*controllers.Offering)
@@ -22,7 +22,7 @@ func GetComment(DB db.Env) func(*gin.Context) {
 }
 
 // GetCommentRating is a closure for the GET /private/subjects/offerings/comments/rating endpoint
-func GetCommentRating(DB db.Env) func(*gin.Context) {
+func GetCommentRating(DB db.Database) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		off := ctx.MustGet("Offering").(*controllers.Offering)
@@ -37,7 +37,7 @@ func GetCommentRating(DB db.Env) func(*gin.Context) {
 }
 
 // RateComment is a closure for the PUT /private/subjects/offerings/comments/rating endpoint
-func RateComment(DB db.Env) func(*gin.Context) {
+func RateComment(DB db.Database) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		off := ctx.MustGet("Offering").(*controllers.Offering)
@@ -59,7 +59,7 @@ func RateComment(DB db.Env) func(*gin.Context) {
 }
 
 // ReportComment is a closure for the PUT /private/subjects/offerings/comments/report endpoint
-func ReportComment(DB db.Env) func(*gin.Context) {
+func ReportComment(DB db.Database) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		off := ctx.MustGet("Offering").(*controllers.Offering)
@@ -81,7 +81,7 @@ func ReportComment(DB db.Env) func(*gin.Context) {
 }
 
 // PublishComment is a closure for the PUT /private/subjects/offerings/comments endpoint
-func PublishComment(DB db.Env) func(*gin.Context) {
+func PublishComment(DB db.Database) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		off := ctx.MustGet("Offering").(*controllers.Offering)
@@ -100,7 +100,7 @@ func PublishComment(DB db.Env) func(*gin.Context) {
 }
 
 // DeleteComment is a closure for the DELETE /private/subjects/offerings/comments endpoint
-func DeleteComment(DB db.Env) func(*gin.Context) {
+func DeleteComment(DB db.Database) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		off := ctx.MustGet("Offering").(*controllers.Offering)

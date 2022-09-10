@@ -73,7 +73,7 @@ func NewUser(ID, name, email, password string, lastUpdate time.Time, transcriptY
 }
 
 // Insert sets a user object to a given collection. This is usually /users
-func (u User) Insert(DB db.Env, collection string) error {
+func (u User) Insert(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(u.Hash()).Set(DB.Ctx, u)
 	return err
 }
@@ -82,7 +82,7 @@ func (u User) Insert(DB db.Env, collection string) error {
 //
 // This method only allows updating the password or verified status
 // TODO: Use MergeWithout to specifically mention non-updatable fields
-func (u User) Update(DB db.Env, collection string) error {
+func (u User) Update(DB db.Database, collection string) error {
 	updates := make([]firestore.Update, 0)
 
 	if u.PasswordHash != "" {

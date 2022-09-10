@@ -36,7 +36,7 @@ func setupAccessToken(router *gin.Engine) (*http.Cookie, error) {
 // It requires a suite because it is meant to be run with suites, so it can fail their test context in case of errors
 //
 // This function may panic if the environment is ont properly initialized
-func MustGetEnvironment(s suite.Suite) (DB db.Env, router *gin.Engine, cookie *http.Cookie) {
+func MustGetEnvironment(s suite.Suite) (DB db.Database, router *gin.Engine, cookie *http.Cookie) {
 	DB = emulator.MustGet()
 
 	// setup router

@@ -15,7 +15,7 @@ import (
 
 type SubjectSuite struct {
 	suite.Suite
-	DB          db.Env
+	DB          db.Database
 	router      *gin.Engine
 	accessToken *http.Cookie
 }
@@ -29,30 +29,38 @@ func TestSubjectSuite(t *testing.T) {
 	suite.Run(t, new(SubjectSuite))
 }
 
-func (s *SubjectSuite) TestGetAll() {
-	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/all", nil)
+func (s *SubjectSuite) TestGetAllBCC() {
+	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/all?institute=55&course=55041&specialization=0", nil)
 
-	expectedResponse := `
-		[
-			{
-				"name": "Bacharelado em Ciências de Computação",
-				"code": "55041",
-				"specialization": "0",
-				"subjects": {
-					"SCC0222": "Laboratório de Introdução à Ciência de Computação I",
-					"SCC0217": "Linguages de Programação e Compiladores"
-				}
-			},
-			{
-				"name": "Bacharelado em Ciência de Dados",
-				"code": "55090",
-				"specialization": "0",
-				"subjects": {
-					"SCC0230": "Inteligência Artificial"
-				}
-			}
-		]
-	`
+	expectedResponse := `{
+		"name": "Bacharelado em Ciências de Computação",
+		"code": "55041",
+		"specialization": "0",
+		"shift": "integral",
+		"subjects": {
+			"SCC0222": "Laboratório de Introdução à Ciência de Computação I",
+			"SCC0217": "Linguages de Programação e Compiladores"
+		}
+	}`
+
+	s.Equal(http.StatusOK, w.Result().StatusCode)
+
+	bytes, err := io.ReadAll(w.Result().Body)
+	s.NoError(err)
+	s.JSONEq(expectedResponse, string(bytes))
+}
+func (s *SubjectSuite) TestGetAllBCD() {
+	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/all?institute=55&course=55090&specialization=0", nil)
+
+	expectedResponse := `{
+		"name": "Bacharelado em Ciência de Dados",
+		"code": "55090",
+		"specialization": "0",
+		"shift": "integral",
+		"subjects": {
+			"SCC0230": "Inteligência Artificial"
+		}
+	}`
 
 	s.Equal(http.StatusOK, w.Result().StatusCode)
 

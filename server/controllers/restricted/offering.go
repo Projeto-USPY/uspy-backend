@@ -8,7 +8,7 @@ import (
 )
 
 // GetOfferingComments is a closure for the GET /api/restricted/subject/offerings/comments endpoint
-func GetOfferingComments(DB db.Env) func(ctx *gin.Context) {
+func GetOfferingComments(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		off := ctx.MustGet("Offering").(*controllers.Offering)
@@ -21,7 +21,7 @@ func GetOfferingComments(DB db.Env) func(ctx *gin.Context) {
 // GetOfferingsWithStats is a closure for the GET /api/restricted/subject/offerings endpoint
 //
 // It differs from GetOfferings because it includes user ratings (approval, disapproval) for each offering
-func GetOfferingsWithStats(DB db.Env) func(ctx *gin.Context) {
+func GetOfferingsWithStats(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 		restricted.GetOfferingsWithStats(ctx, DB, sub)

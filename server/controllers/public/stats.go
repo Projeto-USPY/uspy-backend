@@ -7,7 +7,7 @@ import (
 )
 
 // GetStats is a closure for the GET /stats endpoint
-func GetStats(DB db.Env) func(*gin.Context) {
+func GetStats(DB db.Database) func(*gin.Context) {
 	return func(ctx *gin.Context) {
 		public.GetStats(ctx, DB)
 	}

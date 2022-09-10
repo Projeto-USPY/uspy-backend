@@ -23,13 +23,13 @@ func (off Offering) Hash() string {
 }
 
 // Insert sets an offering to a given collection. This is usually /subjects/#subject/offerings
-func (off Offering) Insert(DB db.Env, collection string) error {
+func (off Offering) Insert(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(off.Hash()).Set(DB.Ctx, off)
 	return err
 }
 
 // Update sets an offering to a given collection
-func (off Offering) Update(DB db.Env, collection string) error {
+func (off Offering) Update(DB db.Database, collection string) error {
 	_, err := DB.Client.Collection(collection).Doc(off.Hash()).Set(DB.Ctx, off)
 	return err
 }

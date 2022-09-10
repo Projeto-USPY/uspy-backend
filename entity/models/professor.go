@@ -13,11 +13,11 @@ type Professor struct {
 }
 
 // Insert is a dummy method for professor. It is necessary because professor must be able to be represented as a db.Writer
-func (prof Professor) Insert(DB db.Env, collection string) error {
+func (prof Professor) Insert(DB db.Database, collection string) error {
 	return nil
 }
 
 // Update is a dummy method for professor. It is necessary because Institute must be able to be represented as a db.Writer
-func (prof Professor) Update(DB db.Env, collection string) error {
+func (prof Professor) Update(DB db.Database, collection string) error {
 	return nil
 }

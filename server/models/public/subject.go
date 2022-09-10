@@ -8,40 +8,100 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/server/views/public"
+	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// GetAllSubjects gets all subjects from the database
-func GetAllSubjects(ctx *gin.Context, DB db.Env) {
-	snaps, err := DB.RestoreCollection("courses")
+// GetInstitutes gets all institutes from the database
+func GetInstitutes(ctx *gin.Context, DB db.Database) {
+	snaps, err := DB.RestoreCollection("institutes")
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find collection courses: %s", err.Error()))
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find collection institutes: %s", err.Error()))
 			return
 		}
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch institutes: %s", err.Error()))
 		return
 	}
 
-	courses := make([]models.Course, 0, 1000)
+	institutes := make([]models.Institute, 0, 200)
 	for _, s := range snaps {
-		var c models.Course
+		var c models.Institute
 		err = s.DataTo(&c)
-		courses = append(courses, c)
+		institutes = append(institutes, c)
 		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch institutes: %s", err.Error()))
 			return
 		}
 	}
 
-	public.GetAllSubjects(ctx, courses)
+	public.GetInstitutes(ctx, institutes)
+}
+
+// GetCourses gets all course codes from a given institute the database
+func GetCourses(ctx *gin.Context, DB db.Database, institute *controllers.Institute) {
+	model := models.NewInstituteFromController(institute)
+	snaps, err := DB.RestoreCollection(fmt.Sprintf(
+		"institutes/%s/courses",
+		model.Hash(),
+	),
+	)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find courses collection from institute: %s", err.Error()))
+			return
+		}
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses from institute: %s", err.Error()))
+		return
+	}
+
+	courses := make([]*models.Course, 0, 200)
+	for _, s := range snaps {
+		var c models.Course
+		if err := s.DataTo(&c); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
+			return
+		}
+
+		c.Subjects = nil // omit subject data to make response payload smaller
+		courses = append(courses, &c)
+	}
+
+	public.GetCourses(ctx, courses)
+}
+
+// GetAllSubjects gets all subjects from a given course in the database
+func GetAllSubjects(ctx *gin.Context, DB db.Database, controller *controllers.Course) {
+	course := models.NewCourseFromController(controller)
+	snap, err := DB.Restore(fmt.Sprintf(
+		"institutes/%s/courses/%s",
+		utils.SHA256(course.Institute),
+		course.Hash(),
+	))
+
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find course: %s", err.Error()))
+			return
+		}
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch course: %s", err.Error()))
+		return
+	}
+
+	var courseModel models.Course
+	if err := snap.DataTo(&courseModel); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind course to object: %s", err))
+		return
+	}
+
+	public.GetAllSubjects(ctx, &courseModel)
 }
 
 // Get gets a subject by its identifier: subject code, course code and course specialization code
-func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+func Get(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	model := models.Subject{Code: sub.Code, CourseCode: sub.CourseCode, Specialization: sub.Specialization}
 	snap, err := DB.Restore("subjects/" + model.Hash())
 	if err != nil {
@@ -62,7 +122,7 @@ func Get(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
 }
 
 // GetRelations gets the subject's graph: their direct predecessors and successors
-func GetRelations(ctx *gin.Context, DB db.Env, sub *controllers.Subject) {
+func GetRelations(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	model := models.NewSubjectFromController(sub)
 	snap, err := DB.Restore("subjects/" + model.Hash())
 

@@ -10,7 +10,7 @@ import (
 )
 
 // GetSubjectGrade is a closure for the GET /private/subject/grade endpoint
-func GetSubjectGrade(DB db.Env) func(ctx *gin.Context) {
+func GetSubjectGrade(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		// get user and subject info
 		userID := ctx.MustGet("userID").(string)
@@ -21,7 +21,7 @@ func GetSubjectGrade(DB db.Env) func(ctx *gin.Context) {
 }
 
 // GetSubjectReview is a closure for the GET /private/subject/review endpoint
-func GetSubjectReview(DB db.Env) func(ctx *gin.Context) {
+func GetSubjectReview(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		// get user and subject info
 		userID := ctx.MustGet("userID").(string)
@@ -32,7 +32,7 @@ func GetSubjectReview(DB db.Env) func(ctx *gin.Context) {
 }
 
 // UpdateSubjectReview is a closure for the POST /private/subject/review endpoint
-func UpdateSubjectReview(DB db.Env) func(ctx *gin.Context) {
+func UpdateSubjectReview(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
 
