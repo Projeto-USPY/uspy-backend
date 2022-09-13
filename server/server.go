@@ -12,6 +12,7 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/server/controllers/restricted"
 	"github.com/Projeto-USPY/uspy-backend/server/middleware"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 func setupAccount(DB db.Database, accountGroup *gin.RouterGroup) {
@@ -98,6 +99,8 @@ func setupPrivate(DB db.Database, privateGroup *gin.RouterGroup) {
 //
 // It returns an error if any validation fails to be registered
 func SetupRouter(DB db.Database) (*gin.Engine, error) {
+	log.Info("setting up router...")
+
 	r := gin.New() // Create web-server object
 
 	err := validation.SetupValidators()

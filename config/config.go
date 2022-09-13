@@ -112,7 +112,7 @@ func Setup() {
 			log.Fatal("Could not find firestore key path: ", Env.FirestoreKeyPath)
 		}
 	} else if Env.IsUsingProjectID() {
-		log.Info("Running backend with project ID")
+		log.Infof("Running backend with project ID: %s", Env.ProjectID)
 
 		// setup email client
 		Env.Mailjet.Setup()
