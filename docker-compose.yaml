@@ -14,6 +14,8 @@ services:
     ports:
       - "4000:4000"
       - "8200:8200"
+    networks:
+      - default
   uspy-backend:
     build: 
       context: .
@@ -28,19 +30,12 @@ services:
       - USPY_ENFORCE_LOCAL=true
       - USPY_MODE=local
     networks:
+      - default
       - scraper_network
-  uspy-scraper:
-    image: tprei/uspy-scraper
-    environment:
-      - FIRESTORE_EMULATOR_HOST=firestore_emulator:8200
-      - USPY_PROJECT_ID=dummy-project-id
-      - USPY_DOMAIN=0.0.0.0
-      - USPY_PORT=8300
-    ports:
-      - "8300:8300"
     depends_on:
       - firestore_emulator
 networks:
   scraper_network:
     external:
       name: scraper_network
+  default:

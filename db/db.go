@@ -165,6 +165,7 @@ func (db Database) BatchWrite(objs []BatchObject) error {
 
 // InitFireStore initiates the DB Environment (requires some environment variables to work)
 func InitFireStore() Database {
+	log.Info("connecting to database...")
 	var DB = Database{
 		Ctx: context.Background(),
 	}
