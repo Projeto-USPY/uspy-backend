@@ -2,6 +2,7 @@ package views
 
 import "github.com/Projeto-USPY/uspy-backend/entity/models"
 
+// Stats is the response view object for a stats lookup
 type Stats struct {
 	Users     int `json:"users"`
 	Grades    int `json:"grades"`

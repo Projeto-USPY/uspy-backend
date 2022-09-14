@@ -25,7 +25,7 @@ type Stats struct {
 	Comments  StatsEntry `firestore:"comments"`
 }
 
-func (s Stats) Hash() string {
+func (s Stats) hash() string {
 	return utils.SHA256("uspy")
 }
 
@@ -55,12 +55,12 @@ func (s Stats) Update(DB db.Database, collection string) error {
 		},
 	)
 
-	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Update(DB.Ctx, updates)
+	_, err := DB.Client.Collection(collection).Doc(s.hash()).Update(DB.Ctx, updates)
 	return err
 }
 
 // Insert sets the stats counters
 func (s Stats) Insert(DB db.Database, collection string) error {
-	_, err := DB.Client.Collection(collection).Doc(s.Hash()).Set(DB.Ctx, s)
+	_, err := DB.Client.Collection(collection).Doc(s.hash()).Set(DB.Ctx, s)
 	return err
 }

@@ -34,19 +34,19 @@ func GetStats(ctx *gin.Context, DB db.Database) {
 		// get number of users and number of grades
 		var users, grades int
 
-		if userSnaps, err := DB.Client.Collection("users").Select().Documents(ctx).GetAll(); err != nil {
+		userSnaps, err := DB.Client.Collection("users").Select().Documents(ctx).GetAll()
+		if err != nil {
 			log.Errorf("error getting user count: %s", err.Error())
 			return
-		} else {
-			users = len(userSnaps)
 		}
+		users = len(userSnaps)
 
-		if gradeSnaps, err := DB.Client.CollectionGroup("grades").Select().Documents(ctx).GetAll(); err != nil {
+		gradeSnaps, err := DB.Client.CollectionGroup("grades").Select().Documents(ctx).GetAll()
+		if err != nil {
 			log.Errorf("error getting grades count: %s", err.Error())
 			return
-		} else {
-			grades = len(gradeSnaps)
 		}
+		grades = len(gradeSnaps)
 
 		now := time.Now().In(stats.Users.LastUpdate.Location())
 		if now.Sub(stats.Users.LastUpdate) > 24*time.Hour || now.Sub(stats.Grades.LastUpdate) > 24*time.Hour { // more than a day old
@@ -74,7 +74,7 @@ func GetStats(ctx *gin.Context, DB db.Database) {
 	} else if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error retrieving stats document: %s", err.Error()))
 		return
-	} else {
-		ctx.Status(http.StatusInternalServerError)
 	}
+
+	ctx.Status(http.StatusInternalServerError)
 }
