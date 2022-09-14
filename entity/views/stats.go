@@ -1,15 +1,22 @@
 package views
 
-// StatsEntry is entry response object for a stats query
-type StatsEntry struct {
-	Name  string `json:"name"`
-	Count int    `json:"count"`
+import "github.com/Projeto-USPY/uspy-backend/entity/models"
+
+type Stats struct {
+	Users     int `json:"users"`
+	Grades    int `json:"grades"`
+	Subjects  int `json:"subjects"`
+	Offerings int `json:"offerings"`
+	Comments  int `json:"comments"`
 }
 
-// NewStatsEntry is a dummy constructor
-func NewStatsEntry(name string, count int) *StatsEntry {
-	return &StatsEntry{
-		Name:  name,
-		Count: count,
+// NewStatsFromModel is a constructor. It takes a model stats and returns its response view object.
+func NewStatsFromModel(stats *models.Stats) *Stats {
+	return &Stats{
+		Users:     stats.Users.Count,
+		Grades:    stats.Grades.Count,
+		Subjects:  stats.Subjects.Count,
+		Offerings: stats.Offerings.Count,
+		Comments:  stats.Comments.Count,
 	}
 }
