@@ -192,7 +192,7 @@ func (pdf PDF) Parse(DB db.Database) (rec Transcript, err error) {
 						subCourse = c.Code
 						subSpecialization = c.Specialization
 					} else if c.Code == course { // replace any by a more likely match (this is useful for majors that have "ciclos básicos")
-						subCode = c.Code
+						subCourse = c.Code
 						subSpecialization = c.Specialization
 					}
 				}

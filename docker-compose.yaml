@@ -16,6 +16,7 @@ services:
       - "8200:8200"
     networks:
       - default
+      - scraper_network
   uspy-backend:
     build: 
       context: .
