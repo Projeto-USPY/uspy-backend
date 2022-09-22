@@ -9,14 +9,20 @@ import (
 //
 // It is not a DTO and is only used for data collection purposes
 type Professor struct {
-	CodPes string `firestore:"-"`
-	Name   string `firestore:"name"`
+	CodPes     string `firestore:"-"`
+	CodPesHash string `firestore:"-"` // used only when the ID is unknown
+
+	Name string `firestore:"name"`
 
 	Offerings []Offering `firestore:"-"`
 }
 
 // Hash returns SHA256(professor_code)
 func (p Professor) Hash() string {
+	if p.CodPesHash != "" {
+		return p.CodPesHash
+	}
+
 	return utils.SHA256(p.CodPes)
 }
 
