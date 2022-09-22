@@ -73,6 +73,37 @@ func GetCourses(ctx *gin.Context, DB db.Database, institute *controllers.Institu
 	public.GetCourses(ctx, courses)
 }
 
+// GetProfessors gets all course codes from a given institute the database
+func GetProfessors(ctx *gin.Context, DB db.Database, institute *controllers.Institute) {
+	model := models.NewInstituteFromController(institute)
+	snaps, err := DB.RestoreCollection(fmt.Sprintf(
+		"institutes/%s/professors",
+		model.Hash(),
+	),
+	)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find professors collection from institute: %s", err.Error()))
+			return
+		}
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch professors from institute: %s", err.Error()))
+		return
+	}
+
+	professors := make([]*models.Professor, 0, 200)
+	for _, s := range snaps {
+		var c models.Professor
+		if err := s.DataTo(&c); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch professors: %s", err.Error()))
+			return
+		}
+
+		professors = append(professors, &c)
+	}
+
+	public.GetProfessors(ctx, professors)
+}
+
 // GetAllSubjects gets all subjects from a given course in the database
 func GetAllSubjects(ctx *gin.Context, DB db.Database, controller *controllers.Course) {
 	course := models.NewCourseFromController(controller)
