@@ -15,6 +15,7 @@ import (
 type Subject struct {
 	Code             string                   `firestore:"code"`
 	CourseCode       string                   `firestore:"course"`
+	CourseName       string                   `firestore:"course_name"`
 	Specialization   string                   `firestore:"specialization"`
 	Name             string                   `firestore:"name"`
 	Description      string                   `firestore:"desc"`

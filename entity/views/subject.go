@@ -11,6 +11,7 @@ import (
 type Subject struct {
 	Code           string          `json:"code"`
 	CourseCode     string          `json:"course"`
+	CourseName     string          `json:"course_name"`
 	Specialization string          `json:"specialization"`
 	Name           string          `json:"name"`
 	Description    string          `json:"description"`
@@ -45,6 +46,7 @@ func NewSubjectFromModel(model *models.Subject) *Subject {
 	return &Subject{
 		Code:           model.Code,
 		CourseCode:     model.CourseCode,
+		CourseName:     model.CourseName,
 		Specialization: model.Specialization,
 		Name:           model.Name,
 		Description:    model.Description,
