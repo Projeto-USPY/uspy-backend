@@ -144,6 +144,13 @@ var (
 		Course:         "55041",
 		Specialization: "0",
 	}
+
+	MockProfessors = []models.Professor{
+		{
+			CodPes: "12344321",
+			Name:   "Fulano Silva Professor",
+		},
+	}
 )
 
 // SetupMockData inputs some mocked data into the emulator database
@@ -181,6 +188,14 @@ func SetupMockData(
 			defer wg.Done()
 			errChannel <- DB.Insert(c, fmt.Sprintf("institutes/%s/courses", utils.SHA256("55")))
 		}(c)
+	}
+
+	for _, p := range MockProfessors {
+		wg.Add(1)
+		go func(p models.Professor) {
+			defer wg.Done()
+			errChannel <- DB.Insert(p, fmt.Sprintf("institutes/%s/professors", utils.SHA256("55")))
+		}(p)
 	}
 
 	wg.Add(1)

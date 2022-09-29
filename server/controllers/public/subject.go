@@ -19,7 +19,7 @@ func GetSubjects(DB db.Database) func(ctx *gin.Context) {
 func GetSubjectByCode(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		sub := ctx.MustGet("Subject").(*controllers.Subject)
-		public.Get(ctx, DB, sub)
+		public.GetSubject(ctx, DB, sub)
 	}
 }
 

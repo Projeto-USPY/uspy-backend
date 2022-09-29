@@ -42,8 +42,8 @@ func GetAllSubjects(ctx *gin.Context, DB db.Database, controller *controllers.Co
 	public.GetAllSubjects(ctx, &courseModel)
 }
 
-// Get gets a subject by its identifier: subject code, course code and course specialization code
-func Get(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
+// GetSubject gets a subject by its identifier: subject code, course code and course specialization code
+func GetSubject(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	model := models.Subject{Code: sub.Code, CourseCode: sub.CourseCode, Specialization: sub.Specialization}
 	snap, err := DB.Restore("subjects/" + model.Hash())
 	if err != nil {

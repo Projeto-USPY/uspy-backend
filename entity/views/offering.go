@@ -10,13 +10,15 @@ import (
 //
 // It contains time information and some stats
 type Offering struct {
-	ProfessorName string   `json:"professor"`
-	ProfessorCode string   `json:"code"`
-	Years         []string `json:"years"`
+	ProfessorName string   `json:"professor,omitempty"`
+	ProfessorCode string   `json:"code,omitempty"`
+	Years         []string `json:"years,omitempty"`
 
-	Approval    float64 `json:"approval"`
-	Neutral     float64 `json:"neutral"`
-	Disapproval float64 `json:"disapproval"`
+	Subject
+
+	Approval    float64 `json:"approval,omitempty"`
+	Neutral     float64 `json:"neutral,omitempty"`
+	Disapproval float64 `json:"disapproval,omitempty"`
 }
 
 // SortOfferings takes a list of offerings and sorts them
@@ -83,6 +85,7 @@ func NewPartialOfferingFromModel(ID string, model *models.Offering) *Offering {
 	return &Offering{
 		ProfessorName: model.Professor,
 		ProfessorCode: ID,
+		Subject:       *NewSubjectFromModel(&model.Subject),
 		Years:         model.Years,
 	}
 }

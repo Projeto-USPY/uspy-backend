@@ -6,15 +6,14 @@ import (
 )
 
 // Professor is an object that represents a USP professor
-//
-// It is not a DTO and is only used for data collection purposes
 type Professor struct {
 	CodPes     string `firestore:"-"`
 	CodPesHash string `firestore:"-"` // used only when the ID is unknown
 
 	Name string `firestore:"name"`
 
-	Offerings []Offering `firestore:"-"`
+	Reviews   []ProfessorReview `firestore:"-"`
+	Offerings []Offering        `firestore:"-"`
 }
 
 // Hash returns SHA256(professor_code)

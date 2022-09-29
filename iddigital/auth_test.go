@@ -8,11 +8,11 @@ import (
 
 func TestGetCaptcha(t *testing.T) {
 	response, err := GetCaptcha()
-	defer response.Body.Close()
 
 	if err != nil {
 		t.Fatalf("failed with error: %v", err)
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
 		t.Fatal("could not get captcha")

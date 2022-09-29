@@ -13,6 +13,8 @@ type Offering struct {
 	CodPes string `firestore:"-"`
 	Code   string `firestore:"-"`
 
+	Subject `firestore:"-"`
+
 	Professor string   `firestore:"professor"`
 	Years     []string `firestore:"years"`
 }

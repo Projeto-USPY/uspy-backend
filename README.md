@@ -243,6 +243,7 @@ The following services are used by the backend application
 
     - Non relational database. Used to store all persistent data.
     - Must be accessed with an IAM key when running locally or just with the project ID if in production
+    - Some indexes are necessary for running the application, you may need to create them on the fly
 
 ### **Cloud run**:
 

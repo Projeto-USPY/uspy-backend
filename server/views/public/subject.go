@@ -28,16 +28,6 @@ func GetCourses(ctx *gin.Context, courses []*models.Course) {
 	ctx.JSON(http.StatusOK, viewCourses)
 }
 
-// GetProfessors takes the professor models and returns its response view objects
-func GetProfessors(ctx *gin.Context, professors []*models.Professor) {
-	viewProfessors := make([]*views.Professor, 0, len(professors))
-	for _, prof := range professors {
-		viewProfessors = append(viewProfessors, views.NewProfessorFromModel(prof))
-	}
-
-	ctx.JSON(http.StatusOK, viewProfessors)
-}
-
 // GetAllSubjects takes the course model and returns its response view object.
 func GetAllSubjects(ctx *gin.Context, model *models.Course) {
 	ctx.JSON(http.StatusOK, views.NewCourseFromModel(model))

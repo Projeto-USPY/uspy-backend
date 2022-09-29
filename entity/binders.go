@@ -11,6 +11,7 @@ import (
 // These are used not only for sanitization purposes, but also for simplifying internal logic
 var (
 	SubjectBinder         = middleware.Bind("Subject", &controllers.Subject{}, binding.Query)
+	ProfessorBinder       = middleware.Bind("Professor", &controllers.Professor{}, binding.Query)
 	OfferingBinder        = middleware.Bind("Offering", &controllers.Offering{}, binding.Query)
 	InstituteBinder       = middleware.Bind("Institute", &controllers.Institute{}, binding.Query)
 	CourseBinder          = middleware.Bind("Course", &controllers.Course{}, binding.Query)
