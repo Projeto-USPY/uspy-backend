@@ -24,7 +24,7 @@ type Config struct {
 	Mode         string `envconfig:"USPY_MODE" required:"true" default:"local"`
 	AESKey       string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
 	RateLimit    string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
-	AuthEndpoint string `envconfig:"USPY_AUTH_ENDPOINT" required:"true"`
+	AuthEndpoint string `envconfig:"USPY_AUTH_ENDPOINT" required:"true" default:"localhost:8081"`
 
 	FirestoreKeyPath  string `envconfig:"USPY_FIRESTORE_KEY"`
 	MockFirestoreData bool   `envconfig:"USPY_MOCK_FIRESTORE_DATA" default:"false"`
