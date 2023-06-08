@@ -1,33 +1,53 @@
 steps:
-# Build the container image
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA', '-f', 'docker/app/Dockerfile', '.']
-  dir: .
+  # Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "--tag",
+        "gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA",
+        "-f",
+        "docker/app/Dockerfile",
+        ".",
+      ]
+    dir: .
 
-# Push the container image to Container Registry
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA']
+  # Push the container image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA"]
 
-# Deploy image to Cloud Run
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: ['run', 'deploy', 'uspy-backend',
-      '--image=gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA',
-      '--region=us-east1',
-      '--platform=managed',
-      '--max-instances=30',
-      "--set-env-vars=\
-      USPY_DOMAIN=$_DOMAIN,\
-      USPY_MODE=$_MODE,\
-      USPY_PROJECT_ID=$_PROJECT_ID,\
-      USPY_JWT_SECRET=$_JWT_SECRET,\
-      USPY_RATE_LIMIT=$_RATE_LIMIT,\
-      USPY_AES_KEY=$_AES_KEY,\
-      USPY_MAILJET_KEY=$_MAILJET_KEY,\
-      USPY_MAILJET_SECRET=$_MAILJET_SECRET"]
+  # Deploy image to Cloud Run
+  - name: "gcr.io/cloud-builders/gcloud"
+    args: [
+        "run",
+        "deploy",
+        "uspy-backend",
+        "--image=gcr.io/$_PROJECT_ID/uspy:$COMMIT_SHA",
+        "--region=us-east1",
+        "--platform=managed",
+        "--max-instances=30",
+        "--set-env-vars=\
+        USPY_DOMAIN=$_DOMAIN,\
+        USPY_MODE=$_MODE,\
+        USPY_PROJECT_ID=$_PROJECT_ID,\
+        USPY_JWT_SECRET=$_JWT_SECRET,\
+        USPY_RATE_LIMIT=$_RATE_LIMIT,\
+        USPY_AES_KEY=$_AES_KEY,\
+        USPY_MAILJET_KEY=$_MAILJET_KEY,\
+        USPY_MAILJET_SECRET=$_MAILJET_SECRET,\
+        USPY_AUTH_ENDPOINT=$_AUTH_ENDPOINT
+        ",
+      ]
 
-# Assign 100% of the traffic to the latest version
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: ['run', 'services', 'update-traffic', 'uspy-backend',
-         '--region=us-east1',
-         '--platform=managed',
-         '--to-latest']
+  # Assign 100% of the traffic to the latest version
+  - name: "gcr.io/cloud-builders/gcloud"
+    args:
+      [
+        "run",
+        "services",
+        "update-traffic",
+        "uspy-backend",
+        "--region=us-east1",
+        "--platform=managed",
+        "--to-latest",
+      ]
