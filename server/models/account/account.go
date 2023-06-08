@@ -284,39 +284,31 @@ func sendEmailVerification(email, userHash string) error {
 	return config.Env.Send(email, config.VerificationSubject, content)
 }
 
-// Signup performs all the server-side signup operations.
+// PreSignup performs the server-side signup operations that can be done before the user is created.
 //
-// It validates database data, gets and parses user records, creates the user object and sends the verification email
-func Signup(ctx *gin.Context, DB db.Database, signupForm *controllers.SignupForm) {
-	// check if email already exists in the database
-	hashedEmail := utils.SHA256(signupForm.Email)
-	query := DB.Client.Collection("users").Where("email", "==", hashedEmail).Limit(1)
-	snaps, err := query.Documents(ctx).GetAll()
-
-	if err != nil || len(snaps) != 0 {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidEmail)
-		return
-	}
-
-	// get user records
-	cookies := ctx.Request.Cookies()
-	resp, err := iddigital.PostAuthCode(signupForm.AccessKey, signupForm.Captcha, cookies)
+// It validates the access key, fetches the PDF, parses it and inserts the data into the database
+func PreSignup(ctx *gin.Context, DB db.Database, authForm *controllers.AuthForm) {
+	// fetch pdf
+	resp, err := iddigital.GetPDF(authForm.AccessKey)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting pdf from iddigital: %s", err.Error()))
 		return
 	} else if resp.Header.Get("Content-Type") != "application/pdf" {
-		ctx.AbortWithStatus(http.StatusBadRequest)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, views.ErrInvalidAuthCode)
+		return
+	} else if resp.StatusCode != http.StatusOK {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, views.ErrOther)
 		return
 	}
 
-	// parse transcript
+	// parse pdf
 	pdf := iddigital.NewPDF(resp)
-	if pdf.Error != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error converting pdf to text: %s", pdf.Error.Error()))
+	transcript, err := pdf.Parse(DB)
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error parsing pdf: %s", err.Error()))
 		return
 	}
-
-	data, err := pdf.Parse(DB)
 
 	var maxPDFAge float64
 	if config.Env.IsDev() || config.Env.IsLocal() {
@@ -333,14 +325,11 @@ func Signup(ctx *gin.Context, DB db.Database, signupForm *controllers.SignupForm
 		return
 	}
 
-	// create user object
 	newUser, userErr := models.NewUser(
-		data.Nusp,
-		data.Name,
-		signupForm.Email,
-		signupForm.Password,
+		transcript.Nusp,
+		transcript.Name,
 		pdf.CreationDate,
-		data.TranscriptYears,
+		transcript.TranscriptYears,
 	)
 
 	if userErr != nil {
@@ -348,38 +337,107 @@ func Signup(ctx *gin.Context, DB db.Database, signupForm *controllers.SignupForm
 		return
 	}
 
-	// insert user object into database
-	if err := InsertUser(DB, newUser, &data); err != nil {
+	// set signup token in response
+	// this is used to complete the signup process
+	token, err := utils.GenerateJWT(map[string]interface{}{
+		"type":      "signup",
+		"timestamp": time.Now(),
+		"user":      newUser.Hash(),
+	}, config.Env.JWTSecret)
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error generating signup token: %s", err.Error()))
+		return
+	}
+
+	account.PreSignup(ctx, token)
+
+	// insert data into database in batch write
+	//
+	// data to insert:
+	// - user (pending verification)
+	// - grades
+	// - final scores
+
+	// Note that in dev/local environment, verification is skipped and thus this should not be required when completing signup
+	if err := InsertUser(DB, newUser, &transcript); err != nil {
 		if err == errUserExists {
-			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidUser)
 			return
 		}
 
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error inserting user %s: %s", data.Nusp, err.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error inserting user %s: %s", transcript.Nusp, err.Error()))
 		return
 	}
-
-	// send email verification
-	if err := sendEmailVerification(signupForm.Email, newUser.Hash()); err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to send email verification to user %s; %s", signupForm.Email, err.Error()))
-		return
-	}
-
-	account.Signup(ctx, newUser.ID, data)
 }
 
-// SignupCaptcha gets the iddigital validation captcha
-func SignupCaptcha(ctx *gin.Context) {
-	resp, err := iddigital.GetCaptcha()
-	if err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting captcha from iddigital: %s", err.Error()))
-		return
-	} else if resp.StatusCode != http.StatusOK {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
+// CompleteSignup performs the server-side signup operations that can only be done after the user is created.
+//
+// It validates the signup token, checks if the email is already in use and sends the verification email
+func CompleteSignup(ctx *gin.Context, DB db.Database, signupForm *controllers.CompleteSignupForm) {
+	// check if email already exists in the database
+	hashedEmail := utils.SHA256(signupForm.Email)
+	query := DB.Client.Collection("users").Where("email", "==", hashedEmail).Limit(1)
+	snaps, err := query.Documents(ctx).GetAll()
+
+	if err != nil || len(snaps) != 0 {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidEmail)
 		return
 	}
 
-	account.SignupCaptcha(ctx, resp)
+	// unwrap signup token
+	token, err := utils.ValidateJWT(signupForm.SignupToken, config.Env.JWTSecret)
+	if err != nil {
+		ctx.AbortWithError(http.StatusUnauthorized, fmt.Errorf("error validating signup token: %s", err.Error()))
+		return
+	}
+
+	claims := token.Claims.(jwt.MapClaims)
+	userHash := claims["user"].(string)
+
+	// check if user exists
+	// if user exists, check if the user is pending verification
+	// if user is not pending verification, abort with error
+
+	// get user from database
+	snap, err := DB.Restore("users/" + userHash)
+	if err != nil {
+		if status.Code(err) == codes.NotFound { // if user was not found
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, views.ErrInvalidUser)
+		} else {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting user: %s", err.Error()))
+		}
+	}
+
+	var user models.User
+	if err := snap.DataTo(&user); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting user: %s", err.Error()))
+		return
+	}
+
+	// if in production, check if user is pending verification
+	//
+	// locally or in dev, skip this check
+	if config.Env.IsProd() {
+		if user.Verified {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, views.ErrInvalidUser)
+			return
+		}
+	}
+
+	// complete signup
+	err = models.CompleteSignup(DB, userHash, "users", signupForm.Email, signupForm.Password)
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error completing signup: %s", err.Error()))
+		return
+	}
+
+	// send verification email
+	if err := sendEmailVerification(signupForm.Email, userHash); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error sending verification email: %s", err.Error()))
+		return
+	}
+
+	account.CompleteSignup(ctx)
 }
 
 // Login performs the user login by comparing the passwordHash and the stored hash
@@ -421,6 +479,7 @@ func Login(ctx *gin.Context, DB db.Database, login *controllers.Login) {
 
 	// generate access_token
 	jwtToken, err := utils.GenerateJWT(map[string]interface{}{
+		"type":      "access",
 		"user":      login.ID,
 		"timestamp": time.Now().Unix(),
 	}, config.Env.JWTSecret)
@@ -584,13 +643,15 @@ func Delete(ctx *gin.Context, DB db.Database, userID string) {
 // Update updates a user's profile with a new grade transcript
 func Update(ctx *gin.Context, DB db.Database, userID string, updateForm *controllers.UpdateForm) {
 	// get user records
-	cookies := ctx.Request.Cookies()
-	resp, err := iddigital.PostAuthCode(updateForm.AccessKey, updateForm.Captcha, cookies)
+	resp, err := iddigital.GetPDF(updateForm.AccessKey)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting pdf from iddigital: %s", err.Error()))
 		return
 	} else if resp.Header.Get("Content-Type") != "application/pdf" {
-		ctx.AbortWithStatus(http.StatusBadRequest)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, views.ErrInvalidAuthCode)
+		return
+	} else if resp.StatusCode != http.StatusOK {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, views.ErrOther)
 		return
 	}
 

@@ -1,4 +1,4 @@
-//Package server contains basic setup functions to start up the web server
+// Package server contains basic setup functions to start up the web server
 package server
 
 import (
@@ -17,13 +17,17 @@ import (
 
 func setupAccount(DB db.Database, accountGroup *gin.RouterGroup) {
 	accountGroup.DELETE("", middleware.JWT(), account.Delete(DB))
-	accountGroup.GET("/captcha", account.SignupCaptcha())
 	accountGroup.GET("/logout", middleware.JWT(), account.Logout())
 	accountGroup.POST("/login", account.Login(DB))
-	accountGroup.POST("/create", account.Signup(DB))
+
+	accountGroup.PUT("/auth", account.PreSignup(DB))
+	accountGroup.POST("/create", account.CompleteSignup(DB))
+
 	accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
 	accountGroup.PUT("/password_reset", account.ResetPassword(DB))
+
 	accountGroup.GET("/verify", account.VerifyAccount(DB))
+
 	accountGroup.PUT("/update", middleware.JWT(), account.Update(DB))
 
 	emailGroup := accountGroup.Group("/email")

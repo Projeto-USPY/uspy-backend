@@ -26,6 +26,12 @@ func JWT() gin.HandlerFunc {
 		}
 
 		claims := token.Claims.(jwt.MapClaims)
+
+		if claims["type"].(string) != "access" {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
 		userID := claims["user"].(string)
 
 		ctx.Set("access_token", token)

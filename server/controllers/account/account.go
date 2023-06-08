@@ -64,17 +64,31 @@ func Login(DB db.Database) func(ctx *gin.Context) {
 	}
 }
 
-// Signup is a closure for the POST /account/create endpoint
-func Signup(DB db.Database) func(g *gin.Context) {
+// PreSignup is a closure for the PUT /account/auth endpoint
+func PreSignup(DB db.Database) func(g *gin.Context) {
 	return func(ctx *gin.Context) {
 		// validate user data
-		var signupForm controllers.SignupForm
+		var authForm controllers.AuthForm
+		if err := ctx.ShouldBindJSON(&authForm); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		account.PreSignup(ctx, DB, &authForm)
+	}
+}
+
+// CompleteSignup is a closure for the POST /account/create endpoint
+func CompleteSignup(DB db.Database) func(g *gin.Context) {
+	return func(ctx *gin.Context) {
+		// validate user data
+		var signupForm controllers.CompleteSignupForm
 		if err := ctx.ShouldBindJSON(&signupForm); err != nil {
 			ctx.AbortWithError(http.StatusBadRequest, err)
 			return
 		}
 
-		account.Signup(ctx, DB, &signupForm)
+		account.CompleteSignup(ctx, DB, &signupForm)
 	}
 }
 
@@ -89,13 +103,6 @@ func VerifyAccount(DB db.Database) func(g *gin.Context) {
 		}
 
 		account.VerifyAccount(ctx, DB, &verification)
-	}
-}
-
-// SignupCaptcha is a closure for the GET /account/captcha endpoint
-func SignupCaptcha() func(ctx *gin.Context) {
-	return func(ctx *gin.Context) {
-		account.SignupCaptcha(ctx)
 	}
 }
 
