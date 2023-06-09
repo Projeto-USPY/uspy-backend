@@ -197,7 +197,7 @@ func SetupMockData(
 
 		errChannel <- userErr
 		errChannel <- account.InsertUser(DB, user, &MockTranscript)
-		errChannel <- models.CompleteSignup(DB, user.Hash(), "users/", "email_test@usp.br", "r4nd0mpass123!@#")
+		errChannel <- models.CompleteSignup(DB, user.Hash(), "users", "email_test@usp.br", "r4nd0mpass123!@#")
 	}()
 
 	wg.Wait()

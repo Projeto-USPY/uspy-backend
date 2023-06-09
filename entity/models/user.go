@@ -96,7 +96,20 @@ func CompleteSignup(DB db.Database, userHash, collection, email, password string
 	return err
 }
 
-// Update is a dummy method for a user
+// Update sets a user object to a given collection. This is usually /users
+//
+// This method only allows updating the password
+// TODO: Use MergeWithout to specifically mention non-updatable fields
 func (u User) Update(DB db.Database, collection string) error {
-	return nil
+	updates := make([]firestore.Update, 0)
+
+	if u.PasswordHash != "" {
+		updates = append(updates, firestore.Update{
+			Path:  "password",
+			Value: u.PasswordHash,
+		})
+	}
+
+	_, err := DB.Client.Collection(collection).Doc(u.Hash()).Update(DB.Ctx, updates)
+	return err
 }
