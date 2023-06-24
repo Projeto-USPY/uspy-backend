@@ -293,11 +293,12 @@ func PreSignup(ctx *gin.Context, DB db.Database, authForm *controllers.AuthForm)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error getting pdf from iddigital: %s", err.Error()))
 		return
+	} else if resp.StatusCode != http.StatusOK {
+		log.Debug("iddigital response: ", resp)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, views.ErrOther)
+		return
 	} else if resp.Header.Get("Content-Type") != "application/pdf" {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, views.ErrInvalidAuthCode)
-		return
-	} else if resp.StatusCode != http.StatusOK {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, views.ErrOther)
 		return
 	}
 
