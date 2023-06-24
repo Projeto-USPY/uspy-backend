@@ -35,8 +35,7 @@ steps:
         USPY_AES_KEY=$_AES_KEY,\
         USPY_MAILJET_KEY=$_MAILJET_KEY,\
         USPY_MAILJET_SECRET=$_MAILJET_SECRET,\
-        USPY_AUTH_ENDPOINT=$_AUTH_ENDPOINT
-        ",
+        USPY_AUTH_ENDPOINT=$_AUTH_ENDPOINT",
       ]
 
   # Assign 100% of the traffic to the latest version
