@@ -1,4 +1,4 @@
-//Package middleware contains useful middleware handlers
+// Package middleware contains useful middleware handlers
 package middleware
 
 import (
@@ -12,7 +12,7 @@ import (
 func AllowAnyOrigin() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Header("Access-Control-Allow-Credentials", "true")
-		ctx.Header("Access-Control-Allow-Origin", "http://127.0.0.1")
+		ctx.Header("Access-Control-Allow-Origin", config.Env.FrontOriginHost)
 		ctx.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 		ctx.Header("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With,observe")
 

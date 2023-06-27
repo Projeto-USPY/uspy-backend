@@ -1,4 +1,4 @@
-//Package utils contain useful helper functions
+// Package utils contain useful helper functions
 package utils
 
 import (
@@ -92,7 +92,7 @@ func AESDecrypt(encryptedString string, keyString string) (decryptedString strin
 		panic(err.Error())
 	}
 
-	return fmt.Sprintf("%s", plaintext), nil
+	return string(plaintext), nil
 }
 
 // SHA256 returns the sha256 digest of a string

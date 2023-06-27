@@ -15,64 +15,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GetInstitutes gets all institutes from the database
-func GetInstitutes(ctx *gin.Context, DB db.Database) {
-	snaps, err := DB.RestoreCollection("institutes")
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find collection institutes: %s", err.Error()))
-			return
-		}
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch institutes: %s", err.Error()))
-		return
-	}
-
-	institutes := make([]models.Institute, 0, 200)
-	for _, s := range snaps {
-		var c models.Institute
-		err = s.DataTo(&c)
-		institutes = append(institutes, c)
-		if err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch institutes: %s", err.Error()))
-			return
-		}
-	}
-
-	public.GetInstitutes(ctx, institutes)
-}
-
-// GetCourses gets all course codes from a given institute the database
-func GetCourses(ctx *gin.Context, DB db.Database, institute *controllers.Institute) {
-	model := models.NewInstituteFromController(institute)
-	snaps, err := DB.RestoreCollection(fmt.Sprintf(
-		"institutes/%s/courses",
-		model.Hash(),
-	),
-	)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find courses collection from institute: %s", err.Error()))
-			return
-		}
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses from institute: %s", err.Error()))
-		return
-	}
-
-	courses := make([]*models.Course, 0, 200)
-	for _, s := range snaps {
-		var c models.Course
-		if err := s.DataTo(&c); err != nil {
-			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err.Error()))
-			return
-		}
-
-		c.Subjects = nil // omit subject data to make response payload smaller
-		courses = append(courses, &c)
-	}
-
-	public.GetCourses(ctx, courses)
-}
-
 // GetAllSubjects gets all subjects from a given course in the database
 func GetAllSubjects(ctx *gin.Context, DB db.Database, controller *controllers.Course) {
 	course := models.NewCourseFromController(controller)

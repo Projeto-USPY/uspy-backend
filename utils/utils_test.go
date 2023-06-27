@@ -17,6 +17,7 @@ func BenchmarkHashPasswords(b *testing.B) {
 
 func TestGenerateToken(t *testing.T) {
 	jwt, err := utils.GenerateJWT(map[string]interface{}{
+		"type":      "access",
 		"user":      "login",
 		"timestamp": time.Now().Unix(),
 	}, config.Env.JWTSecret)
@@ -30,6 +31,7 @@ func TestGenerateToken(t *testing.T) {
 
 func TestValidateToken(t *testing.T) {
 	jwt, err := utils.GenerateJWT(map[string]interface{}{
+		"type":      "access",
 		"user":      "login",
 		"timestamp": time.Now().Unix(),
 	}, config.Env.JWTSecret)

@@ -1,23 +1,39 @@
 package models
 
-import "github.com/Projeto-USPY/uspy-backend/db"
+import (
+	"github.com/Projeto-USPY/uspy-backend/db"
+	"github.com/Projeto-USPY/uspy-backend/utils"
+)
 
 // Professor is an object that represents a USP professor
 //
 // It is not a DTO and is only used for data collection purposes
 type Professor struct {
-	CodPes string `firestore:"-"`
-	Name   string `firestore:"-"`
+	CodPes     string `firestore:"-"`
+	CodPesHash string `firestore:"-"` // used only when the ID is unknown
+
+	Name string `firestore:"name"`
 
 	Offerings []Offering `firestore:"-"`
 }
 
-// Insert is a dummy method for professor. It is necessary because professor must be able to be represented as a db.Writer
-func (prof Professor) Insert(DB db.Database, collection string) error {
-	return nil
+// Hash returns SHA256(professor_code)
+func (p Professor) Hash() string {
+	if p.CodPesHash != "" {
+		return p.CodPesHash
+	}
+
+	return utils.SHA256(p.CodPes)
 }
 
-// Update is a dummy method for professor. It is necessary because Institute must be able to be represented as a db.Writer
-func (prof Professor) Update(DB db.Database, collection string) error {
-	return nil
+// Insert sets a Professor to a given collection. This is usually /institutes/#institute/professors/#professor
+func (p Professor) Insert(DB db.Database, collection string) error {
+	_, err := DB.Client.Collection(collection).Doc(p.Hash()).Set(DB.Ctx, p)
+	return err
+}
+
+// Update sets a Professor to a given collection
+func (p Professor) Update(DB db.Database, collection string) error {
+	_, err := DB.Client.Collection(collection).Doc(p.Hash()).Set(DB.Ctx, p)
+	return err
 }
