@@ -28,6 +28,8 @@ func GetPDF(auth string) (*http.Response, error) {
 			return resp, nil
 		} else if resp.StatusCode == http.StatusBadRequest {
 			return resp, nil
+		} else {
+			log.Errorf("got unexpected status trying to fetch pdf: %s", resp.Status)
 		}
 
 		log.Info("retrying to get pdf from uspdigital")
