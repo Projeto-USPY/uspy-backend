@@ -26,6 +26,7 @@ steps:
         "--region=us-east1",
         "--platform=managed",
         "--max-instances=5",
+        "--service-account=$_SERVICE_ACCOUNT",
         "--set-env-vars=\
         USPY_DOMAIN=$_DOMAIN,\
         USPY_MODE=$_MODE,\
