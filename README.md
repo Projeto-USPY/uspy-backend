@@ -122,11 +122,14 @@ To deploy and/or run this application, there are a few variables:
 | **USPY_JWT_SECRET**    | Private key to be used to generate `JWT` Tokens |     **Yes**      |                 |   `my_secret`   |
 | **USPY_MODE**          | Which mode to run the web server                |     **Yes**      |  `[prod, dev, local]`  |      `local`      |
 | **USPY_AES_KEY**       | Private AES key to be used for AES Encryption   |     **Yes**      |     AES key     |   `71deb5...`   |
+| **USPY_AUTH_ENDPOINT** | Endpoint used to fetch PDF. See Auth section.   |     **Yes**  (*) |                 | `localhost:8081`|
 | **USPY_RATE_LIMIT**    | `Frequency:Time` string for the rate-limiter    |      **No**      |  `F:P` string   |                 |
 | **USPY_FIRESTORE_KEY** | Path to firestore access key                    | **Only locally** |                 |                 |
 | **USPY_PROJECT_ID**    | GCP Project ID                                  | **In the Cloud** |                 |                 |
 | **USPY_MAILJET_KEY**   | Mailjet key used for e-mail operations          | **In the Cloud** |                 |                 |
 | **USPY_MAILJET_SECRET**| Mailjet secret used for e-mail operations       | **In the Cloud** |                 |                 |
+
+### **(*)** This is only needed for signup. If you use the local deployment, you may have the built-in database population through docker-compose that automatically inserts data without signup.
 
 &nbsp;
 
@@ -157,7 +160,7 @@ This will run three daemon containers, mapped to local ports:
 
 Some things to consider:
 
-1. The firestore-emulator does not cover all features provided by the real database, therefore some things may not work as expected (e.g. anything that involves transactions)
+1. The firestore-emulator does not cover all features provided by the real database, therefore some things may not work as expected (e.g. anything that involves transactions is not guaranteed to work)
 2. After the container initializes, the database will be empty, you can build its data using uspy-scraper by running
 
 ```sh
@@ -250,6 +253,14 @@ The following services are used by the backend application
     - Can be set up manually, but also through cloud build using the cloubuild.yaml configuration file
     - Runs the web server by building the container using the Dockerfile in the repository
 
+### **Auth**:
+
+    - Signup is done in a 2-way step that requires an external service (uspy-auth)
+    - First step is fetching of user PDF, grades parsing and data insertion
+        - This step requires an external service
+        - This service should have a root endpoint "/:authCode" that, given an authCode,   responds with the user's PDF. Contact us if you'd like to understand more about this.
+    - Second step is auth registering (inserting email, password and verifying user), does not require external services
+
 &nbsp;
 
 ## **How to contribute**
@@ -263,4 +274,6 @@ If this is the case, please submit an issue through the [contributions repositor
 
 If you'd to directly contribute, fork this repository and create a pull request to merge on `dev` branch. Please do not submit pull requests to the main branch as they will be denied. The main branch is used for releases and we don't really push to it other than through the `deploy.sh` script.
 
-We really appreciate any contributors! This project is from USP students and for USP students! If you have any questions or would simply like to chat, contact us on Telegram `@preischadt` `@lucsturci`
+If you'd to directly contribute, fork this repository and create a pull request to merge on `dev` branch. Please do not submit pull requests to the main branch as they will be denied. The main branch is used for releases and we don't really push to it other than through the `deploy.sh` script.
+
+We really appreciate any contributors! This project is from USP students and for USP students! If you have any questions or would simply like to chat, contact us on Telegram @preischadt @lucsturci

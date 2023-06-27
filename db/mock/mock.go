@@ -189,18 +189,15 @@ func SetupMockData(
 		user, userErr := models.NewUser(
 			"123456789",
 			"Usuário teste",
-			"email_teste@usp.br",
-			"r4nd0mpass123!@#",
 			time.Date(2020, time.January, 0, 0, 0, 0, 0, timezone),
 			map[string][]int{
 				"2018": {1, 2},
 			},
 		)
 
-		user.Verified = true
-
 		errChannel <- userErr
 		errChannel <- account.InsertUser(DB, user, &MockTranscript)
+		errChannel <- models.CompleteSignup(DB, user.Hash(), "users", "email_test@usp.br", "r4nd0mpass123!@#")
 	}()
 
 	wg.Wait()

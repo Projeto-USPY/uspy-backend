@@ -46,14 +46,8 @@ func (u User) Hash() string {
 // NewUser creates a new user. It takes raw data and processes all the encrypted data
 //
 // User email verification is also bypassed in dev or local environments
-func NewUser(ID, name, email, password string, lastUpdate time.Time, transcriptYears map[string][]int) (*User, error) {
+func NewUser(ID, name string, lastUpdate time.Time, transcriptYears map[string][]int) (*User, error) {
 	nHash, err := utils.AESEncrypt(name, config.Env.AESKey)
-	if err != nil {
-		return nil, err
-	}
-
-	eHash := utils.SHA256(email)
-	pHash, err := utils.Bcrypt(password)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +56,6 @@ func NewUser(ID, name, email, password string, lastUpdate time.Time, transcriptY
 		ID:              ID,
 		Name:            name,
 		NameHash:        nHash,
-		EmailHash:       eHash,
-		PasswordHash:    pHash,
 		LastUpdate:      lastUpdate,
 		TranscriptYears: transcriptYears,
 		Verified:        config.Env.IsLocal() || config.Env.IsDev(),
@@ -78,9 +70,35 @@ func (u User) Insert(DB db.Database, collection string) error {
 	return err
 }
 
+// CompleteSignup sets a user's email and password and verifies an user. Collection is usually /users
+func CompleteSignup(DB db.Database, userHash, collection, email, password string) error {
+	eHash := utils.SHA256(email)
+	pHash, err := utils.Bcrypt(password)
+	if err != nil {
+		return err
+	}
+
+	_, err = DB.Client.Collection(collection).Doc(userHash).Update(DB.Ctx, []firestore.Update{
+		{
+			Path:  "email",
+			Value: eHash,
+		},
+		{
+			Path:  "password",
+			Value: pHash,
+		},
+		{
+			Path:  "verified",
+			Value: true,
+		},
+	})
+
+	return err
+}
+
 // Update sets a user object to a given collection. This is usually /users
 //
-// This method only allows updating the password or verified status
+// This method only allows updating the password
 // TODO: Use MergeWithout to specifically mention non-updatable fields
 func (u User) Update(DB db.Database, collection string) error {
 	updates := make([]firestore.Update, 0)
@@ -90,14 +108,6 @@ func (u User) Update(DB db.Database, collection string) error {
 			Path:  "password",
 			Value: u.PasswordHash,
 		})
-	}
-
-	if u.Verified {
-		updates = append(updates, firestore.Update{
-			Path:  "verified",
-			Value: u.Verified,
-		})
-
 	}
 
 	_, err := DB.Client.Collection(collection).Doc(u.Hash()).Update(DB.Ctx, updates)

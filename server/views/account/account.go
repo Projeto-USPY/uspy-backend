@@ -6,39 +6,23 @@ import (
 
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
-	"github.com/Projeto-USPY/uspy-backend/iddigital"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 )
 
-// Signup sets the records
-func Signup(ctx *gin.Context, userID string, records iddigital.Transcript) {
-	ctx.JSON(http.StatusOK, views.NewTranscript(&records))
+// PreSignup is a dummy view method
+func PreSignup(ctx *gin.Context, signupToken string) {
+	ctx.JSON(http.StatusOK, signupToken)
+}
+
+// CompleteSignup is a dummy view method
+func CompleteSignup(ctx *gin.Context) {
+	ctx.Status(http.StatusOK)
 }
 
 // VerifyAccount is a dummy view method
 func VerifyAccount(ctx *gin.Context) {
 	ctx.Status(http.StatusOK)
-}
-
-// SignupCaptcha sets the captcha and cookie data in the response
-func SignupCaptcha(ctx *gin.Context, resp *http.Response) {
-	defer resp.Body.Close()
-
-	cookies := resp.Cookies()
-	for _, ck := range cookies {
-		domain := ctx.MustGet("front_domain").(string)
-		secureCookie := !config.Env.IsLocal()
-		ctx.SetCookie(ck.Name, ck.Value, ck.MaxAge, "/", domain, secureCookie, true)
-	}
-
-	ctx.DataFromReader(
-		http.StatusOK,
-		resp.ContentLength,
-		resp.Header.Get("Content-Type"),
-		resp.Body,
-		map[string]string{},
-	)
 }
 
 // Login sets the profile data once it is successful

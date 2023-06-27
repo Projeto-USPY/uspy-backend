@@ -64,13 +64,6 @@ func (s *AccountSuite) TestGetMajors() {
 	s.JSONEq(expectedResponse, string(bytes))
 }
 
-func (s *AccountSuite) TestSignupCaptcha() {
-	w := utils.MakeRequest(s.router, http.MethodGet, "/account/captcha", nil)
-
-	s.Equal(http.StatusOK, w.Result().StatusCode)
-	s.Equal([]string{"image/png"}, w.Result().Header["Content-Type"])
-}
-
 func (s *AccountSuite) TestChangePassword() {
 	loginBody := `
 		{
