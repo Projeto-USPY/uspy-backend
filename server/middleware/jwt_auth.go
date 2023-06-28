@@ -27,7 +27,7 @@ func JWT() gin.HandlerFunc {
 
 		claims := token.Claims.(jwt.MapClaims)
 
-		if claims["type"].(string) != "access" {
+		if cookieType, ok := claims["type"].(string); !ok || cookieType != "access" {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
