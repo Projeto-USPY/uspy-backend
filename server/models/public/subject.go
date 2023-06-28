@@ -7,6 +7,7 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/db"
 	"github.com/Projeto-USPY/uspy-backend/entity/controllers"
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
+	"github.com/Projeto-USPY/uspy-backend/entity/views"
 	"github.com/Projeto-USPY/uspy-backend/server/views/public"
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
@@ -126,4 +127,53 @@ func GetRelations(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
 	}
 
 	public.GetRelations(ctx, model, weak, strong)
+}
+
+// GetSiblingSubjects gets the subject's siblings: Subjects with same institute, course, specialization and semester
+func GetSiblingSubjects(ctx *gin.Context, DB db.Database, sub *controllers.Subject) {
+	model := models.NewSubjectFromController(sub)
+
+	snap, err := DB.Restore("subjects/" + model.Hash())
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
+			return
+		}
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject: %s", err.Error()))
+		return
+	}
+
+	if err := snap.DataTo(&model); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("could not bind subject %v: %s", model, err.Error()))
+		return
+	}
+
+	iter := DB.Client.Collection("subjects").Query.
+		Where("course", "==", model.CourseCode).
+		Where("specialization", "==", model.Specialization).
+		Where("semester", "==", model.Semester).
+		Documents(DB.Ctx)
+
+	siblings := make([]*views.SubjectSibling, 0, 15)
+	for {
+		snap, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch subject: %s", err.Error()))
+			return
+		}
+
+		var subject models.Subject
+		if err := snap.DataTo(&subject); err != nil {
+			ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind subject to object: %s", err.Error()))
+			return
+		}
+
+		siblings = append(siblings, views.NewSubjectSibling(&subject))
+	}
+
+	public.GetSiblingSubjects(ctx, siblings)
 }

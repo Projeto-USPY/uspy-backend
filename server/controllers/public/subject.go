@@ -30,3 +30,11 @@ func GetRelations(DB db.Database) func(ctx *gin.Context) {
 		public.GetRelations(ctx, DB, sub)
 	}
 }
+
+// GetSiblingSubjects is a closure for the GET /api/subject/siblings endpoint
+func GetSiblingSubjects(DB db.Database) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
+		public.GetSiblingSubjects(ctx, DB, sub)
+	}
+}
