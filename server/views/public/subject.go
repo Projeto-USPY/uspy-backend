@@ -72,3 +72,8 @@ func GetRelations(ctx *gin.Context, model *models.Subject, weak, strong []models
 
 	ctx.JSON(http.StatusOK, graph)
 }
+
+// GetSiblingSubjects is a dummy function that returns the sibling subjects
+func GetSiblingSubjects(ctx *gin.Context, siblings []*views.SubjectSibling) {
+	ctx.JSON(http.StatusOK, siblings)
+}

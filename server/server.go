@@ -60,6 +60,7 @@ func setupPublic(DB db.Database, apiGroup *gin.RouterGroup) {
 	{
 		subjectAPI.GET("", public.GetSubjectByCode(DB))
 		subjectAPI.GET("/relations", public.GetRelations(DB))
+		subjectAPI.GET("/siblings", public.GetSiblingSubjects(DB))
 		subjectAPI.GET("/offerings", public.GetOfferings(DB))
 	}
 }
