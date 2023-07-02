@@ -64,6 +64,21 @@ func Login(DB db.Database) func(ctx *gin.Context) {
 	}
 }
 
+// LoginWithGoogle is a closure for the POST /account/login-with-google endpoint
+func LoginWithGoogle(DB db.Database) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		var login controllers.LoginWithGoogle
+
+		// validate login data
+		if err := ctx.ShouldBindJSON(&login); err != nil {
+			ctx.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
+
+		account.LoginWithGoogle(ctx, DB, &login)
+	}
+}
+
 // Signup is a closure for the POST /account/create endpoint
 func Signup(DB db.Database) func(g *gin.Context) {
 	return func(ctx *gin.Context) {

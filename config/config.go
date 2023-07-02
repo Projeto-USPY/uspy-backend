@@ -25,8 +25,9 @@ type Config struct {
 	AESKey    string `envconfig:"USPY_AES_KEY" required:"true" default:"71deb5a48500599862d9e2170a60f90194a49fa81c24eacfe9da15cb76ba8b11"` // only used in dev
 	RateLimit string `envconfig:"USPY_RATE_LIMIT"`                                                                                         // see github.com/ulule/limiter for more info
 
-	FirestoreKeyPath  string `envconfig:"USPY_FIRESTORE_KEY"`
-	MockFirestoreData bool   `envconfig:"USPY_MOCK_FIRESTORE_DATA" default:"false"`
+	FirestoreKeyPath    string `envconfig:"USPY_FIRESTORE_KEY"`
+	MockFirestoreData   bool   `envconfig:"USPY_MOCK_FIRESTORE_DATA" default:"false"`
+	GoogleOAuthClientID string `envconfig:"GOOGLE_OAUTH_CLIENT_ID"`
 
 	ProjectID string `envconfig:"USPY_PROJECT_ID"`
 
@@ -76,6 +77,7 @@ func (c Config) Redact() Config {
 	c.ProjectID = "[REDACTED]"
 	c.Mailjet.APIKey = "[REDACTED]"
 	c.Mailjet.Secret = "[REDACTED]"
+	c.GoogleOAuthClientID = "[REDACTED]"
 	return c
 }
 

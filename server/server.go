@@ -20,6 +20,7 @@ func setupAccount(DB db.Database, accountGroup *gin.RouterGroup) {
 	accountGroup.GET("/captcha", account.SignupCaptcha())
 	accountGroup.GET("/logout", middleware.JWT(), account.Logout())
 	accountGroup.POST("/login", account.Login(DB))
+	accountGroup.POST("/login-with-google", account.LoginWithGoogle(DB))
 	accountGroup.POST("/create", account.Signup(DB))
 	accountGroup.PUT("/password_change", middleware.JWT(), account.ChangePassword(DB))
 	accountGroup.PUT("/password_reset", account.ResetPassword(DB))

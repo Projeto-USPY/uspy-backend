@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"cloud.google.com/go/firestore"
 	"github.com/Projeto-USPY/uspy-backend/config"
 	"github.com/Projeto-USPY/uspy-backend/db"
@@ -22,6 +20,8 @@ import (
 	"github.com/Projeto-USPY/uspy-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/api/idtoken"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -449,6 +449,20 @@ func Login(ctx *gin.Context, DB db.Database, login *controllers.Login) {
 
 	ctx.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
 	account.Login(ctx, login.ID, name, storedUser.LastUpdate)
+}
+
+// Login performs the user login by comparing the passwordHash and the stored hash
+func LoginWithGoogle(ctx *gin.Context, DB db.Database, login *controllers.LoginWithGoogle) {
+	payload, err := idtoken.Validate(ctx, login.Token, config.Env.GoogleOAuthClientID)
+	if err != nil {
+		ctx.AbortWithError(http.StatusUnauthorized, err)
+		return
+	}
+
+	log.Infof("token: %+v", payload.Claims)
+	// TODO: After migration of ID from nUSP to email -> do login
+
+	ctx.AbortWithError(http.StatusNotImplemented, nil)
 }
 
 // Logout is a dummy method that simply calls the view method that will unset the access token cookie

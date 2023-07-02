@@ -6,3 +6,8 @@ type Login struct {
 	Password string `json:"pwd" binding:"required,validatePassword"`
 	Remember bool   `json:"remember"`
 }
+
+type LoginWithGoogle struct {
+	Token    string `json:"token" binding:"required"`
+	Remember bool   `json:"remember"`
+}
