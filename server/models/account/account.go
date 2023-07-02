@@ -489,8 +489,6 @@ func Login(ctx *gin.Context, DB db.Database, login *controllers.Login) {
 		return
 	}
 
-	domain := ctx.MustGet("front_domain").(string)
-
 	// expiration date = 1 month
 	secureCookie := !config.Env.IsLocal()
 	cookieAge := 0
@@ -506,7 +504,7 @@ func Login(ctx *gin.Context, DB db.Database, login *controllers.Login) {
 		return
 	}
 
-	ctx.SetCookie("access_token", jwtToken, cookieAge, "/", domain, secureCookie, true)
+	ctx.SetCookie("access_token", jwtToken, cookieAge, "/", "", secureCookie, true)
 	account.Login(ctx, login.ID, name, storedUser.LastUpdate)
 }
 

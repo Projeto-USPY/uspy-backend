@@ -403,18 +403,14 @@ func PublishComment(
 	userHash := models.User{ID: userID}.Hash()
 
 	// check if subject exists and if user has permission to comment
-	if err := db.CheckSubjectPermission(DB, userHash, modelSub.Hash()); err != nil {
-		if err == db.ErrSubjectNotFound {
+	_, err := DB.Restore("subjects/" + modelSub.Hash())
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", modelSub, err.Error()))
 			return
 		}
 
-		if err == db.ErrNoPermission {
-			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to comment: %s", userID, err.Error()))
-			return
-		}
-
-		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error checking subject permission: %s", err.Error()))
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error checking subject: %s", err.Error()))
 		return
 	} else if _, err := DB.Restore("subjects/" + modelSub.Hash() + "/offerings/" + off.Hash); err != nil {
 		if status.Code(err) == codes.NotFound {
@@ -441,7 +437,7 @@ func PublishComment(
 		Reports:   0,
 	}
 
-	err := DB.Client.RunTransaction(ctx, func(txCtx context.Context, tx *firestore.Transaction) error {
+	err = DB.Client.RunTransaction(ctx, func(txCtx context.Context, tx *firestore.Transaction) error {
 		collectionMask := "subjects/%s/offerings/%s/comments/%s"
 		commentRef := DB.Client.Doc(
 			fmt.Sprintf(

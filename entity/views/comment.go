@@ -16,6 +16,7 @@ type Comment struct {
 	Timestamp time.Time `json:"timestamp"`
 	Upvotes   int       `json:"upvotes"`
 	Downvotes int       `json:"downvotes"`
+	Verified  bool      `json:"verified"`
 }
 
 // NewCommentFromModel is a constructor. It takes a comment model and returns its response view object.
@@ -35,5 +36,6 @@ func NewCommentFromModel(model *models.Comment) *Comment {
 		Timestamp: model.Timestamp.In(loc),
 		Upvotes:   model.Upvotes,
 		Downvotes: model.Downvotes,
+		Verified:  model.Verified,
 	}
 }

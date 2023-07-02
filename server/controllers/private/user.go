@@ -9,6 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetSubjectVerification is a closure for the GET /private/subject/verification endpoint
+func GetSubjectVerification(DB db.Database) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		// get user and subject info
+		userID := ctx.MustGet("userID").(string)
+		sub := ctx.MustGet("Subject").(*controllers.Subject)
+
+		private.GetSubjectVerification(ctx, DB, userID, sub)
+	}
+}
+
 // GetSubjectGrade is a closure for the GET /private/subject/grade endpoint
 func GetSubjectGrade(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {

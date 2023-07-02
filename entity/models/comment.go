@@ -18,6 +18,8 @@ type Comment struct {
 	Downvotes int       `firestore:"downvotes"`
 	Reports   int       `firestore:"reports"`
 
+	Verified bool `firestore:"verified,omitempty"`
+
 	User string `firestore:"-"` // not stored just used for hashing
 }
 
