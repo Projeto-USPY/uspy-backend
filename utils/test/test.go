@@ -19,7 +19,11 @@ func setupAccessToken(router *gin.Engine) (*http.Cookie, error) {
 	// Login data
 	jsonBody := map[string]interface{}{"login": "123456789", "pwd": "r4nd0mpass123!@#", "remember": true}
 	payloadBuf := new(bytes.Buffer)
-	json.NewEncoder(payloadBuf).Encode(jsonBody)
+	err := json.NewEncoder(payloadBuf).Encode(jsonBody)
+
+	if err != nil {
+		return nil, err
+	}
 
 	// Execute login
 	w := utils.MakeRequest(router, http.MethodPost, "/account/login", payloadBuf)

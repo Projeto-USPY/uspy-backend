@@ -24,8 +24,8 @@ func checkSubjectRecords(DB Database, userHash, subHash string) error {
 	return err
 }
 
-// CheckSubjectPermission takes a user hash and a subject hash and checks whether the user has done this subject
-func CheckSubjectPermission(DB Database, userHash, subHash string) error {
+// CheckSubjectVerified takes a user hash and a subject hash and checks whether the user has done this subject
+func CheckSubjectVerified(DB Database, userHash, subHash string) error {
 	errSub, errRec := checkSubjectExists(DB, subHash), checkSubjectRecords(DB, userHash, subHash)
 	if errSub != nil {
 		return errSub

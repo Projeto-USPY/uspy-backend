@@ -16,6 +16,18 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// GetSubjectVerification retrieves the verification status of a subject for a user
+//
+// GetSubjectVerification is the model implementation for /server/controller/private/user.GetSubjectVerification
+func GetSubjectVerification(ctx *gin.Context, DB db.Database, userID string, sub *controllers.Subject) {
+	user, model := models.User{ID: userID}, models.NewSubjectFromController(sub)
+	userHash, subHash := user.Hash(), model.Hash()
+
+	err := db.CheckSubjectVerified(DB, userHash, subHash)
+
+	private.GetSubjectVerification(ctx, err == nil)
+}
+
 // GetSubjectGrade retrieves the grade a user has in the given subject
 //
 // GetSubjectGrade is the model implementation for /server/controller/private/user.GetSubjectGrade
@@ -59,15 +71,10 @@ func GetSubjectReview(ctx *gin.Context, DB db.Database, userID string, sub *cont
 	userHash, subHash := user.Hash(), model.Hash()
 	review := models.SubjectReview{}
 
-	err := db.CheckSubjectPermission(DB, userHash, subHash)
+	_, err := DB.Restore("subjects/" + model.Hash())
 	if err != nil {
-		if err == db.ErrSubjectNotFound {
+		if status.Code(err) == codes.NotFound {
 			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
-			return
-		}
-
-		if err == db.ErrNoPermission {
-			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
 			return
 		}
 
@@ -100,15 +107,11 @@ func GetSubjectReview(ctx *gin.Context, DB db.Database, userID string, sub *cont
 // UpdateSubjectReview is the model implementation for /server/controller/private/user.UpdateSubjectReview
 func UpdateSubjectReview(ctx *gin.Context, DB db.Database, userID string, review *controllers.SubjectReview) {
 	userHash, model := models.User{ID: userID}.Hash(), models.NewSubjectReviewFromController(review)
-	err := db.CheckSubjectPermission(DB, userHash, model.Hash())
-	if err != nil {
-		if err == db.ErrSubjectNotFound {
-			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
-			return
-		}
 
-		if err == db.ErrNoPermission {
-			ctx.AbortWithError(http.StatusForbidden, fmt.Errorf("user %v has no permission to get review: %s", userID, err.Error()))
+	_, err := DB.Restore("subjects/" + model.Hash())
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find subject %v: %s", model, err.Error()))
 			return
 		}
 
