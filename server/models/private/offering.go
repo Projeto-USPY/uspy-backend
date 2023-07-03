@@ -79,7 +79,7 @@ func GetCommentRating(
 		return
 	}
 
-	if snap.DataTo(&model); err != nil {
+	if err := snap.DataTo(&model); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("error binding comment: %s", err.Error()))
 		return
 	}
@@ -467,7 +467,11 @@ func PublishComment(
 		}
 
 		// upsert comment in database
-		tx.Set(commentRef, newComment)
+		err := tx.Set(commentRef, newComment)
+
+		if err != nil {
+			return err
+		}
 
 		// upsert replica in user comments (will be used in the future)
 		replica := models.UserComment{
