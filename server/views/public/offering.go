@@ -2,6 +2,7 @@ package public
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/Projeto-USPY/uspy-backend/entity/models"
 	"github.com/Projeto-USPY/uspy-backend/entity/views"
@@ -9,20 +10,52 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetOfferings takes the offering models and returns its response view objects
+// GetOfferingComments takes the comments models and returns their view response objects
 //
-// It also takes the IDs of the professors for each offering, since that information is not stored in the DTO.
-// Besides that, it sorts the offerings to rank most interesting ones on top
-// Since this is a public endpoint, results size is limited to 3
-func GetOfferings(ctx *gin.Context, IDs []string, offerings []*models.Offering) {
+// It also sorts comments to display most upvoted (and least downvoted) on top
+func GetOfferingComments(ctx *gin.Context, comments []*models.Comment) {
+	sort.Slice(comments, func(i, j int) bool {
+		if comments[i].Upvotes == comments[j].Upvotes {
+			return comments[i].Downvotes < comments[j].Downvotes
+		}
+
+		return comments[i].Upvotes > comments[j].Upvotes
+	})
+
+	results := make([]*views.Comment, 0)
+	for _, c := range comments {
+		results = append(results, views.NewCommentFromModel(c))
+	}
+
+	ctx.JSON(http.StatusOK, results)
+}
+
+// GetOfferingsWithStats takes the offering models and returns their view response objects
+//
+// It also takes IDs of the professors for each offering (given that this information is not stored in the model directly)
+// Finally, it sorts the offerings to display most interesting ones on top
+func GetOfferingsWithStats(
+	ctx *gin.Context,
+	IDs []string,
+	offerings []*models.Offering,
+	stats []*models.OfferingStats,
+	limit int,
+) {
 	results := make([]*views.Offering, 0, 20)
 
 	for i := 0; i < len(offerings); i++ {
-		results = append(results, views.NewPartialOfferingFromModel(IDs[i], offerings[i]))
+		results = append(results,
+			views.NewOfferingFromModel(
+				IDs[i],
+				offerings[i],
+				stats[i].Approval,
+				stats[i].Disapproval,
+				stats[i].Neutral,
+			),
+		)
 	}
 
 	views.SortOfferings(results)
 
-	// output only the first three
-	ctx.JSON(http.StatusOK, results[:utils.Min(len(results), 3)])
+	ctx.JSON(http.StatusOK, results[:utils.Min(limit, len(results))])
 }

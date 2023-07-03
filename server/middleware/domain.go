@@ -9,7 +9,7 @@ import (
 func DefineDomain() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if config.Env.IsLocal() {
-			ctx.Set("front_domain", "127.0.0.1")
+			ctx.Set("front_domain", config.Env.FrontOriginHost)
 			ctx.Next()
 			return
 		}

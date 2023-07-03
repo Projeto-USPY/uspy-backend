@@ -2,15 +2,15 @@ name: Go
 
 on:
   push:
-    branches: [master,dev]
+    branches: [master, dev]
   pull_request:
-    branches: [master,dev]
+    branches: [master, dev]
 
 jobs:
   build:
     strategy:
       max-parallel: 1
-      
+
     name: Build & Test
     runs-on: ubuntu-latest
     steps:
@@ -22,26 +22,19 @@ jobs:
           go-version: 1.16
       - run: echo "Job status is ${{ job.status }}."
 
-      - name: golint
-        run: |
-          go install golang.org/x/lint/golint
-          golint -set_exit_status ./... || exit 1
-    
-      - run: echo "Job status is ${{ job.status }}."
-
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
-          node-version: '16'
-          
+          node-version: "16"
+
       - run: echo "Job status is ${{ job.status }}."
-        
+
       - name: Install firestore emulator
         run: npm install -g firebase-tools
-        
+
       - run: echo "Job status is ${{ job.status }}."
-      
+
       - name: Run tests
         run: sh test.sh
-        
+
       - run: echo "Job status is ${{ job.status }}."

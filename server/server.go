@@ -61,7 +61,12 @@ func setupPublic(DB db.Database, apiGroup *gin.RouterGroup) {
 		subjectAPI.GET("", public.GetSubjectByCode(DB))
 		subjectAPI.GET("/relations", public.GetRelations(DB))
 		subjectAPI.GET("/siblings", public.GetSiblingSubjects(DB))
-		subjectAPI.GET("/offerings", public.GetOfferings(DB))
+		subjectAPI.GET("/offerings", public.GetOfferingsWithStats(DB))
+
+		offeringsAPI := subjectAPI.Group("/offerings", entity.OfferingBinder)
+		{
+			offeringsAPI.GET("/comments", public.GetOfferingComments(DB))
+		}
 	}
 }
 
@@ -69,12 +74,7 @@ func setupRestricted(DB db.Database, restrictedGroup *gin.RouterGroup) {
 	subjectAPI := restrictedGroup.Group("/subject", entity.SubjectBinder)
 	{
 		subjectAPI.GET("/grades", restricted.GetGrades(DB))
-		subjectAPI.GET("/offerings", restricted.GetOfferingsWithStats(DB))
 
-		offeringsAPI := subjectAPI.Group("/offerings", entity.OfferingBinder)
-		{
-			offeringsAPI.GET("/comments", restricted.GetOfferingComments(DB))
-		}
 	}
 }
 
