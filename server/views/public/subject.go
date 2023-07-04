@@ -38,8 +38,12 @@ func GetProfessors(ctx *gin.Context, professors []*models.Professor) {
 	ctx.JSON(http.StatusOK, viewProfessors)
 }
 
-// GetAllSubjects takes the course model and returns its response view object.
-func GetAllSubjects(ctx *gin.Context, model *models.Course) {
+func ListSubjects(ctx *gin.Context, model *models.Course) {
+	ctx.JSON(http.StatusOK, views.NewCourseFromModel(model))
+}
+
+// SearchSubjects takes the course model and returns its response view object.
+func SearchSubjects(ctx *gin.Context, model *models.Course) {
 	ctx.JSON(http.StatusOK, views.NewCourseFromModel(model))
 }
 

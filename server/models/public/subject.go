@@ -16,8 +16,40 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GetAllSubjects gets all subjects from a given course in the database
-func GetAllSubjects(ctx *gin.Context, DB db.Database, controller *controllers.Course) {
+// ListSubjectsByCourse gets all subjects from a given course in the database
+//
+// It differs from SearchSubjects because it does not take an institute parameter
+func ListSubjectsByCourse(ctx *gin.Context, DB db.Database, controller *controllers.Course) {
+	snaps, err := DB.Client.CollectionGroup("courses").
+		Where("code", "==", controller.Code).
+		Where("specialization", "==", controller.Specialization).
+		Documents(ctx).
+		GetAll()
+
+	if err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to fetch courses: %s", err))
+		return
+	} else if len(snaps) == 0 {
+		ctx.AbortWithError(http.StatusNotFound, fmt.Errorf("could not find course: %s", err))
+		return
+	} else if len(snaps) > 1 {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("found more than one course with the same code and specialization"))
+		return
+	}
+
+	var course models.Course
+	if err := snaps[0].DataTo(&course); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, fmt.Errorf("failed to bind course to object: %s", err))
+		return
+	}
+
+	public.ListSubjects(ctx, &course)
+}
+
+// SearchSubjects gets all subjects from a given course in the database
+//
+// This differs from SubjectsByCourseIdentifier because it uses the institute to find the course
+func SearchSubjects(ctx *gin.Context, DB db.Database, controller *controllers.InstituteCourse) {
 	course := models.NewCourseFromController(controller)
 	snap, err := DB.Restore(fmt.Sprintf(
 		"institutes/%s/courses/%s",
@@ -40,7 +72,7 @@ func GetAllSubjects(ctx *gin.Context, DB db.Database, controller *controllers.Co
 		return
 	}
 
-	public.GetAllSubjects(ctx, &courseModel)
+	public.SearchSubjects(ctx, &courseModel)
 }
 
 // Get gets a subject by its identifier: subject code, course code and course specialization code

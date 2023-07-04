@@ -7,11 +7,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetSubjects is a closure for the GET /api/subject/all endpoint
-func GetSubjects(DB db.Database) func(ctx *gin.Context) {
+// ListSubjects is a closure for the GET /api/subject/list endpoint
+func ListSubjects(DB db.Database) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		course := ctx.MustGet("Course").(*controllers.Course)
-		public.GetAllSubjects(ctx, DB, course)
+		public.ListSubjectsByCourse(ctx, DB, course)
+	}
+}
+
+// GetSubjects is a closure for the GET /api/subject/search endpoint
+func GetSubjects(DB db.Database) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		course := ctx.MustGet("InstituteCourse").(*controllers.InstituteCourse)
+		public.SearchSubjects(ctx, DB, course)
 	}
 }
 
