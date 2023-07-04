@@ -30,7 +30,7 @@ func TestSubjectSuite(t *testing.T) {
 }
 
 func (s *SubjectSuite) TestGetAllBCC() {
-	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/all?institute=55&course=55041&specialization=0", nil)
+	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/search?institute=55&course=55041&specialization=0", nil)
 
 	expectedResponse := `{
 		"name": "Bacharelado em Ciências de Computação",
@@ -50,7 +50,7 @@ func (s *SubjectSuite) TestGetAllBCC() {
 	s.JSONEq(expectedResponse, string(bytes))
 }
 func (s *SubjectSuite) TestGetAllBCD() {
-	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/all?institute=55&course=55090&specialization=0", nil)
+	w := utils.MakeRequest(s.router, http.MethodGet, "/api/subject/search?institute=55&course=55090&specialization=0", nil)
 
 	expectedResponse := `{
 		"name": "Bacharelado em Ciência de Dados",

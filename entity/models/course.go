@@ -26,7 +26,7 @@ type Course struct {
 }
 
 // NewCourseFromController is a constructor. It takes a course controller and returns a model.
-func NewCourseFromController(course *controllers.Course) *Course {
+func NewCourseFromController(course *controllers.InstituteCourse) *Course {
 	return &Course{
 		Code:           course.Code,
 		Specialization: course.Specialization,
