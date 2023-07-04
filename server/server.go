@@ -52,7 +52,7 @@ func setupAccount(DB db.Database, accountGroup *gin.RouterGroup) {
 
 func setupPublic(DB db.Database, apiGroup *gin.RouterGroup) {
 	apiGroup.GET("/stats", public.GetStats(DB))
-	apiGroup.GET("/subject/list", entity.CourseBinder, public.GetSubjects(DB))
+	apiGroup.GET("/subject/list", entity.CourseBinder, public.ListSubjects(DB))
 	apiGroup.GET("/subject/search", entity.InstituteCourseBinder, public.GetSubjects(DB))
 	apiGroup.GET("/institutes", public.GetInstitutes(DB))
 	apiGroup.GET("/courses", entity.InstituteBinder, public.GetCourses(DB))
